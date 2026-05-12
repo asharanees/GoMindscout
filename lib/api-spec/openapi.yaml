@@ -3,20 +3,36 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: MentorBridge API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: categories
+    description: Mentor categories
+  - name: mentors
+    description: Mentor profiles
+  - name: packages
+    description: Mentor packages
+  - name: bookings
+    description: Session bookings
+  - name: reviews
+    description: Session reviews
+  - name: payments
+    description: Payment processing
+  - name: admin
+    description: Admin operations
+  - name: users
+    description: User profile management
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +40,796 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── Users ──────────────────────────────────────────────────────────────────
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserProfileUpdate"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  # ── Categories ─────────────────────────────────────────────────────────────
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: List all categories with mentor counts
+      responses:
+        "200":
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  # ── Mentors ────────────────────────────────────────────────────────────────
+  /mentors:
+    get:
+      operationId: listMentors
+      tags: [mentors]
+      summary: Search and filter approved mentors
+      parameters:
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: category
+          in: query
+          schema: { type: string }
+        - name: language
+          in: query
+          schema: { type: string }
+        - name: minPrice
+          in: query
+          schema: { type: number }
+        - name: maxPrice
+          in: query
+          schema: { type: number }
+        - name: minRating
+          in: query
+          schema: { type: number }
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [featured, rating, price_asc, price_desc, experience, newest]
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Paginated mentor list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorListResponse"
+    post:
+      operationId: createMentorProfile
+      tags: [mentors]
+      summary: Submit a new mentor profile (pending approval)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MentorProfileInput"
+      responses:
+        "201":
+          description: Created mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+
+  /mentors/featured:
+    get:
+      operationId: getFeaturedMentors
+      tags: [mentors]
+      summary: Get featured mentors for homepage
+      responses:
+        "200":
+          description: Featured mentors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MentorProfile"
+
+  /mentors/me:
+    get:
+      operationId: getMyMentorProfile
+      tags: [mentors]
+      summary: Get the authenticated mentor's own profile
+      responses:
+        "200":
+          description: Own mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+        "404":
+          description: No mentor profile found
+    patch:
+      operationId: updateMyMentorProfile
+      tags: [mentors]
+      summary: Update own mentor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MentorProfileUpdate"
+      responses:
+        "200":
+          description: Updated mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+
+  /mentors/{mentorId}:
+    get:
+      operationId: getMentor
+      tags: [mentors]
+      summary: Get a mentor profile by ID
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+        "404":
+          description: Not found
+
+  # ── Packages ───────────────────────────────────────────────────────────────
+  /mentors/{mentorId}/packages:
+    get:
+      operationId: listMentorPackages
+      tags: [packages]
+      summary: List packages for a mentor
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: List of packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Package"
+
+  /packages:
+    post:
+      operationId: createPackage
+      tags: [packages]
+      summary: Create a package for own mentor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageInput"
+      responses:
+        "201":
+          description: Created package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Package"
+
+  /packages/{packageId}:
+    patch:
+      operationId: updatePackage
+      tags: [packages]
+      summary: Update a package
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PackageUpdate"
+      responses:
+        "200":
+          description: Updated package
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Package"
+    delete:
+      operationId: deletePackage
+      tags: [packages]
+      summary: Deactivate a package
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  # ── Bookings ───────────────────────────────────────────────────────────────
+  /bookings:
+    get:
+      operationId: listMyBookings
+      tags: [bookings]
+      summary: List bookings for current user (mentee or mentor)
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [mentee, mentor]
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+    post:
+      operationId: createBooking
+      tags: [bookings]
+      summary: Create a booking (initiates payment flow)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingInput"
+      responses:
+        "201":
+          description: Created booking with Stripe checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookingWithCheckout"
+
+  /bookings/{bookingId}:
+    get:
+      operationId: getBooking
+      tags: [bookings]
+      summary: Get a single booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+    patch:
+      operationId: updateBookingStatus
+      tags: [bookings]
+      summary: Update booking status (mentor or admin)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingStatusUpdate"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/meeting-link:
+    patch:
+      operationId: updateMeetingLink
+      tags: [bookings]
+      summary: Mentor sets the meeting link for a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MeetingLinkUpdate"
+      responses:
+        "200":
+          description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  # ── Payments ───────────────────────────────────────────────────────────────
+  /payments/webhook:
+    post:
+      operationId: stripeWebhook
+      tags: [payments]
+      summary: Stripe webhook endpoint
+      responses:
+        "200":
+          description: Received
+
+  # ── Reviews ────────────────────────────────────────────────────────────────
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Submit a review for a completed booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Created review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /mentors/{mentorId}/reviews:
+    get:
+      operationId: listMentorReviews
+      tags: [reviews]
+      summary: Get reviews for a mentor
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  # ── Dashboard stats (wow endpoints) ────────────────────────────────────────
+  /dashboard/mentee-stats:
+    get:
+      operationId: getMenteeDashboardStats
+      tags: [users]
+      summary: Mentee dashboard summary stats
+      responses:
+        "200":
+          description: Mentee stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MenteeDashboardStats"
+
+  /dashboard/mentor-stats:
+    get:
+      operationId: getMentorDashboardStats
+      tags: [mentors]
+      summary: Mentor dashboard summary stats
+      responses:
+        "200":
+          description: Mentor stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorDashboardStats"
+
+  # ── Admin ──────────────────────────────────────────────────────────────────
+  /admin/mentors:
+    get:
+      operationId: adminListMentors
+      tags: [admin]
+      summary: Admin list all mentors (any status)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: All mentor profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MentorProfile"
+
+  /admin/mentors/{mentorId}/approve:
+    patch:
+      operationId: adminApproveMentor
+      tags: [admin]
+      summary: Approve or reject a mentor
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MentorApproval"
+      responses:
+        "200":
+          description: Updated mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+
+  /admin/mentors/{mentorId}/feature:
+    patch:
+      operationId: adminFeatureMentor
+      tags: [admin]
+      summary: Toggle featured status of a mentor
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeatureToggle"
+      responses:
+        "200":
+          description: Updated mentor profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MentorProfile"
+
+  /admin/bookings:
+    get:
+      operationId: adminListBookings
+      tags: [admin]
+      summary: Admin list all bookings
+      responses:
+        "200":
+          description: All bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Booking"
+
+  /admin/stats:
+    get:
+      operationId: adminGetStats
+      tags: [admin]
+      summary: Platform-wide stats for admin dashboard
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
       type: object
       properties:
+        status: { type: string }
+      required: [status]
+
+    UserProfile:
+      type: object
+      required: [id, clerkId, email, role, createdAt]
+      properties:
+        id: { type: integer }
+        clerkId: { type: string }
+        email: { type: string }
+        fullName: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        role: { type: string, enum: [mentee, mentor, admin] }
+        createdAt: { type: string }
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        fullName: { type: string }
+        avatarUrl: { type: string }
+
+    Category:
+      type: object
+      required: [id, name, slug, mentorCount]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        slug: { type: string }
+        description: { type: ["string", "null"] }
+        icon: { type: ["string", "null"] }
+        mentorCount: { type: integer }
+
+    MentorProfile:
+      type: object
+      required: [id, userId, headline, status, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        fullName: { type: ["string", "null"] }
+        avatarUrl: { type: ["string", "null"] }
+        headline: { type: string }
+        bio: { type: ["string", "null"] }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        industry: { type: ["string", "null"] }
+        expertiseTags: { type: array, items: { type: string } }
+        yearsExperience: { type: ["integer", "null"] }
+        languages: { type: array, items: { type: string } }
+        hourlyRate: { type: ["number", "null"] }
+        introVideoUrl: { type: ["string", "null"] }
+        linkedinUrl: { type: ["string", "null"] }
+        calendlyUrl: { type: ["string", "null"] }
+        status: { type: string, enum: [pending, approved, rejected, suspended] }
+        isFeatured: { type: boolean }
+        averageRating: { type: ["number", "null"] }
+        totalReviews: { type: integer }
+        totalSessions: { type: integer }
+        createdAt: { type: string }
+
+    MentorProfileInput:
+      type: object
+      required: [headline]
+      properties:
+        headline: { type: string }
+        bio: { type: string }
+        categoryId: { type: integer }
+        industry: { type: string }
+        expertiseTags: { type: array, items: { type: string } }
+        yearsExperience: { type: integer }
+        languages: { type: array, items: { type: string } }
+        hourlyRate: { type: number }
+        introVideoUrl: { type: string }
+        linkedinUrl: { type: string }
+        calendlyUrl: { type: string }
+
+    MentorProfileUpdate:
+      type: object
+      properties:
+        headline: { type: string }
+        bio: { type: string }
+        categoryId: { type: integer }
+        industry: { type: string }
+        expertiseTags: { type: array, items: { type: string } }
+        yearsExperience: { type: integer }
+        languages: { type: array, items: { type: string } }
+        hourlyRate: { type: number }
+        introVideoUrl: { type: string }
+        linkedinUrl: { type: string }
+        calendlyUrl: { type: string }
+
+    MentorListResponse:
+      type: object
+      required: [mentors, total, page, limit]
+      properties:
+        mentors:
+          type: array
+          items:
+            $ref: "#/components/schemas/MentorProfile"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    Package:
+      type: object
+      required: [id, mentorId, title, type, price, isActive]
+      properties:
+        id: { type: integer }
+        mentorId: { type: integer }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        type: { type: string, enum: [video_30, video_60, email] }
+        durationMinutes: { type: ["integer", "null"] }
+        price: { type: number }
+        isActive: { type: boolean }
+
+    PackageInput:
+      type: object
+      required: [title, type, price]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        type: { type: string, enum: [video_30, video_60, email] }
+        durationMinutes: { type: integer }
+        price: { type: number }
+
+    PackageUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        isActive: { type: boolean }
+
+    Booking:
+      type: object
+      required: [id, menteeId, mentorId, packageId, status, amount, createdAt]
+      properties:
+        id: { type: integer }
+        menteeId: { type: integer }
+        mentorId: { type: integer }
+        packageId: { type: integer }
         status:
           type: string
-      required:
-        - status
+          enum: [pending_payment, paid, scheduled, completed, cancelled, refunded]
+        scheduledAt: { type: ["string", "null"] }
+        meetingLink: { type: ["string", "null"] }
+        amount: { type: number }
+        platformFee: { type: number }
+        stripeSessionId: { type: ["string", "null"] }
+        createdAt: { type: string }
+        mentorName: { type: ["string", "null"] }
+        menteeName: { type: ["string", "null"] }
+        packageTitle: { type: ["string", "null"] }
+        packageType: { type: ["string", "null"] }
+        mentorAvatarUrl: { type: ["string", "null"] }
+        menteeAvatarUrl: { type: ["string", "null"] }
+        hasReview: { type: boolean }
 
+    BookingInput:
+      type: object
+      required: [packageId]
+      properties:
+        packageId: { type: integer }
+
+    BookingWithCheckout:
+      type: object
+      required: [booking, checkoutUrl]
+      properties:
+        booking:
+          $ref: "#/components/schemas/Booking"
+        checkoutUrl: { type: string }
+
+    BookingStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled]
+
+    MeetingLinkUpdate:
+      type: object
+      required: [meetingLink]
+      properties:
+        meetingLink: { type: string }
+        scheduledAt: { type: string }
+
+    Review:
+      type: object
+      required: [id, bookingId, mentorId, menteeId, rating, createdAt]
+      properties:
+        id: { type: integer }
+        bookingId: { type: integer }
+        mentorId: { type: integer }
+        menteeId: { type: integer }
+        rating: { type: integer }
+        comment: { type: ["string", "null"] }
+        menteeName: { type: ["string", "null"] }
+        menteeAvatarUrl: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ReviewInput:
+      type: object
+      required: [bookingId, rating]
+      properties:
+        bookingId: { type: integer }
+        rating: { type: integer }
+        comment: { type: string }
+
+    MenteeDashboardStats:
+      type: object
+      required: [totalBookings, completedSessions, upcomingSessions, totalSpent]
+      properties:
+        totalBookings: { type: integer }
+        completedSessions: { type: integer }
+        upcomingSessions: { type: integer }
+        totalSpent: { type: number }
+        pendingReviews: { type: integer }
+
+    MentorDashboardStats:
+      type: object
+      required: [totalBookings, completedSessions, upcomingSessions, totalEarnings, averageRating]
+      properties:
+        totalBookings: { type: integer }
+        completedSessions: { type: integer }
+        upcomingSessions: { type: integer }
+        totalEarnings: { type: number }
+        averageRating: { type: ["number", "null"] }
+        totalReviews: { type: integer }
+        profileStatus: { type: string }
+
+    MentorApproval:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [approved, rejected, suspended] }
+        rejectionReason: { type: string }
+
+    FeatureToggle:
+      type: object
+      required: [isFeatured]
+      properties:
+        isFeatured: { type: boolean }
+
+    AdminStats:
+      type: object
+      required: [totalMentors, pendingMentors, totalMentees, totalBookings, totalRevenue, completedSessions]
+      properties:
+        totalMentors: { type: integer }
+        pendingMentors: { type: integer }
+        totalMentees: { type: integer }
+        totalBookings: { type: integer }
+        totalRevenue: { type: number }
+        completedSessions: { type: integer }
+        recentBookings: { type: integer }
