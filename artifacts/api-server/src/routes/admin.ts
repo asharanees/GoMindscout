@@ -1,18 +1,12 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
-import { db, mentorProfilesTable, usersTable, bookingsTable, categoriesTable, reviewsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
-import { requireAuth, getUserByClerkId } from "../lib/auth";
+import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable } from "@workspace/db";
+import { eq, sql } from "drizzle-orm";
+import { requireAdminSession } from "../middlewares/requireAdminSession";
 
 const router = Router();
 
-async function requireAdmin(req: any, res: any) {
-  const { userId } = getAuth(req);
-  if (!userId) { res.status(401).json({ error: "Unauthorized" }); return null; }
-  const user = await getUserByClerkId(userId);
-  if (!user || user.role !== "admin") { res.status(403).json({ error: "Forbidden" }); return null; }
-  return user;
-}
+// All admin routes require an active admin session cookie
+router.use(requireAdminSession);
 
 function mentorToResponse(mentor: any, user: any) {
   return {
@@ -33,6 +27,7 @@ function mentorToResponse(mentor: any, user: any) {
     linkedinUrl: mentor.linkedinUrl,
     calendlyUrl: mentor.calendlyUrl,
     status: mentor.status,
+    rejectionReason: mentor.rejectionReason ?? null,
     isFeatured: mentor.isFeatured,
     averageRating: null,
     totalReviews: 0,
@@ -42,10 +37,7 @@ function mentorToResponse(mentor: any, user: any) {
 }
 
 // GET /api/admin/mentors
-router.get("/mentors", requireAuth, async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
+router.get("/mentors", async (req, res) => {
   const { status } = req.query as Record<string, string>;
   try {
     let mentors;
@@ -70,10 +62,7 @@ router.get("/mentors", requireAuth, async (req, res) => {
 });
 
 // PATCH /api/admin/mentors/:mentorId/approve
-router.patch("/mentors/:mentorId/approve", requireAuth, async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
+router.patch("/mentors/:mentorId/approve", async (req, res) => {
   const mentorId = parseInt(req.params.mentorId);
   const { status, rejectionReason } = req.body;
 
@@ -95,10 +84,7 @@ router.patch("/mentors/:mentorId/approve", requireAuth, async (req, res) => {
 });
 
 // PATCH /api/admin/mentors/:mentorId/feature
-router.patch("/mentors/:mentorId/feature", requireAuth, async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
+router.patch("/mentors/:mentorId/feature", async (req, res) => {
   const mentorId = parseInt(req.params.mentorId);
   const { isFeatured } = req.body;
 
@@ -119,10 +105,7 @@ router.patch("/mentors/:mentorId/feature", requireAuth, async (req, res) => {
 });
 
 // GET /api/admin/bookings
-router.get("/bookings", requireAuth, async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
+router.get("/bookings", async (req, res) => {
   try {
     const bookings = await db.select().from(bookingsTable).orderBy(sql`${bookingsTable.createdAt} DESC`);
 
@@ -145,8 +128,6 @@ router.get("/bookings", requireAuth, async (req, res) => {
           createdAt: booking.createdAt.toISOString(),
           mentorName: mentorUser?.fullName ?? null,
           menteeName: menteeUser?.fullName ?? null,
-          packageTitle: null,
-          packageType: null,
           mentorAvatarUrl: mentorUser?.avatarUrl ?? null,
           menteeAvatarUrl: menteeUser?.avatarUrl ?? null,
           hasReview: false,
@@ -162,10 +143,7 @@ router.get("/bookings", requireAuth, async (req, res) => {
 });
 
 // GET /api/admin/stats
-router.get("/stats", requireAuth, async (req, res) => {
-  const user = await requireAdmin(req, res);
-  if (!user) return;
-
+router.get("/stats", async (req, res) => {
   try {
     const [mentorCount] = await db.select({ count: sql<number>`count(*)` }).from(mentorProfilesTable).where(eq(mentorProfilesTable.status, "approved"));
     const [pendingCount] = await db.select({ count: sql<number>`count(*)` }).from(mentorProfilesTable).where(eq(mentorProfilesTable.status, "pending"));

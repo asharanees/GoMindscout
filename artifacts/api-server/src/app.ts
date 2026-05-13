@@ -1,5 +1,6 @@
 import express, { type Express } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
@@ -36,6 +37,7 @@ app.use(
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 
 app.use(cors({ credentials: true, origin: true }));
+app.use(cookieParser(process.env.SESSION_SECRET));
 
 // Raw body for Stripe webhook — must come before express.json()
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));

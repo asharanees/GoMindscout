@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,30 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X } from "lucide-react";
+import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck } from "lucide-react";
+
+function useAdminSession() {
+  const [authenticated, setAuthenticated] = useState<boolean | null>(null);
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    fetch("/api/admin/me", { credentials: "include" })
+      .then((r) => {
+        if (r.ok) {
+          setAuthenticated(true);
+        } else {
+          setAuthenticated(false);
+          setLocation("/admin-login");
+        }
+      })
+      .catch(() => {
+        setAuthenticated(false);
+        setLocation("/admin-login");
+      });
+  }, [setLocation]);
+
+  return authenticated;
+}
 
 function RejectDialog({ mentor, onClose }: { mentor: any; onClose: () => void }) {
   const [reason, setReason] = useState("");
@@ -111,13 +134,13 @@ function MentorRow({ mentor }: { mentor: any }) {
   };
 
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-border last:border-0">
+    <div className="flex items-center gap-4 py-4 border-b border-border last:border-0" data-testid="mentor-row">
       <Avatar className="h-10 w-10 shrink-0">
         <AvatarImage src={mentor.avatarUrl ?? undefined} />
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <p className="font-medium text-sm text-foreground">{mentor.fullName || "Unknown"}</p>
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[mentor.status] ?? "bg-gray-100 text-gray-800"}`}>{mentor.status}</span>
           {mentor.isFeatured && <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">Featured</Badge>}
@@ -126,7 +149,7 @@ function MentorRow({ mentor }: { mentor: any }) {
         {mentor.industry && <p className="text-xs text-muted-foreground">{mentor.industry}</p>}
         {mentor.rejectionReason && <p className="text-xs text-destructive mt-0.5">Reason: {mentor.rejectionReason}</p>}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
         <Button
           size="sm"
           variant="outline"
@@ -138,15 +161,15 @@ function MentorRow({ mentor }: { mentor: any }) {
           <Star className={`h-3 w-3 mr-1 ${mentor.isFeatured ? "fill-amber-400 text-amber-400" : ""}`} />
           {mentor.isFeatured ? "Unfeature" : "Feature"}
         </Button>
-        {mentor.status === "pending" && (
-          <>
-            <Button size="sm" className="text-xs h-7 px-2 bg-green-600 hover:bg-green-700 text-white" onClick={handleApprove} disabled={approvePending} data-testid="approve-mentor-btn">
-              <CheckCircle className="h-3 w-3 mr-1" /> Approve
-            </Button>
-            <Button size="sm" variant="outline" className="text-xs h-7 px-2 text-destructive border-destructive/30 hover:bg-destructive hover:text-white" onClick={() => setRejectOpen(true)} data-testid="reject-mentor-btn">
-              <X className="h-3 w-3 mr-1" /> Reject
-            </Button>
-          </>
+        {mentor.status !== "approved" && (
+          <Button size="sm" className="text-xs h-7 px-2 bg-green-600 hover:bg-green-700 text-white" onClick={handleApprove} disabled={approvePending} data-testid="approve-mentor-btn">
+            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+          </Button>
+        )}
+        {mentor.status !== "rejected" && (
+          <Button size="sm" variant="outline" className="text-xs h-7 px-2 text-destructive border-destructive/30 hover:bg-destructive hover:text-white" onClick={() => setRejectOpen(true)} data-testid="reject-mentor-btn">
+            <X className="h-3 w-3 mr-1" /> Reject
+          </Button>
         )}
       </div>
       {rejectOpen && <RejectDialog mentor={mentor} onClose={() => setRejectOpen(false)} />}
@@ -155,18 +178,34 @@ function MentorRow({ mentor }: { mentor: any }) {
 }
 
 function AdminContent() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const { data: stats, isLoading: statsLoading } = useAdminGetStats();
   const { data: pendingMentors } = useAdminListMentors({ status: "pending" });
   const { data: allMentors } = useAdminListMentors();
   const { data: bookings } = useAdminListBookings();
 
+  async function handleLogout() {
+    await fetch("/api/admin/logout", { method: "POST", credentials: "include" });
+    toast({ title: "Logged out of admin panel" });
+    setLocation("/admin-login");
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="bg-primary/5 border-b border-border py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage mentors, bookings, and platform stats</p>
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
+            </div>
+            <p className="text-muted-foreground text-sm">Manage mentors, bookings, and platform stats</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5" data-testid="admin-logout-btn">
+            <LogOut className="h-4 w-4" /> Logout
+          </Button>
         </div>
       </div>
 
@@ -195,7 +234,12 @@ function AdminContent() {
 
         <Tabs defaultValue="pending">
           <TabsList>
-            <TabsTrigger value="pending">Pending ({pendingMentors?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="pending">
+              Pending
+              {pendingMentors && pendingMentors.length > 0 && (
+                <span className="ml-1.5 bg-yellow-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{pendingMentors.length}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="all-mentors">All Mentors</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
           </TabsList>
@@ -258,7 +302,7 @@ function AdminContent() {
                               b.status === "paid" || b.status === "scheduled" ? "bg-blue-100 text-blue-800" :
                               b.status === "cancelled" ? "bg-red-100 text-red-800" :
                               "bg-gray-100 text-gray-800"
-                            }`}>{b.status}</span>
+                            }`}>{b.status.replace("_", " ")}</span>
                           </td>
                           <td className="py-3 text-muted-foreground text-xs">{new Date(b.createdAt).toLocaleDateString()}</td>
                         </tr>
@@ -277,9 +321,17 @@ function AdminContent() {
 }
 
 export default function AdminPage() {
-  return (
-    <ProtectedRoute>
-      <AdminContent />
-    </ProtectedRoute>
-  );
+  const authenticated = useAdminSession();
+
+  if (authenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-muted-foreground text-sm">Checking authentication...</div>
+      </div>
+    );
+  }
+
+  if (!authenticated) return null;
+
+  return <AdminContent />;
 }

@@ -8,6 +8,7 @@ import bookingsRouter from "./bookings";
 import paymentsRouter from "./payments";
 import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
+import adminAuthRouter from "./admin-auth";
 import adminRouter from "./admin";
 
 const router: IRouter = Router();
@@ -26,6 +27,11 @@ router.use("/mentors", packagesRouter);
 router.use("/mentors", reviewsRouter);
 
 router.use("/dashboard", dashboardRouter);
+
+// Admin auth (login/logout/me) — no session required
+router.use("/admin", adminAuthRouter);
+
+// Admin data routes — protected by session middleware inside adminRouter
 router.use("/admin", adminRouter);
 
 export default router;
