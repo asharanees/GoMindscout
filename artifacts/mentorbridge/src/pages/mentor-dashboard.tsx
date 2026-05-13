@@ -22,7 +22,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, DollarSign, CheckCircle, Star, Clock, Link2, Edit } from "lucide-react";
+import { Calendar, DollarSign, CheckCircle, Star, Clock, Link2, Edit, Zap, ExternalLink, Copy } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
@@ -42,12 +42,29 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
   const queryClient = useQueryClient();
   const { mutate: updateLink, isPending } = useUpdateMeetingLink();
 
+  function generateJitsiRoom() {
+    const roomName = `mentorbridge-${booking.id}-${Math.random().toString(36).slice(2, 7)}`;
+    const link = `https://meet.jit.si/${roomName}`;
+    setMeetingLink(link);
+    toast({ title: "Room generated", description: "A unique Jitsi room has been created for this session." });
+  }
+
+  function openAndFill(baseUrl: string) {
+    window.open(baseUrl, "_blank", "noopener");
+    toast({ title: "Opened in new tab", description: "Copy the meeting link from there and paste it below." });
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(meetingLink);
+    toast({ title: "Copied to clipboard" });
+  }
+
   function submit() {
     updateLink(
       { bookingId: booking.id, data: { meetingLink, scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined } },
       {
         onSuccess: () => {
-          toast({ title: "Meeting link added!" });
+          toast({ title: "Meeting link saved!" });
           queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
           onClose();
         },
@@ -60,15 +77,71 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Meeting Link</DialogTitle>
+          <DialogTitle>Set Up Meeting Link</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="space-y-5 py-2">
+          {/* Quick-generate section */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Quick generate</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={generateJitsiRoom}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center"
+                data-testid="generate-jitsi-btn"
+              >
+                <Zap className="h-5 w-5 text-primary" />
+                <span className="text-xs font-medium text-foreground leading-tight">Jitsi</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">Instant, free</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAndFill("https://meet.google.com/new")}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center"
+                data-testid="open-google-meet-btn"
+              >
+                <ExternalLink className="h-5 w-5 text-blue-500" />
+                <span className="text-xs font-medium text-foreground leading-tight">Google Meet</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">Opens new tab</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openAndFill("https://zoom.us/start/videomeeting")}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center"
+                data-testid="open-zoom-btn"
+              >
+                <ExternalLink className="h-5 w-5 text-blue-600" />
+                <span className="text-xs font-medium text-foreground leading-tight">Zoom</span>
+                <span className="text-[10px] text-muted-foreground leading-tight">Opens new tab</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Jitsi creates a free room instantly — no account needed. Google Meet and Zoom open in a new tab so you can copy your link.
+            </p>
+          </div>
+
+          {/* Manual URL field */}
           <div>
             <Label htmlFor="meeting-link" className="mb-2 block">Meeting URL</Label>
-            <Input id="meeting-link" placeholder="https://meet.google.com/..." value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)} data-testid="meeting-link-input" />
+            <div className="flex gap-2">
+              <Input
+                id="meeting-link"
+                placeholder="https://meet.jit.si/..."
+                value={meetingLink}
+                onChange={(e) => setMeetingLink(e.target.value)}
+                data-testid="meeting-link-input"
+                className="flex-1"
+              />
+              {meetingLink && (
+                <Button type="button" variant="outline" size="icon" onClick={copyLink} title="Copy link" data-testid="copy-link-btn">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
+
           <div>
             <Label htmlFor="scheduled-at" className="mb-2 block">Schedule Time (optional)</Label>
             <Input id="scheduled-at" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} data-testid="scheduled-at-input" />
@@ -77,7 +150,7 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={submit} disabled={isPending || !meetingLink} className="bg-primary hover:bg-primary/90" data-testid="save-meeting-link-btn">
-            {isPending ? "Saving..." : "Save"}
+            {isPending ? "Saving..." : "Save Link"}
           </Button>
         </DialogFooter>
       </DialogContent>
