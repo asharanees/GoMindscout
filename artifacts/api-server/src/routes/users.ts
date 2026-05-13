@@ -16,7 +16,21 @@ router.get("/me", requireAuth, async (req, res) => {
     const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId!)).limit(1);
 
     if (existing.length > 0) {
-      const u = existing[0];
+      let u = existing[0];
+      // Sync name/avatar from Clerk if they're missing in DB
+      const clerkName = (clerkUser?.sessionClaims?.name as string) || null;
+      const clerkAvatar = (clerkUser?.sessionClaims?.picture as string) || null;
+      if ((!u.fullName && clerkName) || (!u.avatarUrl && clerkAvatar)) {
+        const [updated] = await db
+          .update(usersTable)
+          .set({
+            ...((!u.fullName && clerkName) ? { fullName: clerkName } : {}),
+            ...((!u.avatarUrl && clerkAvatar) ? { avatarUrl: clerkAvatar } : {}),
+          })
+          .where(eq(usersTable.clerkId, userId!))
+          .returning();
+        if (updated) u = updated;
+      }
       res.json({
         id: u.id,
         clerkId: u.clerkId,

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateMentorProfile, useCreatePackage, useListCategories } from "@workspace/api-client-react";
+import { useCreateMentorProfile, useCreatePackage, useListCategories, useUpdateMe } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
 
@@ -20,8 +20,10 @@ function OnboardingContent() {
   const { data: categories } = useListCategories();
   const { mutate: createProfile, isPending: profilePending } = useCreateMentorProfile();
   const { mutate: createPackage } = useCreatePackage();
+  const { mutate: updateMe } = useUpdateMe();
 
   const [form, setForm] = useState({
+    fullName: "",
     headline: "",
     bio: "",
     industry: "",
@@ -41,6 +43,10 @@ function OnboardingContent() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.fullName.trim()) {
+      toast({ title: "Full name required", description: "Please enter your full name.", variant: "destructive" });
+      return;
+    }
     if (!form.headline.trim()) {
       toast({ title: "Headline required", description: "Please add a professional headline.", variant: "destructive" });
       return;
@@ -48,6 +54,11 @@ function OnboardingContent() {
 
     const tags = form.expertiseTags.split(",").map((t) => t.trim()).filter(Boolean);
     const langs = form.languages.split(",").map((l) => l.trim()).filter(Boolean);
+
+    // Save name to user record first
+    if (form.fullName.trim()) {
+      updateMe({ data: { fullName: form.fullName.trim() } } as any);
+    }
 
     createProfile(
       {
@@ -123,6 +134,11 @@ function OnboardingContent() {
       <form onSubmit={submit} className="flex-1 max-w-2xl mx-auto px-4 py-8 w-full space-y-6">
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-foreground">Your Professional Profile</h2>
+
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name <span className="text-destructive">*</span></Label>
+            <Input id="fullName" placeholder="e.g. Jane Smith" value={form.fullName} onChange={(e) => update("fullName", e.target.value)} data-testid="fullname-input" />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="headline">Professional Headline <span className="text-destructive">*</span></Label>

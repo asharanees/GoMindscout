@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   useGetMyMentorProfile,
   useUpdateMyMentorProfile,
+  useUpdateMe,
   useListCategories,
   useListMentorPackages,
   useCreatePackage,
@@ -27,10 +28,12 @@ function EditContent() {
   const { data: mentor, isLoading } = useGetMyMentorProfile();
   const { data: categories } = useListCategories();
   const { mutate: updateProfile, isPending } = useUpdateMyMentorProfile();
+  const { mutate: updateMe } = useUpdateMe();
   const { data: packages } = useListMentorPackages(mentor?.id ?? 0, { query: { enabled: !!mentor?.id } });
   const { mutate: createPkg } = useCreatePackage();
   const { mutate: updatePkg } = useUpdatePackage();
 
+  const [fullName, setFullName] = useState("");
   const [form, setForm] = useState({
     headline: "",
     bio: "",
@@ -47,6 +50,7 @@ function EditContent() {
 
   useEffect(() => {
     if (mentor) {
+      if (mentor.fullName) setFullName(mentor.fullName);
       setForm({
         headline: mentor.headline ?? "",
         bio: mentor.bio ?? "",
@@ -71,6 +75,11 @@ function EditContent() {
     e.preventDefault();
     const tags = form.expertiseTags.split(",").map((t) => t.trim()).filter(Boolean);
     const langs = form.languages.split(",").map((l) => l.trim()).filter(Boolean);
+
+    // Update display name
+    if (fullName.trim()) {
+      updateMe({ data: { fullName: fullName.trim() } } as any);
+    }
 
     updateProfile(
       {
@@ -142,6 +151,17 @@ function EditContent() {
       <form onSubmit={save} className="flex-1 max-w-2xl mx-auto px-4 py-8 w-full space-y-6">
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-foreground">Professional Profile</h2>
+
+          <div className="space-y-2">
+            <Label htmlFor="fullName">Full Name</Label>
+            <Input
+              id="fullName"
+              placeholder="Your full name as shown on your profile"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              data-testid="edit-fullname"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="headline">Headline <span className="text-destructive">*</span></Label>
