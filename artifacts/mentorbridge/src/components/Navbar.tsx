@@ -21,7 +21,9 @@ export default function Navbar() {
 
   const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } });
 
-  const initials = (user?.fullName || user?.firstName || "U")
+  const displayName = me?.fullName || user?.fullName || user?.firstName || null;
+
+  const initials = (displayName || "U")
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -66,7 +68,7 @@ export default function Navbar() {
                       <AvatarImage src={user?.imageUrl} />
                       <AvatarFallback className="bg-primary text-white text-xs font-semibold">{initials}</AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium text-foreground">{user?.firstName || "Account"}</span>
+                    <span className="text-sm font-medium text-foreground">{displayName || "Account"}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
