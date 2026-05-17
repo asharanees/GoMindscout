@@ -26,6 +26,12 @@ tags:
     description: Admin operations
   - name: users
     description: User profile management
+  - name: chat
+    description: Booking-based messaging
+  - name: disputes
+    description: Session dispute management
+  - name: payouts
+    description: Mentor payout management
 
 paths:
   /healthz:
@@ -400,6 +406,143 @@ paths:
               schema:
                 $ref: "#/components/schemas/Booking"
 
+  /bookings/{bookingId}/cancel:
+    post:
+      operationId: cancelBooking
+      tags: [bookings]
+      summary: Cancel a booking with refund logic
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingCancelInput"
+      responses:
+        "200":
+          description: Cancelled booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  # ── Chat ───────────────────────────────────────────────────────────────────
+  /chat/{bookingId}:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      summary: Get chat messages for a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message in a booking chat
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessageResponse"
+
+  # ── Disputes ───────────────────────────────────────────────────────────────
+  /disputes:
+    post:
+      operationId: createDispute
+      tags: [disputes]
+      summary: Open a dispute for a booking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeInput"
+      responses:
+        "201":
+          description: Created dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /disputes/{bookingId}:
+    get:
+      operationId: getDispute
+      tags: [disputes]
+      summary: Get dispute for a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Dispute details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  # ── Payouts ────────────────────────────────────────────────────────────────
+  /payouts:
+    get:
+      operationId: getMentorPayouts
+      tags: [payouts]
+      summary: Get mentor payout info and request history
+      responses:
+        "200":
+          description: Payout info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutInfo"
+
+  /payouts/request:
+    post:
+      operationId: requestPayout
+      tags: [payouts]
+      summary: Mentor requests a payout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayoutRequestInput"
+      responses:
+        "201":
+          description: Created payout request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutRequest"
+
   # ── Payments ───────────────────────────────────────────────────────────────
   /payments/webhook:
     post:
@@ -573,6 +716,108 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminStats"
 
+  /admin/disputes:
+    get:
+      operationId: adminListDisputes
+      tags: [admin]
+      summary: Admin list all disputes
+      responses:
+        "200":
+          description: All disputes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dispute"
+
+  /admin/disputes/{disputeId}/resolve:
+    patch:
+      operationId: adminResolveDispute
+      tags: [admin]
+      summary: Admin resolves a dispute
+      parameters:
+        - name: disputeId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DisputeResolution"
+      responses:
+        "200":
+          description: Resolved dispute
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dispute"
+
+  /admin/payouts:
+    get:
+      operationId: adminListPayouts
+      tags: [admin]
+      summary: Admin list all payout requests
+      responses:
+        "200":
+          description: All payout requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PayoutRequest"
+
+  /admin/payouts/{payoutId}:
+    patch:
+      operationId: adminUpdatePayout
+      tags: [admin]
+      summary: Admin approves or marks payout as paid
+      parameters:
+        - name: payoutId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PayoutStatusUpdate"
+      responses:
+        "200":
+          description: Updated payout request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PayoutRequest"
+
+  /admin/users/{userId}/suspend:
+    patch:
+      operationId: adminSuspendUser
+      tags: [admin]
+      summary: Suspend or reinstate a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserSuspendInput"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
 components:
   schemas:
     HealthStatus:
@@ -721,12 +966,15 @@ components:
         packageId: { type: integer }
         status:
           type: string
-          enum: [pending_payment, paid, scheduled, completed, cancelled, refunded]
+          enum: [pending_payment, paid_pending_session, session_completed, under_review, disputed, payout_released, cancelled, refunded, paid, scheduled, completed]
         scheduledAt: { type: ["string", "null"] }
+        sessionCompletedAt: { type: ["string", "null"] }
         meetingLink: { type: ["string", "null"] }
         amount: { type: number }
         platformFee: { type: number }
+        mentorEarning: { type: ["number", "null"] }
         stripeSessionId: { type: ["string", "null"] }
+        cancellationNote: { type: ["string", "null"] }
         createdAt: { type: string }
         mentorName: { type: ["string", "null"] }
         menteeName: { type: ["string", "null"] }
@@ -735,6 +983,7 @@ components:
         mentorAvatarUrl: { type: ["string", "null"] }
         menteeAvatarUrl: { type: ["string", "null"] }
         hasReview: { type: boolean }
+        hasDispute: { type: boolean }
 
     BookingInput:
       type: object
@@ -756,7 +1005,12 @@ components:
       properties:
         status:
           type: string
-          enum: [scheduled, completed, cancelled]
+          enum: [paid_pending_session, session_completed, under_review, disputed, payout_released, cancelled, refunded, scheduled, completed]
+
+    BookingCancelInput:
+      type: object
+      properties:
+        note: { type: string }
 
     MeetingLinkUpdate:
       type: object
@@ -774,6 +1028,9 @@ components:
         mentorId: { type: integer }
         menteeId: { type: integer }
         rating: { type: integer }
+        punctualityRating: { type: ["integer", "null"] }
+        communicationRating: { type: ["integer", "null"] }
+        valueRating: { type: ["integer", "null"] }
         comment: { type: ["string", "null"] }
         menteeName: { type: ["string", "null"] }
         menteeAvatarUrl: { type: ["string", "null"] }
@@ -785,7 +1042,130 @@ components:
       properties:
         bookingId: { type: integer }
         rating: { type: integer }
+        punctualityRating: { type: integer }
+        communicationRating: { type: integer }
+        valueRating: { type: integer }
         comment: { type: string }
+
+    ChatMessage:
+      type: object
+      required: [id, bookingId, senderId, content, isFlagged, createdAt]
+      properties:
+        id: { type: integer }
+        bookingId: { type: integer }
+        senderId: { type: integer }
+        senderName: { type: ["string", "null"] }
+        senderAvatarUrl: { type: ["string", "null"] }
+        content: { type: string }
+        isFlagged: { type: boolean }
+        flagReason: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ChatMessageResponse:
+      type: object
+      required: [id, bookingId, senderId, content, isFlagged, createdAt]
+      properties:
+        id: { type: integer }
+        bookingId: { type: integer }
+        senderId: { type: integer }
+        senderName: { type: ["string", "null"] }
+        senderAvatarUrl: { type: ["string", "null"] }
+        content: { type: string }
+        isFlagged: { type: boolean }
+        flagReason: { type: ["string", "null"] }
+        warning: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    ChatMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string }
+
+    Dispute:
+      type: object
+      required: [id, bookingId, openedByUserId, reason, description, status, createdAt]
+      properties:
+        id: { type: integer }
+        bookingId: { type: integer }
+        openedByUserId: { type: integer }
+        openerName: { type: ["string", "null"] }
+        reason: { type: string }
+        description: { type: string }
+        evidenceUrl: { type: ["string", "null"] }
+        status: { type: string, enum: [open, under_review, resolved] }
+        adminDecision: { type: ["string", "null"] }
+        resolutionType: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    DisputeInput:
+      type: object
+      required: [bookingId, reason, description]
+      properties:
+        bookingId: { type: integer }
+        reason:
+          type: string
+          enum: [mentor_no_show, mentee_no_show, technical_issue, wrong_expertise, misconduct, other]
+        description: { type: string }
+        evidenceUrl: { type: string }
+
+    DisputeResolution:
+      type: object
+      required: [resolutionType, adminDecision]
+      properties:
+        resolutionType:
+          type: string
+          enum: [full_refund, partial_refund, release_to_mentor, platform_credit]
+        adminDecision: { type: string }
+
+    PayoutRequest:
+      type: object
+      required: [id, mentorId, amount, method, status, createdAt]
+      properties:
+        id: { type: integer }
+        mentorId: { type: integer }
+        amount: { type: number }
+        method: { type: string }
+        status: { type: string, enum: [pending, approved, paid_out, rejected] }
+        adminNote: { type: ["string", "null"] }
+        createdAt: { type: string }
+        updatedAt: { type: string }
+
+    PayoutInfo:
+      type: object
+      required: [withdrawableBalance, pendingBalance, requests]
+      properties:
+        withdrawableBalance: { type: number }
+        pendingBalance: { type: number }
+        requests:
+          type: array
+          items:
+            $ref: "#/components/schemas/PayoutRequest"
+
+    PayoutRequestInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number }
+        method:
+          type: string
+          enum: [bank_transfer, payoneer, wise, manual]
+
+    PayoutStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, paid_out, rejected]
+        adminNote: { type: string }
+
+    UserSuspendInput:
+      type: object
+      required: [suspended]
+      properties:
+        suspended: { type: boolean }
 
     MenteeDashboardStats:
       type: object

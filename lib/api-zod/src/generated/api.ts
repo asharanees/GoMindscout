@@ -343,17 +343,25 @@ export const ListMyBookingsResponseItem = zod.object({
   packageId: zod.number(),
   status: zod.enum([
     "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
     "paid",
     "scheduled",
     "completed",
-    "cancelled",
-    "refunded",
   ]),
   scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
   meetingLink: zod.string().nullish(),
   amount: zod.number(),
   platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
   stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
   createdAt: zod.string(),
   mentorName: zod.string().nullish(),
   menteeName: zod.string().nullish(),
@@ -362,6 +370,7 @@ export const ListMyBookingsResponseItem = zod.object({
   mentorAvatarUrl: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
   hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
 });
 export const ListMyBookingsResponse = zod.array(ListMyBookingsResponseItem);
 
@@ -386,17 +395,25 @@ export const GetBookingResponse = zod.object({
   packageId: zod.number(),
   status: zod.enum([
     "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
     "paid",
     "scheduled",
     "completed",
-    "cancelled",
-    "refunded",
   ]),
   scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
   meetingLink: zod.string().nullish(),
   amount: zod.number(),
   platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
   stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
   createdAt: zod.string(),
   mentorName: zod.string().nullish(),
   menteeName: zod.string().nullish(),
@@ -405,6 +422,7 @@ export const GetBookingResponse = zod.object({
   mentorAvatarUrl: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
   hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
 });
 
 /**
@@ -415,7 +433,17 @@ export const UpdateBookingStatusParams = zod.object({
 });
 
 export const UpdateBookingStatusBody = zod.object({
-  status: zod.enum(["scheduled", "completed", "cancelled"]),
+  status: zod.enum([
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
+    "scheduled",
+    "completed",
+  ]),
 });
 
 export const UpdateBookingStatusResponse = zod.object({
@@ -425,17 +453,25 @@ export const UpdateBookingStatusResponse = zod.object({
   packageId: zod.number(),
   status: zod.enum([
     "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
     "paid",
     "scheduled",
     "completed",
-    "cancelled",
-    "refunded",
   ]),
   scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
   meetingLink: zod.string().nullish(),
   amount: zod.number(),
   platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
   stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
   createdAt: zod.string(),
   mentorName: zod.string().nullish(),
   menteeName: zod.string().nullish(),
@@ -444,6 +480,7 @@ export const UpdateBookingStatusResponse = zod.object({
   mentorAvatarUrl: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
   hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
 });
 
 /**
@@ -465,17 +502,25 @@ export const UpdateMeetingLinkResponse = zod.object({
   packageId: zod.number(),
   status: zod.enum([
     "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
     "paid",
     "scheduled",
     "completed",
-    "cancelled",
-    "refunded",
   ]),
   scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
   meetingLink: zod.string().nullish(),
   amount: zod.number(),
   platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
   stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
   createdAt: zod.string(),
   mentorName: zod.string().nullish(),
   menteeName: zod.string().nullish(),
@@ -484,6 +529,153 @@ export const UpdateMeetingLinkResponse = zod.object({
   mentorAvatarUrl: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
   hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
+});
+
+/**
+ * @summary Cancel a booking with refund logic
+ */
+export const CancelBookingParams = zod.object({
+  bookingId: zod.coerce.number(),
+});
+
+export const CancelBookingBody = zod.object({
+  note: zod.string().optional(),
+});
+
+export const CancelBookingResponse = zod.object({
+  id: zod.number(),
+  menteeId: zod.number(),
+  mentorId: zod.number(),
+  packageId: zod.number(),
+  status: zod.enum([
+    "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
+    "paid",
+    "scheduled",
+    "completed",
+  ]),
+  scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
+  meetingLink: zod.string().nullish(),
+  amount: zod.number(),
+  platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
+  stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
+  createdAt: zod.string(),
+  mentorName: zod.string().nullish(),
+  menteeName: zod.string().nullish(),
+  packageTitle: zod.string().nullish(),
+  packageType: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  menteeAvatarUrl: zod.string().nullish(),
+  hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
+});
+
+/**
+ * @summary Get chat messages for a booking
+ */
+export const ListChatMessagesParams = zod.object({
+  bookingId: zod.coerce.number(),
+});
+
+export const ListChatMessagesResponseItem = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  senderId: zod.number(),
+  senderName: zod.string().nullish(),
+  senderAvatarUrl: zod.string().nullish(),
+  content: zod.string(),
+  isFlagged: zod.boolean(),
+  flagReason: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListChatMessagesResponse = zod.array(ListChatMessagesResponseItem);
+
+/**
+ * @summary Send a message in a booking chat
+ */
+export const SendChatMessageParams = zod.object({
+  bookingId: zod.coerce.number(),
+});
+
+export const SendChatMessageBody = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Open a dispute for a booking
+ */
+export const CreateDisputeBody = zod.object({
+  bookingId: zod.number(),
+  reason: zod.enum([
+    "mentor_no_show",
+    "mentee_no_show",
+    "technical_issue",
+    "wrong_expertise",
+    "misconduct",
+    "other",
+  ]),
+  description: zod.string(),
+  evidenceUrl: zod.string().optional(),
+});
+
+/**
+ * @summary Get dispute for a booking
+ */
+export const GetDisputeParams = zod.object({
+  bookingId: zod.coerce.number(),
+});
+
+export const GetDisputeResponse = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  openedByUserId: zod.number(),
+  openerName: zod.string().nullish(),
+  reason: zod.string(),
+  description: zod.string(),
+  evidenceUrl: zod.string().nullish(),
+  status: zod.enum(["open", "under_review", "resolved"]),
+  adminDecision: zod.string().nullish(),
+  resolutionType: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get mentor payout info and request history
+ */
+export const GetMentorPayoutsResponse = zod.object({
+  withdrawableBalance: zod.number(),
+  pendingBalance: zod.number(),
+  requests: zod.array(
+    zod.object({
+      id: zod.number(),
+      mentorId: zod.number(),
+      amount: zod.number(),
+      method: zod.string(),
+      status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+      adminNote: zod.string().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Mentor requests a payout
+ */
+export const RequestPayoutBody = zod.object({
+  amount: zod.number(),
+  method: zod.enum(["bank_transfer", "payoneer", "wise", "manual"]).optional(),
 });
 
 /**
@@ -492,6 +684,9 @@ export const UpdateMeetingLinkResponse = zod.object({
 export const CreateReviewBody = zod.object({
   bookingId: zod.number(),
   rating: zod.number(),
+  punctualityRating: zod.number().optional(),
+  communicationRating: zod.number().optional(),
+  valueRating: zod.number().optional(),
   comment: zod.string().optional(),
 });
 
@@ -508,6 +703,9 @@ export const ListMentorReviewsResponseItem = zod.object({
   mentorId: zod.number(),
   menteeId: zod.number(),
   rating: zod.number(),
+  punctualityRating: zod.number().nullish(),
+  communicationRating: zod.number().nullish(),
+  valueRating: zod.number().nullish(),
   comment: zod.string().nullish(),
   menteeName: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
@@ -657,17 +855,25 @@ export const AdminListBookingsResponseItem = zod.object({
   packageId: zod.number(),
   status: zod.enum([
     "pending_payment",
+    "paid_pending_session",
+    "session_completed",
+    "under_review",
+    "disputed",
+    "payout_released",
+    "cancelled",
+    "refunded",
     "paid",
     "scheduled",
     "completed",
-    "cancelled",
-    "refunded",
   ]),
   scheduledAt: zod.string().nullish(),
+  sessionCompletedAt: zod.string().nullish(),
   meetingLink: zod.string().nullish(),
   amount: zod.number(),
   platformFee: zod.number().optional(),
+  mentorEarning: zod.number().nullish(),
   stripeSessionId: zod.string().nullish(),
+  cancellationNote: zod.string().nullish(),
   createdAt: zod.string(),
   mentorName: zod.string().nullish(),
   menteeName: zod.string().nullish(),
@@ -676,6 +882,7 @@ export const AdminListBookingsResponseItem = zod.object({
   mentorAvatarUrl: zod.string().nullish(),
   menteeAvatarUrl: zod.string().nullish(),
   hasReview: zod.boolean().optional(),
+  hasDispute: zod.boolean().optional(),
 });
 export const AdminListBookingsResponse = zod.array(
   AdminListBookingsResponseItem,
@@ -692,4 +899,116 @@ export const AdminGetStatsResponse = zod.object({
   totalRevenue: zod.number(),
   completedSessions: zod.number(),
   recentBookings: zod.number().optional(),
+});
+
+/**
+ * @summary Admin list all disputes
+ */
+export const AdminListDisputesResponseItem = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  openedByUserId: zod.number(),
+  openerName: zod.string().nullish(),
+  reason: zod.string(),
+  description: zod.string(),
+  evidenceUrl: zod.string().nullish(),
+  status: zod.enum(["open", "under_review", "resolved"]),
+  adminDecision: zod.string().nullish(),
+  resolutionType: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+export const AdminListDisputesResponse = zod.array(
+  AdminListDisputesResponseItem,
+);
+
+/**
+ * @summary Admin resolves a dispute
+ */
+export const AdminResolveDisputeParams = zod.object({
+  disputeId: zod.coerce.number(),
+});
+
+export const AdminResolveDisputeBody = zod.object({
+  resolutionType: zod.enum([
+    "full_refund",
+    "partial_refund",
+    "release_to_mentor",
+    "platform_credit",
+  ]),
+  adminDecision: zod.string(),
+});
+
+export const AdminResolveDisputeResponse = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  openedByUserId: zod.number(),
+  openerName: zod.string().nullish(),
+  reason: zod.string(),
+  description: zod.string(),
+  evidenceUrl: zod.string().nullish(),
+  status: zod.enum(["open", "under_review", "resolved"]),
+  adminDecision: zod.string().nullish(),
+  resolutionType: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Admin list all payout requests
+ */
+export const AdminListPayoutsResponseItem = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  amount: zod.number(),
+  method: zod.string(),
+  status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+  adminNote: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+export const AdminListPayoutsResponse = zod.array(AdminListPayoutsResponseItem);
+
+/**
+ * @summary Admin approves or marks payout as paid
+ */
+export const AdminUpdatePayoutParams = zod.object({
+  payoutId: zod.coerce.number(),
+});
+
+export const AdminUpdatePayoutBody = zod.object({
+  status: zod.enum(["approved", "paid_out", "rejected"]),
+  adminNote: zod.string().optional(),
+});
+
+export const AdminUpdatePayoutResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  amount: zod.number(),
+  method: zod.string(),
+  status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+  adminNote: zod.string().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string().optional(),
+});
+
+/**
+ * @summary Suspend or reinstate a user
+ */
+export const AdminSuspendUserParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+export const AdminSuspendUserBody = zod.object({
+  suspended: zod.boolean(),
+});
+
+export const AdminSuspendUserResponse = zod.object({
+  id: zod.number(),
+  clerkId: zod.string(),
+  email: zod.string(),
+  fullName: zod.string().nullish(),
+  avatarUrl: zod.string().nullish(),
+  role: zod.enum(["mentee", "mentor", "admin"]),
+  createdAt: zod.string(),
 });

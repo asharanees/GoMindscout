@@ -4,3 +4,6 @@ export * from "./mentor-profiles";
 export * from "./packages";
 export * from "./bookings";
 export * from "./reviews";
+export * from "./disputes";
+export * from "./chat-messages";
+export * from "./payout-requests";

@@ -11,18 +11,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useAdminGetStats,
   useAdminListMentors,
   useAdminApproveMentor,
   useAdminFeatureMentor,
   useAdminListBookings,
+  useAdminListDisputes,
+  useAdminResolveDispute,
+  useAdminListPayouts,
+  useAdminUpdatePayout,
+  useAdminSuspendUser,
   getAdminListMentorsQueryKey,
   getAdminGetStatsQueryKey,
+  getAdminListDisputesQueryKey,
+  getAdminListPayoutsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck } from "lucide-react";
+import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet } from "lucide-react";
 
 function useAdminSession() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -31,17 +39,10 @@ function useAdminSession() {
   useEffect(() => {
     fetch("/api/admin/me", { credentials: "include" })
       .then((r) => {
-        if (r.ok) {
-          setAuthenticated(true);
-        } else {
-          setAuthenticated(false);
-          setLocation("/admin-login");
-        }
+        if (r.ok) setAuthenticated(true);
+        else { setAuthenticated(false); setLocation("/admin-login"); }
       })
-      .catch(() => {
-        setAuthenticated(false);
-        setLocation("/admin-login");
-      });
+      .catch(() => { setAuthenticated(false); setLocation("/admin-login"); });
   }, [setLocation]);
 
   return authenticated;
@@ -90,40 +91,112 @@ function RejectDialog({ mentor, onClose }: { mentor: any; onClose: () => void })
   );
 }
 
-function MentorRow({ mentor }: { mentor: any }) {
-  const [rejectOpen, setRejectOpen] = useState(false);
+function ResolveDisputeDialog({ dispute, onClose }: { dispute: any; onClose: () => void }) {
+  const [resolutionType, setResolutionType] = useState("release_to_mentor");
+  const [decision, setDecision] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { mutate: approve, isPending: approvePending } = useAdminApproveMentor();
-  const { mutate: feature, isPending: featurePending } = useAdminFeatureMentor();
+  const { mutate: resolve, isPending } = useAdminResolveDispute();
 
-  const initials = (mentor.fullName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
-
-  function handleApprove() {
-    approve(
-      { mentorId: mentor.id, data: { status: "approved" } },
+  function submit() {
+    if (!decision.trim()) { toast({ title: "Please provide a decision note", variant: "destructive" }); return; }
+    resolve(
+      { disputeId: dispute.id, data: { resolutionType: resolutionType as any, adminDecision: decision } },
       {
         onSuccess: () => {
-          toast({ title: "Mentor approved!" });
-          queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+          toast({ title: "Dispute resolved" });
+          queryClient.invalidateQueries({ queryKey: getAdminListDisputesQueryKey() });
           queryClient.invalidateQueries({ queryKey: getAdminGetStatsQueryKey() });
+          onClose();
         },
         onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
       }
     );
   }
 
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Resolve Dispute #{dispute.id}</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="text-sm bg-muted rounded-lg p-3 space-y-1">
+            <p><span className="font-medium">Booking:</span> #{dispute.bookingId}</p>
+            <p><span className="font-medium">Reason:</span> {dispute.reason.replace(/_/g, " ")}</p>
+            <p><span className="font-medium">Description:</span> {dispute.description}</p>
+            <p><span className="font-medium">Opened by:</span> {dispute.openerName}</p>
+            {dispute.bookingAmount && <p><span className="font-medium">Amount:</span> ${dispute.bookingAmount}</p>}
+          </div>
+          <div className="space-y-2">
+            <Label>Resolution Type</Label>
+            <Select value={resolutionType} onValueChange={setResolutionType}>
+              <SelectTrigger data-testid="resolution-type-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="release_to_mentor">Release to Mentor</SelectItem>
+                <SelectItem value="full_refund">Full Refund to Mentee</SelectItem>
+                <SelectItem value="partial_refund">Partial Refund</SelectItem>
+                <SelectItem value="platform_credit">Platform Credit</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Admin Decision Note</Label>
+            <Textarea value={decision} onChange={(e) => setDecision(e.target.value)} placeholder="Explain the resolution decision..." data-testid="admin-decision-input" />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={isPending} data-testid="confirm-resolve-btn">
+            {isPending ? "Resolving..." : "Resolve Dispute"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function MentorRow({ mentor }: { mentor: any }) {
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: approve, isPending: approvePending } = useAdminApproveMentor();
+  const { mutate: feature, isPending: featurePending } = useAdminFeatureMentor();
+  const { mutate: suspend, isPending: suspendPending } = useAdminSuspendUser();
+
+  const initials = (mentor.fullName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  function handleApprove() {
+    approve({ mentorId: mentor.id, data: { status: "approved" } }, {
+      onSuccess: () => {
+        toast({ title: "Mentor approved!" });
+        queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getAdminGetStatsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    });
+  }
+
   function handleFeature() {
-    feature(
-      { mentorId: mentor.id, data: { isFeatured: !mentor.isFeatured } },
-      {
-        onSuccess: () => {
-          toast({ title: mentor.isFeatured ? "Removed from featured" : "Added to featured" });
-          queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
-        },
-        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-      }
-    );
+    feature({ mentorId: mentor.id, data: { isFeatured: !mentor.isFeatured } }, {
+      onSuccess: () => {
+        toast({ title: mentor.isFeatured ? "Removed from featured" : "Added to featured" });
+        queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    });
+  }
+
+  function handleSuspend() {
+    const isSuspended = mentor.status === "suspended";
+    if (!confirm(isSuspended ? `Reinstate ${mentor.fullName}?` : `Suspend ${mentor.fullName}? This will prevent them from taking bookings.`)) return;
+    suspend({ userId: mentor.userId, data: { suspended: !isSuspended } }, {
+      onSuccess: () => {
+        toast({ title: isSuspended ? "User reinstated" : "User suspended" });
+        queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    });
   }
 
   const statusColors: Record<string, string> = {
@@ -146,18 +219,12 @@ function MentorRow({ mentor }: { mentor: any }) {
           {mentor.isFeatured && <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800">Featured</Badge>}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 truncate">{mentor.headline}</p>
-        {mentor.industry && <p className="text-xs text-muted-foreground">{mentor.industry}</p>}
+        {mentor.country && <p className="text-xs text-muted-foreground">{mentor.industry}{mentor.industry && mentor.country ? " · " : ""}{mentor.country}</p>}
+        {!mentor.country && mentor.industry && <p className="text-xs text-muted-foreground">{mentor.industry}</p>}
         {mentor.rejectionReason && <p className="text-xs text-destructive mt-0.5">Reason: {mentor.rejectionReason}</p>}
       </div>
       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          className="text-xs h-7 px-2"
-          onClick={handleFeature}
-          disabled={featurePending}
-          data-testid="feature-mentor-btn"
-        >
+        <Button size="sm" variant="outline" className="text-xs h-7 px-2" onClick={handleFeature} disabled={featurePending} data-testid="feature-mentor-btn">
           <Star className={`h-3 w-3 mr-1 ${mentor.isFeatured ? "fill-amber-400 text-amber-400" : ""}`} />
           {mentor.isFeatured ? "Unfeature" : "Feature"}
         </Button>
@@ -171,25 +238,78 @@ function MentorRow({ mentor }: { mentor: any }) {
             <X className="h-3 w-3 mr-1" /> Reject
           </Button>
         )}
+        <Button size="sm" variant="ghost" className={`text-xs h-7 px-2 ${mentor.status === "suspended" ? "text-green-700" : "text-muted-foreground hover:text-destructive"}`} onClick={handleSuspend} disabled={suspendPending} data-testid="suspend-mentor-btn">
+          {mentor.status === "suspended" ? "Reinstate" : "Suspend"}
+        </Button>
       </div>
       {rejectOpen && <RejectDialog mentor={mentor} onClose={() => setRejectOpen(false)} />}
     </div>
   );
 }
 
+const BOOKING_STATUS_COLORS: Record<string, string> = {
+  pending_payment: "bg-yellow-100 text-yellow-800",
+  paid_pending_session: "bg-blue-100 text-blue-800",
+  session_completed: "bg-emerald-100 text-emerald-800",
+  under_review: "bg-orange-100 text-orange-800",
+  disputed: "bg-rose-100 text-rose-800",
+  payout_released: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
+  refunded: "bg-gray-100 text-gray-800",
+  paid: "bg-blue-100 text-blue-800",
+  scheduled: "bg-indigo-100 text-indigo-800",
+  completed: "bg-green-100 text-green-800",
+};
+
+const DISPUTE_STATUS_COLORS: Record<string, string> = {
+  open: "bg-yellow-100 text-yellow-800",
+  under_review: "bg-orange-100 text-orange-800",
+  resolved: "bg-green-100 text-green-800",
+};
+
+const PAYOUT_STATUS_COLORS: Record<string, string> = {
+  pending: "bg-yellow-100 text-yellow-800",
+  approved: "bg-blue-100 text-blue-800",
+  paid_out: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+};
+
 function AdminContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [resolveDispute, setResolveDispute] = useState<any>(null);
+
   const { data: stats, isLoading: statsLoading } = useAdminGetStats();
   const { data: pendingMentors } = useAdminListMentors({ status: "pending" });
   const { data: allMentors } = useAdminListMentors();
   const { data: bookings } = useAdminListBookings();
+  const { data: disputes } = useAdminListDisputes();
+  const { data: payouts } = useAdminListPayouts();
+
+  const { mutate: updatePayout } = useAdminUpdatePayout();
 
   async function handleLogout() {
     await fetch("/api/admin/logout", { method: "POST", credentials: "include" });
     toast({ title: "Logged out of admin panel" });
     setLocation("/admin-login");
   }
+
+  function handlePayoutAction(payoutId: number, status: string) {
+    updatePayout(
+      { payoutId, data: { status: status as any } },
+      {
+        onSuccess: () => {
+          toast({ title: `Payout ${status.replace("_", " ")}` });
+          queryClient.invalidateQueries({ queryKey: getAdminListPayoutsQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  const openDisputeCount = (disputes ?? []).filter((d: any) => d.status !== "resolved").length;
+  const pendingPayoutCount = (payouts ?? []).filter((p: any) => p.status === "pending").length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -201,7 +321,7 @@ function AdminContent() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
             </div>
-            <p className="text-muted-foreground text-sm">Manage mentors, bookings, and platform stats</p>
+            <p className="text-muted-foreground text-sm">Manage mentors, bookings, disputes, and payouts</p>
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout} className="gap-1.5" data-testid="admin-logout-btn">
             <LogOut className="h-4 w-4" /> Logout
@@ -233,7 +353,7 @@ function AdminContent() {
         </div>
 
         <Tabs defaultValue="pending">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="pending">
               Pending
               {pendingMentors && pendingMentors.length > 0 && (
@@ -242,6 +362,18 @@ function AdminContent() {
             </TabsTrigger>
             <TabsTrigger value="all-mentors">All Mentors</TabsTrigger>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="disputes">
+              Disputes
+              {openDisputeCount > 0 && (
+                <span className="ml-1.5 bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{openDisputeCount}</span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="payouts">
+              Payouts
+              {pendingPayoutCount > 0 && (
+                <span className="ml-1.5 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{pendingPayoutCount}</span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="mt-4">
@@ -297,14 +429,120 @@ function AdminContent() {
                           <td className="py-3 font-medium">${Number(b.amount).toFixed(0)}</td>
                           <td className="py-3 text-green-700">${Number(b.platformFee).toFixed(0)}</td>
                           <td className="py-3">
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                              b.status === "completed" ? "bg-green-100 text-green-800" :
-                              b.status === "paid" || b.status === "scheduled" ? "bg-blue-100 text-blue-800" :
-                              b.status === "cancelled" ? "bg-red-100 text-red-800" :
-                              "bg-gray-100 text-gray-800"
-                            }`}>{b.status.replace("_", " ")}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BOOKING_STATUS_COLORS[b.status] ?? "bg-gray-100 text-gray-800"}`}>
+                              {b.status.replace(/_/g, " ")}
+                            </span>
                           </td>
                           <td className="py-3 text-muted-foreground text-xs">{new Date(b.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="disputes" className="mt-4">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldAlert className="h-5 w-5 text-orange-500" />
+                <h2 className="font-semibold text-foreground">Disputes ({disputes?.length ?? 0})</h2>
+              </div>
+              {!disputes ? <Skeleton className="h-40" /> : disputes.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">No disputes filed.</p>
+              ) : (
+                <div className="space-y-3">
+                  {disputes.map((d: any) => (
+                    <div key={d.id} className="border border-border rounded-lg p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-medium text-sm">Booking #{d.bookingId}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${DISPUTE_STATUS_COLORS[d.status] ?? "bg-gray-100 text-gray-800"}`}>
+                              {d.status.replace("_", " ")}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            <span className="font-medium">Reason:</span> {d.reason.replace(/_/g, " ")}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">{d.description}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Mentee: {d.menteeName} · Mentor: {d.mentorName}
+                            {d.bookingAmount && ` · $${d.bookingAmount}`}
+                          </p>
+                          {d.adminDecision && (
+                            <p className="text-xs text-foreground mt-1 bg-muted rounded px-2 py-1">
+                              Decision: {d.adminDecision} ({d.resolutionType?.replace(/_/g, " ")})
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">{new Date(d.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        {d.status !== "resolved" && (
+                          <Button size="sm" variant="outline" className="text-xs h-7 shrink-0" onClick={() => setResolveDispute(d)} data-testid="resolve-dispute-btn">
+                            Resolve
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="payouts" className="mt-4">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Wallet className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold text-foreground">Payout Requests ({payouts?.length ?? 0})</h2>
+              </div>
+              {!payouts ? <Skeleton className="h-40" /> : payouts.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">No payout requests yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="pb-2 font-medium text-muted-foreground">ID</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Mentor</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Amount</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Method</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Status</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Date</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payouts.map((p: any) => (
+                        <tr key={p.id} className="border-b border-border/50 last:border-0">
+                          <td className="py-3 text-muted-foreground">#{p.id}</td>
+                          <td className="py-3">{p.mentorName || "—"}</td>
+                          <td className="py-3 font-medium">${Number(p.amount).toFixed(2)}</td>
+                          <td className="py-3 capitalize text-muted-foreground">{p.method.replace("_", " ")}</td>
+                          <td className="py-3">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAYOUT_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-800"}`}>
+                              {p.status.replace("_", " ")}
+                            </span>
+                          </td>
+                          <td className="py-3 text-muted-foreground text-xs">{new Date(p.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3">
+                            {p.status === "pending" && (
+                              <div className="flex gap-1">
+                                <Button size="sm" className="text-xs h-7 px-2 bg-green-600 hover:bg-green-700 text-white" onClick={() => handlePayoutAction(p.id, "approved")} data-testid="approve-payout-btn">
+                                  Approve
+                                </Button>
+                                <Button size="sm" variant="outline" className="text-xs h-7 px-2 text-destructive border-destructive/30 hover:bg-destructive hover:text-white" onClick={() => handlePayoutAction(p.id, "rejected")} data-testid="reject-payout-btn">
+                                  Reject
+                                </Button>
+                              </div>
+                            )}
+                            {p.status === "approved" && (
+                              <Button size="sm" className="text-xs h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white" onClick={() => handlePayoutAction(p.id, "paid_out")} data-testid="mark-paid-payout-btn">
+                                Mark Paid
+                              </Button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -316,6 +554,7 @@ function AdminContent() {
         </Tabs>
       </div>
       <Footer />
+      {resolveDispute && <ResolveDisputeDialog dispute={resolveDispute} onClose={() => setResolveDispute(null)} />}
     </div>
   );
 }
@@ -332,6 +571,5 @@ export default function AdminPage() {
   }
 
   if (!authenticated) return null;
-
   return <AdminContent />;
 }

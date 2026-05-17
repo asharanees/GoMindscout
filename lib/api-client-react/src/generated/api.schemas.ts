@@ -177,11 +177,16 @@ export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
 
 export const BookingStatus = {
   pending_payment: "pending_payment",
+  paid_pending_session: "paid_pending_session",
+  session_completed: "session_completed",
+  under_review: "under_review",
+  disputed: "disputed",
+  payout_released: "payout_released",
+  cancelled: "cancelled",
+  refunded: "refunded",
   paid: "paid",
   scheduled: "scheduled",
   completed: "completed",
-  cancelled: "cancelled",
-  refunded: "refunded",
 } as const;
 
 export interface Booking {
@@ -193,11 +198,17 @@ export interface Booking {
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
+  sessionCompletedAt?: string | null;
+  /** @nullable */
   meetingLink?: string | null;
   amount: number;
   platformFee?: number;
   /** @nullable */
+  mentorEarning?: number | null;
+  /** @nullable */
   stripeSessionId?: string | null;
+  /** @nullable */
+  cancellationNote?: string | null;
   createdAt: string;
   /** @nullable */
   mentorName?: string | null;
@@ -212,6 +223,7 @@ export interface Booking {
   /** @nullable */
   menteeAvatarUrl?: string | null;
   hasReview?: boolean;
+  hasDispute?: boolean;
 }
 
 export interface BookingInput {
@@ -227,13 +239,23 @@ export type BookingStatusUpdateStatus =
   (typeof BookingStatusUpdateStatus)[keyof typeof BookingStatusUpdateStatus];
 
 export const BookingStatusUpdateStatus = {
+  paid_pending_session: "paid_pending_session",
+  session_completed: "session_completed",
+  under_review: "under_review",
+  disputed: "disputed",
+  payout_released: "payout_released",
+  cancelled: "cancelled",
+  refunded: "refunded",
   scheduled: "scheduled",
   completed: "completed",
-  cancelled: "cancelled",
 } as const;
 
 export interface BookingStatusUpdate {
   status: BookingStatusUpdateStatus;
+}
+
+export interface BookingCancelInput {
+  note?: string;
 }
 
 export interface MeetingLinkUpdate {
@@ -248,6 +270,12 @@ export interface Review {
   menteeId: number;
   rating: number;
   /** @nullable */
+  punctualityRating?: number | null;
+  /** @nullable */
+  communicationRating?: number | null;
+  /** @nullable */
+  valueRating?: number | null;
+  /** @nullable */
   comment?: string | null;
   /** @nullable */
   menteeName?: string | null;
@@ -259,7 +287,168 @@ export interface Review {
 export interface ReviewInput {
   bookingId: number;
   rating: number;
+  punctualityRating?: number;
+  communicationRating?: number;
+  valueRating?: number;
   comment?: string;
+}
+
+export interface ChatMessage {
+  id: number;
+  bookingId: number;
+  senderId: number;
+  /** @nullable */
+  senderName?: string | null;
+  /** @nullable */
+  senderAvatarUrl?: string | null;
+  content: string;
+  isFlagged: boolean;
+  /** @nullable */
+  flagReason?: string | null;
+  createdAt: string;
+}
+
+export interface ChatMessageResponse {
+  id: number;
+  bookingId: number;
+  senderId: number;
+  /** @nullable */
+  senderName?: string | null;
+  /** @nullable */
+  senderAvatarUrl?: string | null;
+  content: string;
+  isFlagged: boolean;
+  /** @nullable */
+  flagReason?: string | null;
+  /** @nullable */
+  warning?: string | null;
+  createdAt: string;
+}
+
+export interface ChatMessageInput {
+  content: string;
+}
+
+export type DisputeStatus = (typeof DisputeStatus)[keyof typeof DisputeStatus];
+
+export const DisputeStatus = {
+  open: "open",
+  under_review: "under_review",
+  resolved: "resolved",
+} as const;
+
+export interface Dispute {
+  id: number;
+  bookingId: number;
+  openedByUserId: number;
+  /** @nullable */
+  openerName?: string | null;
+  reason: string;
+  description: string;
+  /** @nullable */
+  evidenceUrl?: string | null;
+  status: DisputeStatus;
+  /** @nullable */
+  adminDecision?: string | null;
+  /** @nullable */
+  resolutionType?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type DisputeInputReason =
+  (typeof DisputeInputReason)[keyof typeof DisputeInputReason];
+
+export const DisputeInputReason = {
+  mentor_no_show: "mentor_no_show",
+  mentee_no_show: "mentee_no_show",
+  technical_issue: "technical_issue",
+  wrong_expertise: "wrong_expertise",
+  misconduct: "misconduct",
+  other: "other",
+} as const;
+
+export interface DisputeInput {
+  bookingId: number;
+  reason: DisputeInputReason;
+  description: string;
+  evidenceUrl?: string;
+}
+
+export type DisputeResolutionResolutionType =
+  (typeof DisputeResolutionResolutionType)[keyof typeof DisputeResolutionResolutionType];
+
+export const DisputeResolutionResolutionType = {
+  full_refund: "full_refund",
+  partial_refund: "partial_refund",
+  release_to_mentor: "release_to_mentor",
+  platform_credit: "platform_credit",
+} as const;
+
+export interface DisputeResolution {
+  resolutionType: DisputeResolutionResolutionType;
+  adminDecision: string;
+}
+
+export type PayoutRequestStatus =
+  (typeof PayoutRequestStatus)[keyof typeof PayoutRequestStatus];
+
+export const PayoutRequestStatus = {
+  pending: "pending",
+  approved: "approved",
+  paid_out: "paid_out",
+  rejected: "rejected",
+} as const;
+
+export interface PayoutRequest {
+  id: number;
+  mentorId: number;
+  amount: number;
+  method: string;
+  status: PayoutRequestStatus;
+  /** @nullable */
+  adminNote?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PayoutInfo {
+  withdrawableBalance: number;
+  pendingBalance: number;
+  requests: PayoutRequest[];
+}
+
+export type PayoutRequestInputMethod =
+  (typeof PayoutRequestInputMethod)[keyof typeof PayoutRequestInputMethod];
+
+export const PayoutRequestInputMethod = {
+  bank_transfer: "bank_transfer",
+  payoneer: "payoneer",
+  wise: "wise",
+  manual: "manual",
+} as const;
+
+export interface PayoutRequestInput {
+  amount: number;
+  method?: PayoutRequestInputMethod;
+}
+
+export type PayoutStatusUpdateStatus =
+  (typeof PayoutStatusUpdateStatus)[keyof typeof PayoutStatusUpdateStatus];
+
+export const PayoutStatusUpdateStatus = {
+  approved: "approved",
+  paid_out: "paid_out",
+  rejected: "rejected",
+} as const;
+
+export interface PayoutStatusUpdate {
+  status: PayoutStatusUpdateStatus;
+  adminNote?: string;
+}
+
+export interface UserSuspendInput {
+  suspended: boolean;
 }
 
 export interface MenteeDashboardStats {

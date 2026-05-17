@@ -11,6 +11,7 @@ export const mentorProfilesTable = pgTable("mentor_profiles", {
   headline: text("headline").notNull(),
   bio: text("bio"),
   industry: text("industry"),
+  country: text("country"),
   expertiseTags: text("expertise_tags").array().notNull().default([]),
   yearsExperience: integer("years_experience"),
   languages: text("languages").array().notNull().default([]),

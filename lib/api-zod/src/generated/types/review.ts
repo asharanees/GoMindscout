@@ -13,6 +13,12 @@ export interface Review {
   menteeId: number;
   rating: number;
   /** @nullable */
+  punctualityRating?: number | null;
+  /** @nullable */
+  communicationRating?: number | null;
+  /** @nullable */
+  valueRating?: number | null;
+  /** @nullable */
   comment?: string | null;
   /** @nullable */
   menteeName?: string | null;

@@ -10,7 +10,10 @@ export const reviewsTable = pgTable("reviews", {
   bookingId: integer("booking_id").notNull().references(() => bookingsTable.id).unique(),
   mentorId: integer("mentor_id").notNull().references(() => mentorProfilesTable.id),
   menteeId: integer("mentee_id").notNull().references(() => usersTable.id),
-  rating: integer("rating").notNull(), // 1-5
+  rating: integer("rating").notNull(), // 1-5 overall
+  punctualityRating: integer("punctuality_rating"), // 1-5
+  communicationRating: integer("communication_rating"), // 1-5
+  valueRating: integer("value_rating"), // 1-5
   comment: text("comment"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -19,6 +19,8 @@ import MentorOnboardingPage from "@/pages/mentor-onboarding";
 import MentorProfileEditPage from "@/pages/mentor-profile-edit";
 import AdminPage from "@/pages/admin";
 import AdminLoginPage from "@/pages/admin-login";
+import BookingChatPage from "@/pages/booking-chat";
+import BookingDisputePage from "@/pages/booking-dispute";
 import AboutPage from "@/pages/about";
 import HowItWorksPage from "@/pages/how-it-works";
 import BecomeAMentorPage from "@/pages/become-a-mentor";
@@ -113,6 +115,8 @@ function ClerkProviderWithRoutes() {
           <Route path="/mentor/dashboard" component={MentorDashboardPage} />
           <Route path="/mentor/onboarding" component={MentorOnboardingPage} />
           <Route path="/mentor/profile/edit" component={MentorProfileEditPage} />
+          <Route path="/bookings/:bookingId/chat" component={BookingChatPage} />
+          <Route path="/bookings/:bookingId/dispute" component={BookingDisputePage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/admin-login" component={AdminLoginPage} />
           <Route path="/about" component={AboutPage} />

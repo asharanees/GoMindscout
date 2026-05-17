@@ -1,10 +1,9 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import StarRating from "@/components/StarRating";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,24 +14,67 @@ import {
   useGetMenteeDashboardStats,
   useListMyBookings,
   useCreateReview,
+  useCancelBooking,
   getListMyBookingsQueryKey,
   getGetMenteeDashboardStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, CheckCircle, DollarSign, Star } from "lucide-react";
+import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
+  paid_pending_session: "bg-blue-100 text-blue-800",
+  session_completed: "bg-emerald-100 text-emerald-800",
+  under_review: "bg-orange-100 text-orange-800",
+  disputed: "bg-rose-100 text-rose-800",
+  payout_released: "bg-green-100 text-green-800",
+  cancelled: "bg-red-100 text-red-800",
+  refunded: "bg-gray-100 text-gray-800",
+  // legacy
   paid: "bg-blue-100 text-blue-800",
   scheduled: "bg-indigo-100 text-indigo-800",
   completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-  refunded: "bg-gray-100 text-gray-800",
 };
+
+const STATUS_LABELS: Record<string, string> = {
+  pending_payment: "Pending Payment",
+  paid_pending_session: "Paid — Awaiting Session",
+  session_completed: "Session Done",
+  under_review: "Under Review",
+  disputed: "Disputed",
+  payout_released: "Completed",
+  cancelled: "Cancelled",
+  refunded: "Refunded",
+  paid: "Paid",
+  scheduled: "Scheduled",
+  completed: "Completed",
+};
+
+const ACTIVE_STATUSES = ["paid_pending_session", "paid", "scheduled"];
+const DONE_STATUSES = ["session_completed", "payout_released", "completed", "cancelled", "refunded", "under_review", "disputed"];
+const REVIEWABLE_STATUSES = ["session_completed", "payout_released", "completed", "under_review"];
+
+function StarPicker({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" onClick={() => onChange(n)}>
+            <Star className={`h-5 w-5 transition-colors ${n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void }) {
   const [rating, setRating] = useState(5);
+  const [punctuality, setPunctuality] = useState(5);
+  const [communication, setCommunication] = useState(5);
+  const [value, setValue] = useState(5);
   const [comment, setComment] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,7 +82,16 @@ function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void 
 
   function submit() {
     createReview(
-      { data: { bookingId: booking.id, rating, comment: comment || undefined } },
+      {
+        data: {
+          bookingId: booking.id,
+          rating,
+          punctualityRating: punctuality,
+          communicationRating: communication,
+          valueRating: value,
+          comment: comment || undefined,
+        },
+      },
       {
         onSuccess: () => {
           toast({ title: "Review submitted!", description: "Thank you for your feedback." });
@@ -48,22 +99,18 @@ function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void 
           queryClient.invalidateQueries({ queryKey: getGetMenteeDashboardStatsQueryKey() });
           onClose();
         },
-        onError: (err: any) => {
-          toast({ title: "Error", description: err.message || "Could not submit review.", variant: "destructive" });
-        },
+        onError: (err: any) => toast({ title: "Error", description: err.message || "Could not submit review.", variant: "destructive" }),
       }
     );
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Leave a Review</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>Leave a Review</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
           <div>
-            <Label className="mb-2 block">Rating</Label>
+            <Label className="mb-2 block">Overall Rating</Label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((n) => (
                 <button key={n} onClick={() => setRating(n)} data-testid={`star-${n}`}>
@@ -71,6 +118,11 @@ function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void 
                 </button>
               ))}
             </div>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <StarPicker label="Punctuality" value={punctuality} onChange={setPunctuality} />
+            <StarPicker label="Communication" value={communication} onChange={setCommunication} />
+            <StarPicker label="Value" value={value} onChange={setValue} />
           </div>
           <div>
             <Label htmlFor="review-comment" className="mb-2 block">Comment (optional)</Label>
@@ -96,12 +148,37 @@ function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void 
 }
 
 function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) => void }) {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: cancelBooking, isPending: cancelling } = useCancelBooking();
   const statusClass = STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-800";
+  const statusLabel = STATUS_LABELS[booking.status] ?? booking.status.replace(/_/g, " ");
   const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const canReview = REVIEWABLE_STATUSES.includes(booking.status) && !booking.hasReview;
+  const canChat = !["pending_payment", "cancelled", "refunded"].includes(booking.status);
+  const canDispute = ["paid_pending_session", "session_completed", "paid", "scheduled", "completed"].includes(booking.status) && !booking.hasDispute;
+  const canCancel = ["paid_pending_session", "pending_payment", "paid", "scheduled"].includes(booking.status);
+
+  function handleCancel() {
+    if (!confirm("Are you sure you want to cancel this booking? Refund policy applies.")) return;
+    cancelBooking(
+      { bookingId: booking.id, data: {} },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking cancelled", description: "Refund will be processed per policy." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMenteeDashboardStatsQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
   return (
-    <div className="flex items-center gap-4 py-4 border-b border-border last:border-0">
-      <Avatar className="h-10 w-10 shrink-0">
+    <div className="flex items-start gap-4 py-4 border-b border-border last:border-0" data-testid="booking-row">
+      <Avatar className="h-10 w-10 shrink-0 mt-0.5">
         <AvatarImage src={booking.mentorAvatarUrl ?? undefined} />
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
       </Avatar>
@@ -113,20 +190,43 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
             <Calendar className="h-3 w-3" /> {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
-        {booking.meetingLink && booking.status === "scheduled" && (
+        {booking.meetingLink && canChat && (
           <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-0.5 block">Join meeting</a>
         )}
-      </div>
-      <div className="text-right shrink-0">
-        <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>
-          {booking.status.replace("_", " ")}
-        </span>
-        <p className="text-sm font-semibold text-foreground mt-1">${Number(booking.amount).toFixed(0)}</p>
-        {booking.status === "completed" && !booking.hasReview && (
-          <Button size="sm" variant="outline" className="mt-2 text-xs h-7 px-2" onClick={() => onReview(booking)} data-testid="leave-review-btn">
-            Leave Review
-          </Button>
+        {booking.hasDispute && (
+          <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed — under review</p>
         )}
+        {booking.cancellationNote && (
+          <p className="text-xs text-muted-foreground mt-0.5 italic">{booking.cancellationNote}</p>
+        )}
+      </div>
+      <div className="text-right shrink-0 space-y-1.5">
+        <div>
+          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>{statusLabel}</span>
+          <p className="text-sm font-semibold text-foreground mt-1">${Number(booking.amount).toFixed(0)}</p>
+        </div>
+        <div className="flex flex-col gap-1 items-end">
+          {canChat && (
+            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => setLocation(`/bookings/${booking.id}/chat`)} data-testid="chat-btn">
+              <MessageSquare className="h-3 w-3" /> Chat
+            </Button>
+          )}
+          {canReview && (
+            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => onReview(booking)} data-testid="leave-review-btn">
+              <Star className="h-3 w-3" /> Review
+            </Button>
+          )}
+          {canDispute && (
+            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1 text-destructive border-destructive/30 hover:bg-destructive hover:text-white" onClick={() => setLocation(`/bookings/${booking.id}/dispute`)} data-testid="dispute-btn">
+              <ShieldAlert className="h-3 w-3" /> Dispute
+            </Button>
+          )}
+          {canCancel && (
+            <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground hover:text-destructive" onClick={handleCancel} disabled={cancelling} data-testid="cancel-btn">
+              <XCircle className="h-3 w-3" /> Cancel
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -137,8 +237,9 @@ function DashboardContent() {
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
 
-  const upcoming = (bookings ?? []).filter((b: any) => ["paid", "scheduled"].includes(b.status));
-  const past = (bookings ?? []).filter((b: any) => ["completed", "cancelled", "refunded"].includes(b.status));
+  const upcoming = (bookings ?? []).filter((b: any) => ACTIVE_STATUSES.includes(b.status));
+  const inProgress = (bookings ?? []).filter((b: any) => ["session_completed", "under_review", "disputed"].includes(b.status));
+  const past = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded"].includes(b.status));
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -151,7 +252,6 @@ function DashboardContent() {
       </div>
 
       <div className="flex-1 max-w-5xl mx-auto px-4 py-8 w-full space-y-8">
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {statsLoading ? (
             Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
@@ -173,7 +273,6 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Upcoming bookings */}
         <Card className="p-6">
           <h2 className="font-semibold text-foreground mb-4">Upcoming Sessions</h2>
           {bookingsLoading ? <Skeleton className="h-20" /> : upcoming.length === 0 ? (
@@ -187,7 +286,14 @@ function DashboardContent() {
           )}
         </Card>
 
-        {/* Past bookings */}
+        {inProgress.length > 0 && (
+          <Card className="p-6">
+            <h2 className="font-semibold text-foreground mb-1">Awaiting Confirmation</h2>
+            <p className="text-xs text-muted-foreground mb-4">Sessions completed — payout releases to mentor after 48h if no dispute is raised.</p>
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} />)}
+          </Card>
+        )}
+
         {past.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Past Sessions</h2>

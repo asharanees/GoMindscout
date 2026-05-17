@@ -1,11 +1,9 @@
 import { Router } from "express";
-import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
 
 const router = Router();
-
-// All admin routes require an active admin session cookie
 router.use(requireAdminSession);
 
 function mentorToResponse(mentor: any, user: any) {
@@ -19,6 +17,7 @@ function mentorToResponse(mentor: any, user: any) {
     categoryId: mentor.categoryId,
     categoryName: null,
     industry: mentor.industry,
+    country: mentor.country ?? null,
     expertiseTags: mentor.expertiseTags ?? [],
     yearsExperience: mentor.yearsExperience,
     languages: mentor.languages ?? [],
@@ -36,6 +35,40 @@ function mentorToResponse(mentor: any, user: any) {
   };
 }
 
+function payoutToResponse(p: any, mentorUser?: any) {
+  return {
+    id: p.id,
+    mentorId: p.mentorId,
+    mentorName: mentorUser?.fullName ?? null,
+    amount: Number(p.amount),
+    method: p.method,
+    status: p.status,
+    adminNote: p.adminNote ?? null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}
+
+function disputeToResponse(d: any, booking?: any, opener?: any, menteeUser?: any, mentorUser?: any) {
+  return {
+    id: d.id,
+    bookingId: d.bookingId,
+    openedByUserId: d.openedByUserId,
+    openerName: opener?.fullName ?? null,
+    reason: d.reason,
+    description: d.description,
+    evidenceUrl: d.evidenceUrl ?? null,
+    status: d.status,
+    adminDecision: d.adminDecision ?? null,
+    resolutionType: d.resolutionType ?? null,
+    bookingAmount: booking ? Number(booking.amount) : null,
+    menteeName: menteeUser?.fullName ?? null,
+    mentorName: mentorUser?.fullName ?? null,
+    createdAt: d.createdAt.toISOString(),
+    updatedAt: d.updatedAt.toISOString(),
+  };
+}
+
 // GET /api/admin/mentors
 router.get("/mentors", async (req, res) => {
   const { status } = req.query as Record<string, string>;
@@ -46,14 +79,12 @@ router.get("/mentors", async (req, res) => {
     } else {
       mentors = await db.select().from(mentorProfilesTable);
     }
-
     const results = await Promise.all(
       mentors.map(async (mentor) => {
         const [u] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
         return mentorToResponse(mentor, u);
       })
     );
-
     res.json(results);
   } catch (err) {
     req.log.error({ err }, "Error listing mentors (admin)");
@@ -65,16 +96,13 @@ router.get("/mentors", async (req, res) => {
 router.patch("/mentors/:mentorId/approve", async (req, res) => {
   const mentorId = parseInt(req.params.mentorId);
   const { status, rejectionReason } = req.body;
-
   try {
     const [updated] = await db
       .update(mentorProfilesTable)
       .set({ status, rejectionReason: rejectionReason ?? null })
       .where(eq(mentorProfilesTable.id, mentorId))
       .returning();
-
     if (!updated) { res.status(404).json({ error: "Mentor not found" }); return; }
-
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
     res.json(mentorToResponse(updated, u));
   } catch (err) {
@@ -87,14 +115,8 @@ router.patch("/mentors/:mentorId/approve", async (req, res) => {
 router.patch("/mentors/:mentorId/feature", async (req, res) => {
   const mentorId = parseInt(req.params.mentorId);
   const { isFeatured } = req.body;
-
   try {
-    const [updated] = await db
-      .update(mentorProfilesTable)
-      .set({ isFeatured })
-      .where(eq(mentorProfilesTable.id, mentorId))
-      .returning();
-
+    const [updated] = await db.update(mentorProfilesTable).set({ isFeatured }).where(eq(mentorProfilesTable.id, mentorId)).returning();
     if (!updated) { res.status(404).json({ error: "Mentor not found" }); return; }
     const [u] = await db.select().from(usersTable).where(eq(usersTable.id, updated.userId)).limit(1);
     res.json(mentorToResponse(updated, u));
@@ -104,11 +126,39 @@ router.patch("/mentors/:mentorId/feature", async (req, res) => {
   }
 });
 
+// PATCH /api/admin/users/:userId/suspend
+router.patch("/users/:userId/suspend", async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const { suspended } = req.body;
+  try {
+    // Suspend user's mentor profile if they have one
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, userId)).limit(1);
+    if (mentor) {
+      await db.update(mentorProfilesTable)
+        .set({ status: suspended ? "suspended" : "approved" })
+        .where(eq(mentorProfilesTable.id, mentor.id));
+    }
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    res.json({
+      id: user.id,
+      clerkId: user.clerkId,
+      email: user.email,
+      fullName: user.fullName ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+      role: user.role,
+      createdAt: user.createdAt.toISOString(),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error suspending user");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/admin/bookings
 router.get("/bookings", async (req, res) => {
   try {
     const bookings = await db.select().from(bookingsTable).orderBy(sql`${bookingsTable.createdAt} DESC`);
-
     const enriched = await Promise.all(
       bookings.map(async (booking) => {
         const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
@@ -121,9 +171,11 @@ router.get("/bookings", async (req, res) => {
           packageId: booking.packageId,
           status: booking.status,
           scheduledAt: booking.scheduledAt?.toISOString() ?? null,
+          sessionCompletedAt: booking.sessionCompletedAt?.toISOString() ?? null,
           meetingLink: booking.meetingLink,
           amount: Number(booking.amount),
           platformFee: Number(booking.platformFee),
+          mentorEarning: booking.mentorEarning ? Number(booking.mentorEarning) : null,
           stripeSessionId: booking.stripeSessionId,
           createdAt: booking.createdAt.toISOString(),
           mentorName: mentorUser?.fullName ?? null,
@@ -131,13 +183,98 @@ router.get("/bookings", async (req, res) => {
           mentorAvatarUrl: mentorUser?.avatarUrl ?? null,
           menteeAvatarUrl: menteeUser?.avatarUrl ?? null,
           hasReview: false,
+          hasDispute: false,
         };
       })
     );
-
     res.json(enriched);
   } catch (err) {
     req.log.error({ err }, "Error listing bookings (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/disputes
+router.get("/disputes", async (req, res) => {
+  try {
+    const disputes = await db.select().from(disputesTable).orderBy(sql`${disputesTable.createdAt} DESC`);
+    const enriched = await Promise.all(
+      disputes.map(async (d) => {
+        const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, d.bookingId)).limit(1);
+        const [opener] = await db.select().from(usersTable).where(eq(usersTable.id, d.openedByUserId)).limit(1);
+        const menteeUser = booking ? await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1).then(r => r[0]) : null;
+        const mentor = booking ? await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1).then(r => r[0]) : null;
+        const mentorUser = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1).then(r => r[0]) : null;
+        return disputeToResponse(d, booking, opener, menteeUser, mentorUser);
+      })
+    );
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error listing disputes (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/disputes/:disputeId/resolve
+router.patch("/disputes/:disputeId/resolve", async (req, res) => {
+  const disputeId = parseInt(req.params.disputeId);
+  const { resolutionType, adminDecision } = req.body;
+  try {
+    const [updated] = await db.update(disputesTable)
+      .set({ status: "resolved", resolutionType, adminDecision, updatedAt: new Date() })
+      .where(eq(disputesTable.id, disputeId))
+      .returning();
+    if (!updated) { res.status(404).json({ error: "Dispute not found" }); return; }
+
+    // Update booking status based on resolution
+    if (resolutionType === "release_to_mentor") {
+      await db.update(bookingsTable).set({ status: "payout_released" }).where(eq(bookingsTable.id, updated.bookingId));
+    } else {
+      // Refund paths
+      await db.update(bookingsTable).set({ status: "refunded" }).where(eq(bookingsTable.id, updated.bookingId));
+    }
+
+    const [opener] = await db.select().from(usersTable).where(eq(usersTable.id, updated.openedByUserId)).limit(1);
+    res.json(disputeToResponse(updated, null, opener));
+  } catch (err) {
+    req.log.error({ err }, "Error resolving dispute");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/payouts
+router.get("/payouts", async (req, res) => {
+  try {
+    const payouts = await db.select().from(payoutRequestsTable).orderBy(sql`${payoutRequestsTable.createdAt} DESC`);
+    const enriched = await Promise.all(
+      payouts.map(async (p) => {
+        const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, p.mentorId)).limit(1);
+        const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+        return payoutToResponse(p, mentorUser);
+      })
+    );
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error listing payouts (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// PATCH /api/admin/payouts/:payoutId
+router.patch("/payouts/:payoutId", async (req, res) => {
+  const payoutId = parseInt(req.params.payoutId);
+  const { status, adminNote } = req.body;
+  try {
+    const [updated] = await db.update(payoutRequestsTable)
+      .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
+      .where(eq(payoutRequestsTable.id, payoutId))
+      .returning();
+    if (!updated) { res.status(404).json({ error: "Payout not found" }); return; }
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, updated.mentorId)).limit(1);
+    const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+    res.json(payoutToResponse(updated, mentorUser));
+  } catch (err) {
+    req.log.error({ err }, "Error updating payout");
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -149,13 +286,20 @@ router.get("/stats", async (req, res) => {
     const [pendingCount] = await db.select({ count: sql<number>`count(*)` }).from(mentorProfilesTable).where(eq(mentorProfilesTable.status, "pending"));
     const [menteeCount] = await db.select({ count: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.role, "mentee"));
     const [bookingCount] = await db.select({ count: sql<number>`count(*)` }).from(bookingsTable);
-    const [completedCount] = await db.select({ count: sql<number>`count(*)` }).from(bookingsTable).where(eq(bookingsTable.status, "completed"));
+    const [disputeCount] = await db.select({ count: sql<number>`count(*)` }).from(disputesTable).where(sql`${disputesTable.status} != 'resolved'`);
+    const [pendingPayoutCount] = await db.select({ count: sql<number>`count(*)` }).from(payoutRequestsTable).where(eq(payoutRequestsTable.status, "pending"));
 
-    const allBookings = await db.select().from(bookingsTable).where(sql`${bookingsTable.status} != 'pending_payment' AND ${bookingsTable.status} != 'cancelled' AND ${bookingsTable.status} != 'refunded'`);
+    const allBookings = await db.select().from(bookingsTable).where(
+      sql`${bookingsTable.status} NOT IN ('pending_payment', 'cancelled', 'refunded')`
+    );
     const totalRevenue = allBookings.reduce((sum, b) => sum + Number(b.platformFee), 0);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [recentCount] = await db.select({ count: sql<number>`count(*)` }).from(bookingsTable).where(sql`${bookingsTable.createdAt} > ${sevenDaysAgo}`);
+
+    const [completedCount] = await db.select({ count: sql<number>`count(*)` }).from(bookingsTable).where(
+      sql`${bookingsTable.status} IN ('session_completed', 'payout_released', 'completed')`
+    );
 
     res.json({
       totalMentors: Number(mentorCount?.count ?? 0),
@@ -165,6 +309,8 @@ router.get("/stats", async (req, res) => {
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       completedSessions: Number(completedCount?.count ?? 0),
       recentBookings: Number(recentCount?.count ?? 0),
+      openDisputes: Number(disputeCount?.count ?? 0),
+      pendingPayouts: Number(pendingPayoutCount?.count ?? 0),
     });
   } catch (err) {
     req.log.error({ err }, "Error fetching admin stats");

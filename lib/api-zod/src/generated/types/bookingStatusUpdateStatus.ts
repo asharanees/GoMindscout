@@ -10,7 +10,13 @@ export type BookingStatusUpdateStatus =
   (typeof BookingStatusUpdateStatus)[keyof typeof BookingStatusUpdateStatus];
 
 export const BookingStatusUpdateStatus = {
+  paid_pending_session: "paid_pending_session",
+  session_completed: "session_completed",
+  under_review: "under_review",
+  disputed: "disputed",
+  payout_released: "payout_released",
+  cancelled: "cancelled",
+  refunded: "refunded",
   scheduled: "scheduled",
   completed: "completed",
-  cancelled: "cancelled",
 } as const;

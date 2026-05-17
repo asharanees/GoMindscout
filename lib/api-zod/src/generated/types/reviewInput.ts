@@ -9,5 +9,8 @@
 export interface ReviewInput {
   bookingId: number;
   rating: number;
+  punctualityRating?: number;
+  communicationRating?: number;
+  valueRating?: number;
   comment?: string;
 }

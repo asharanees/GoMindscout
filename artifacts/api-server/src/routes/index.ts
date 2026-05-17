@@ -10,6 +10,9 @@ import reviewsRouter from "./reviews";
 import dashboardRouter from "./dashboard";
 import adminAuthRouter from "./admin-auth";
 import adminRouter from "./admin";
+import chatRouter from "./chat";
+import disputesRouter from "./disputes";
+import payoutsRouter from "./payouts";
 
 const router: IRouter = Router();
 
@@ -27,6 +30,9 @@ router.use("/mentors", packagesRouter);
 router.use("/mentors", reviewsRouter);
 
 router.use("/dashboard", dashboardRouter);
+router.use("/chat", chatRouter);
+router.use("/disputes", disputesRouter);
+router.use("/payouts", payoutsRouter);
 
 // Admin auth (login/logout/me) — no session required
 router.use("/admin", adminAuthRouter);

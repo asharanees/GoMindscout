@@ -1,0 +1,230 @@
+Implement the following marketplace flow:
+
+1. Mentor creates profile
+- Name
+- Title
+- Industry
+- Years of experience
+- Bio
+- Hourly rate
+- Languages
+- Country
+- Expertise tags
+- Intro video URL
+- Availability
+- Verification status
+- Average rating
+
+2. Mentee searches mentors
+- Search by keyword
+- Filter by industry
+- Filter by language
+- Filter by price
+- Filter by rating
+- View mentor profile
+
+3. Booking flow
+- Mentee selects mentor
+- Selects session type:
+  a. 30-minute video session
+  b. 60-minute video session
+  c. Email guidance package
+- Selects date/time
+- Pays before booking is confirmed
+- Booking status becomes: paid_pending_session
+
+4. Payment holding logic
+- Do not immediately mark mentor earnings as withdrawable.
+- Store payment as platform-held pending balance.
+- After session is completed, start a 48-hour review/dispute window.
+- If no dispute is opened, release mentor earnings automatically.
+- Platform keeps commission.
+- Mentor balance becomes withdrawable.
+
+5. Commission logic
+Default platform commission:
+- 20% platform fee
+- 80% mentor earning
+
+Example:
+If session price = $100:
+- platform_fee = $20
+- mentor_earning = $80
+
+Store these separately in database.
+
+6. Booking statuses
+Use these statuses:
+- draft
+- payment_pending
+- paid_pending_session
+- session_completed
+- under_review
+- disputed
+- refunded
+- cancelled
+- payout_released
+
+7. Cancellation rules
+Implement configurable cancellation rules:
+
+Before session:
+- More than 24 hours before session: full refund
+- Less than 24 hours before session: 50% refund
+- Mentor cancels anytime: full refund to mentee
+- Mentee no-show: no refund by default
+- Mentor no-show: full refund
+
+After session:
+- Mentee can open dispute within 48 hours
+- If no dispute, payout is released
+- If dispute opened, freeze payout until admin decision
+
+8. Dispute flow
+Mentee or mentor can open dispute.
+Dispute reasons:
+- Mentor did not attend
+- Mentee did not attend
+- Technical issue
+- Wrong expertise
+- Misconduct
+- Other
+
+Dispute record should include:
+- booking_id
+- opened_by_user_id
+- reason
+- description
+- evidence_url optional
+- status: open, under_review, resolved
+- admin_decision
+- resolution_type:
+  a. full_refund
+  b. partial_refund
+  c. release_to_mentor
+  d. platform_credit
+
+Admin dashboard must allow:
+- view dispute
+- view booking
+- view chat history
+- decide outcome
+- update payment status manually
+
+9. Ratings and reviews
+Only allow review if:
+- booking status = session_completed or payout_released
+- user actually paid for booking
+
+Review fields:
+- rating 1–5
+- written_review
+- punctuality_rating
+- communication_rating
+- value_rating
+
+After review:
+- update mentor average rating
+- show reviews publicly on mentor profile
+
+10. Chat system
+Implement internal booking-based chat.
+Rules:
+- Chat starts after booking request or payment
+- Store messages in database
+- Messages belong to booking_id
+- Users cannot message mentors outside booking context in V1
+
+Basic anti-leakage rule:
+Detect and warn if users share:
+- phone numbers
+- emails
+- WhatsApp links
+- external payment requests
+
+Do not block aggressively in MVP. Show warning:
+“Please keep communication and payments on-platform for your protection.”
+
+11. Payout system
+Mentor earnings states:
+- pending
+- clearing
+- withdrawable
+- paid_out
+- frozen
+
+Payout release logic:
+- After session completion, wait 48 hours
+- If no dispute, move mentor earning to withdrawable
+- Mentor can request payout
+- Admin approves payout manually in MVP
+
+Payout methods:
+- Bank transfer
+- Payoneer
+- Wise
+- Manual payout placeholder
+
+Do not build automatic payout integration in V1 unless Stripe Connect is available.
+
+12. Admin panel
+Admin can:
+- approve/reject mentors
+- view users
+- view bookings
+- view payments
+- view disputes
+- issue refund status
+- mark payout as paid
+- suspend user
+- feature mentor
+- edit platform commission percentage
+
+13. Database tables needed
+Create these tables:
+- users
+- mentor_profiles
+- expertise_categories
+- mentor_expertise
+- bookings
+- payments
+- mentor_earnings
+- payout_requests
+- disputes
+- reviews
+- chat_messages
+- admin_actions
+
+14. Security rules
+- Mentees can only see their own bookings
+- Mentors can only see bookings assigned to them
+- Users can only see chat messages for their booking
+- Admin can see all records
+- Only admin can resolve disputes
+- Only admin can approve payouts
+- Only completed paid sessions can be reviewed
+
+15. MVP payment provider
+Use Stripe Checkout for collecting payments.
+In V1:
+- Collect payment from mentee
+- Store booking/payment record
+- Manually manage mentor payout from admin panel
+
+Future:
+- Add Stripe Connect for automatic mentor payouts and marketplace split payments.
+
+16. UI pages
+Build these pages:
+- Home page
+- Mentor listing page
+- Mentor profile page
+- Booking page
+- Payment success page
+- Mentee dashboard
+- Mentor dashboard
+- Chat page
+- Reviews section
+- Dispute page
+- Admin dashboard
+- Payout requests page

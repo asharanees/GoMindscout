@@ -16,11 +16,17 @@ export interface Booking {
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
+  sessionCompletedAt?: string | null;
+  /** @nullable */
   meetingLink?: string | null;
   amount: number;
   platformFee?: number;
   /** @nullable */
+  mentorEarning?: number | null;
+  /** @nullable */
   stripeSessionId?: string | null;
+  /** @nullable */
+  cancellationNote?: string | null;
   createdAt: string;
   /** @nullable */
   mentorName?: string | null;
@@ -35,4 +41,5 @@ export interface Booking {
   /** @nullable */
   menteeAvatarUrl?: string | null;
   hasReview?: boolean;
+  hasDispute?: boolean;
 }

@@ -13,6 +13,9 @@ function reviewToResponse(review: any, menteeUser?: any) {
     mentorId: review.mentorId,
     menteeId: review.menteeId,
     rating: review.rating,
+    punctualityRating: review.punctualityRating ?? null,
+    communicationRating: review.communicationRating ?? null,
+    valueRating: review.valueRating ?? null,
     comment: review.comment,
     menteeName: menteeUser?.fullName ?? null,
     menteeAvatarUrl: menteeUser?.avatarUrl ?? null,
@@ -23,7 +26,7 @@ function reviewToResponse(review: any, menteeUser?: any) {
 // POST /api/reviews
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const { bookingId, rating, comment } = req.body;
+  const { bookingId, rating, punctualityRating, communicationRating, valueRating, comment } = req.body;
 
   try {
     const user = await getUserByClerkId(userId!);
@@ -32,7 +35,12 @@ router.post("/", requireAuth, async (req, res) => {
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
     if (booking.menteeId !== user.id) { res.status(403).json({ error: "Not your booking" }); return; }
-    if (booking.status !== "completed") { res.status(400).json({ error: "Session not completed yet" }); return; }
+
+    const reviewableStatuses = ["session_completed", "payout_released", "completed", "under_review"];
+    if (!reviewableStatuses.includes(booking.status)) {
+      res.status(400).json({ error: "Session not completed yet" });
+      return;
+    }
 
     const [existing] = await db.select().from(reviewsTable).where(eq(reviewsTable.bookingId, bookingId)).limit(1);
     if (existing) { res.status(400).json({ error: "Review already submitted" }); return; }
@@ -44,6 +52,9 @@ router.post("/", requireAuth, async (req, res) => {
       mentorId: booking.mentorId,
       menteeId: user.id,
       rating,
+      punctualityRating: punctualityRating ?? null,
+      communicationRating: communicationRating ?? null,
+      valueRating: valueRating ?? null,
       comment: comment ?? null,
     }).returning();
 
