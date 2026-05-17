@@ -1,4 +1,4 @@
-# MentorBridge
+# GoMindscout
 
 A two-sided mentorship marketplace connecting ambitious professionals with real industry experts. Mentees can discover, book, and pay for 1-on-1 sessions with vetted mentors.
 

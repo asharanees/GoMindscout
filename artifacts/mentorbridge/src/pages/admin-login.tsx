@@ -108,7 +108,7 @@ export default function AdminLoginPage() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground">
-          MentorBridge Admin Panel
+          GoMindscout Admin Panel
         </p>
       </div>
     </div>

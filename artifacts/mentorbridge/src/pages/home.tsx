@@ -128,7 +128,7 @@ export default function Home() {
       <section className="py-16 px-4 bg-muted/40">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">How MentorBridge Works</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground">How GoMindscout Works</h2>
             <p className="text-muted-foreground mt-2">Get expert guidance in three simple steps</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-8">
@@ -182,8 +182,8 @@ export default function Home() {
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-10">What Our Community Says</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {[
-              { name: "Sarah K.", role: "Product Manager at Stripe", text: "I had been stuck in my career for two years. One session with my MentorBridge mentor changed everything — I got promoted 3 months later.", rating: 5 },
-              { name: "Marcus T.", role: "Startup Founder", text: "Finding a seasoned CFO mentor who would give me real, unfiltered advice seemed impossible. MentorBridge made it happen in 10 minutes.", rating: 5 },
+              { name: "Sarah K.", role: "Product Manager at Stripe", text: "I had been stuck in my career for two years. One session with my GoMindscout mentor changed everything — I got promoted 3 months later.", rating: 5 },
+              { name: "Marcus T.", role: "Startup Founder", text: "Finding a seasoned CFO mentor who would give me real, unfiltered advice seemed impossible. GoMindscout made it happen in 10 minutes.", rating: 5 },
               { name: "Priya R.", role: "Software Engineer", text: "My mentor helped me negotiate a 40% salary increase at my next job. The ROI on one session was incredible.", rating: 5 },
               { name: "James L.", role: "Marketing Director", text: "The quality of mentors here is exceptional. Everyone I've worked with has had real, deep expertise — not just consulting speak.", rating: 5 },
             ].map(({ name, role, text, rating }) => (

@@ -11,9 +11,9 @@ export default function AboutPage() {
 
       <section className="bg-primary/5 border-b border-border py-20 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-4">About MentorBridge</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">About GoMindscout</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            We believe the best advice comes from people who've actually been there. MentorBridge connects ambitious professionals with the industry experts who can help them navigate real challenges.
+            We believe the best advice comes from people who've actually been there. GoMindscout connects ambitious professionals with the industry experts who can help them navigate real challenges.
           </p>
         </div>
       </section>
@@ -23,7 +23,7 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-4">Our Mission</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              The professional world has always run on relationships and access. People with the right networks get the right opportunities. MentorBridge was built to democratize that access — to give every professional, regardless of where they started, a direct line to the experience and wisdom they need.
+              The professional world has always run on relationships and access. People with the right networks get the right opportunities. GoMindscout was built to democratize that access — to give every professional, regardless of where they started, a direct line to the experience and wisdom they need.
             </p>
             <p className="text-muted-foreground leading-relaxed">
               We're not a jobs board or a coaching app. We're a bridge — between where you are and where you want to be, built from real human connection.
@@ -52,7 +52,7 @@ export default function AboutPage() {
           <h2 className="text-2xl font-bold text-foreground text-center mb-10">Our Values</h2>
           <div className="grid sm:grid-cols-2 gap-6">
             {[
-              { icon: <Heart className="h-6 w-6 text-primary" />, title: "Human First", desc: "Every interaction on MentorBridge is built around genuine human connection, not transactional exchanges." },
+              { icon: <Heart className="h-6 w-6 text-primary" />, title: "Human First", desc: "Every interaction on GoMindscout is built around genuine human connection, not transactional exchanges." },
               { icon: <Shield className="h-6 w-6 text-primary" />, title: "Quality Over Quantity", desc: "Every mentor on our platform is reviewed by our team. We'd rather have 500 great mentors than 5,000 mediocre ones." },
               { icon: <Globe className="h-6 w-6 text-primary" />, title: "Global Access", desc: "Whether you're in New York or Nairobi, you deserve access to world-class expertise." },
               { icon: <Zap className="h-6 w-6 text-primary" />, title: "Real Results", desc: "We measure success in promotions earned, businesses launched, and problems solved — not sessions booked." },

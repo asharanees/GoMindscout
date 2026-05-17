@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "MentorBridge"
+title = "GoMindscout"
 version = "1.0.0"
 id = "artifacts/mentorbridge"
 router = "path"

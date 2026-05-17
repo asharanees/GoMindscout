@@ -18,7 +18,7 @@ export default function BecomeAMentorPage() {
             Share Your Expertise.<br /><span className="text-primary">Earn on Your Terms.</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-10 leading-relaxed">
-            MentorBridge connects you with ambitious professionals who need exactly what you've spent years building. Set your own schedule, prices, and working style.
+            GoMindscout connects you with ambitious professionals who need exactly what you've spent years building. Set your own schedule, prices, and working style.
           </p>
           <Link href={isSignedIn ? "/mentor/onboarding" : "/sign-up"}>
             <Button size="lg" className="bg-primary hover:bg-primary/90 font-semibold px-8" data-testid="apply-mentor-btn">
@@ -30,7 +30,7 @@ export default function BecomeAMentorPage() {
       </section>
 
       <section className="py-16 px-4 max-w-5xl mx-auto w-full">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-10">Why Mentors Love MentorBridge</h2>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-10">Why Mentors Love GoMindscout</h2>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {[
             { icon: <DollarSign className="h-6 w-6 text-primary" />, title: "You Set the Price", desc: "Choose your hourly rate and create packages that work for your schedule and expertise level." },

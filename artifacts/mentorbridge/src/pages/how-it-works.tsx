@@ -11,7 +11,7 @@ export default function HowItWorksPage() {
 
       <section className="bg-primary/5 border-b border-border py-20 px-4 text-center">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-4xl font-bold text-foreground mb-4">How MentorBridge Works</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-4">How GoMindscout Works</h1>
           <p className="text-xl text-muted-foreground">Get expert guidance in four simple steps. No subscriptions, no commitments — just real advice when you need it.</p>
         </div>
       </section>

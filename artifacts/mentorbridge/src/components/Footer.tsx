@@ -10,7 +10,7 @@ export default function Footer() {
               <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
                 <span className="text-white font-bold text-xs">M</span>
               </div>
-              <span className="font-bold text-base text-white">MentorBridge</span>
+              <span className="font-bold text-base text-white">GoMindscout</span>
             </div>
             <p className="text-sm text-background/60 leading-relaxed">
               Connecting ambitious professionals with real industry experts worldwide.
@@ -43,7 +43,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="border-t border-white/10 mt-10 pt-6 text-sm text-background/50 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <span>© {new Date().getFullYear()} MentorBridge. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} GoMindscout. All rights reserved.</span>
           <span>Connecting expertise across industries and borders.</span>
         </div>
       </div>
