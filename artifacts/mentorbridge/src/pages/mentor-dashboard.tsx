@@ -25,7 +25,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, DollarSign, CheckCircle, Star, Clock, Link2, Edit, Zap, ExternalLink, Copy, MessageSquare, Wallet, ArrowDownToLine } from "lucide-react";
+import { Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare, Wallet, ArrowDownToLine, Video, Copy, ExternalLink } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
@@ -62,8 +62,7 @@ const PAYOUT_STATUS_COLORS: Record<string, string> = {
   rejected: "bg-red-100 text-red-800",
 };
 
-function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => void }) {
-  const [meetingLink, setMeetingLink] = useState(booking.meetingLink || "");
+function ScheduleSessionDialog({ booking, onClose }: { booking: any; onClose: () => void }) {
   const [scheduledAt, setScheduledAt] = useState(
     booking.scheduledAt ? new Date(booking.scheduledAt).toISOString().slice(0, 16) : ""
   );
@@ -71,24 +70,20 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
   const queryClient = useQueryClient();
   const { mutate: updateLink, isPending } = useUpdateMeetingLink();
 
-  function generateJitsiRoom() {
-    const roomName = `mentorbridge-${booking.id}-${Math.random().toString(36).slice(2, 7)}`;
-    setMeetingLink(`https://meet.jit.si/${roomName}`);
-    toast({ title: "Jitsi room generated" });
-  }
-
-  function openAndFill(url: string) {
-    window.open(url, "_blank", "noopener");
-    toast({ title: "Opened in new tab", description: "Copy the meeting link and paste it below." });
-  }
-
   function submit() {
+    if (!scheduledAt) {
+      toast({ title: "Please select a date and time", variant: "destructive" }); return;
+    }
     updateLink(
-      { bookingId: booking.id, data: { meetingLink, scheduledAt: scheduledAt ? new Date(scheduledAt).toISOString() : undefined } },
+      { bookingId: booking.id, data: { scheduledAt: new Date(scheduledAt).toISOString() } },
       {
         onSuccess: () => {
-          toast({ title: "Meeting link saved!" });
+          toast({
+            title: "Session scheduled!",
+            description: "A meeting room has been created and both you and your mentee have been notified.",
+          });
           queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMentorDashboardStatsQueryKey() });
           onClose();
         },
         onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
@@ -98,49 +93,34 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Set Up Meeting Link</DialogTitle></DialogHeader>
-        <div className="space-y-5 py-2">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">Quick generate</p>
-            <div className="grid grid-cols-3 gap-2">
-              <button type="button" onClick={generateJitsiRoom} className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center" data-testid="generate-jitsi-btn">
-                <Zap className="h-5 w-5 text-primary" />
-                <span className="text-xs font-medium">Jitsi</span>
-                <span className="text-[10px] text-muted-foreground">Instant, free</span>
-              </button>
-              <button type="button" onClick={() => openAndFill("https://meet.google.com/new")} className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center" data-testid="open-google-meet-btn">
-                <ExternalLink className="h-5 w-5 text-blue-500" />
-                <span className="text-xs font-medium">Google Meet</span>
-                <span className="text-[10px] text-muted-foreground">Opens new tab</span>
-              </button>
-              <button type="button" onClick={() => openAndFill("https://zoom.us/start/videomeeting")} className="flex flex-col items-center gap-1.5 p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-center" data-testid="open-zoom-btn">
-                <ExternalLink className="h-5 w-5 text-blue-600" />
-                <span className="text-xs font-medium">Zoom</span>
-                <span className="text-[10px] text-muted-foreground">Opens new tab</span>
-              </button>
-            </div>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Schedule Session</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">Platform will auto-generate a meeting room</p>
+            <p>Once you confirm the time, a unique video meeting link is created and sent to you and your mentee by email.</p>
           </div>
-          <div>
-            <Label htmlFor="meeting-link" className="mb-2 block">Meeting URL</Label>
-            <div className="flex gap-2">
-              <Input id="meeting-link" placeholder="https://meet.jit.si/..." value={meetingLink} onChange={(e) => setMeetingLink(e.target.value)} data-testid="meeting-link-input" className="flex-1" />
-              {meetingLink && (
-                <Button type="button" variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(meetingLink); toast({ title: "Copied" }); }} data-testid="copy-link-btn">
-                  <Copy className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="scheduled-at">Session Date & Time</Label>
+            <Input
+              id="scheduled-at"
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              data-testid="scheduled-at-input"
+            />
           </div>
-          <div>
-            <Label htmlFor="scheduled-at" className="mb-2 block">Schedule Time (optional)</Label>
-            <Input id="scheduled-at" type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} data-testid="scheduled-at-input" />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Mentee: <strong>{booking.menteeName || "Your mentee"}</strong> &mdash; {booking.packageTitle || "Session"}
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={submit} disabled={isPending || !meetingLink} className="bg-primary hover:bg-primary/90" data-testid="save-meeting-link-btn">
-            {isPending ? "Saving..." : "Save Link"}
+          <Button onClick={submit} disabled={isPending || !scheduledAt} data-testid="schedule-session-btn">
+            {isPending ? "Generating room..." : "Confirm & Generate Link"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -296,52 +276,82 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
     );
   }
 
-  const canSetLink = ["paid_pending_session", "paid", "scheduled"].includes(booking.status);
-  const canComplete = ["paid_pending_session", "scheduled", "paid"].includes(booking.status);
+  const canSchedule = ["paid", "scheduled", "paid_pending_session"].includes(booking.status) && !booking.meetingLink;
+  const canReschedule = ["paid", "scheduled", "paid_pending_session"].includes(booking.status) && !!booking.meetingLink;
+  const canComplete = ["paid_pending_session", "scheduled", "paid"].includes(booking.status) && !!booking.meetingLink;
   const canChat = !["pending_payment", "cancelled", "refunded"].includes(booking.status);
 
   return (
-    <div className="flex items-start gap-4 py-4 border-b border-border last:border-0" data-testid="mentor-booking-row">
-      <Avatar className="h-10 w-10 shrink-0 mt-0.5">
-        <AvatarImage src={booking.menteeAvatarUrl ?? undefined} />
-        <AvatarFallback className="bg-muted text-xs font-semibold">{initials}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-foreground">{booking.menteeName || "Mentee"}</p>
-        <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"}</p>
-        {booking.scheduledAt && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <Calendar className="h-3 w-3" /> {new Date(booking.scheduledAt).toLocaleDateString()}
-          </p>
-        )}
-        {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute raised — under review</p>}
-        {booking.mentorEarning && ["session_completed", "payout_released"].includes(booking.status) && (
-          <p className="text-xs text-green-700 mt-0.5">Earning: ${Number(booking.mentorEarning).toFixed(2)}</p>
-        )}
-      </div>
-      <div className="text-right shrink-0 space-y-1.5">
-        <div>
-          <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>{statusLabel}</span>
-          <p className="text-sm font-semibold text-foreground mt-0.5">${Number(booking.amount).toFixed(0)}</p>
-        </div>
-        <div className="flex flex-col gap-1 items-end">
-          {canSetLink && (
-            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => onAddLink(booking)} data-testid="add-meeting-link-btn">
-              <Link2 className="h-3 w-3" /> {booking.meetingLink ? "Edit Link" : "Add Link"}
-            </Button>
+    <div className="py-4 border-b border-border last:border-0 space-y-3" data-testid="mentor-booking-row">
+      <div className="flex items-start gap-4">
+        <Avatar className="h-10 w-10 shrink-0 mt-0.5">
+          <AvatarImage src={booking.menteeAvatarUrl ?? undefined} />
+          <AvatarFallback className="bg-muted text-xs font-semibold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-foreground">{booking.menteeName || "Mentee"}</p>
+          <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"}</p>
+          {booking.scheduledAt && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+              <Calendar className="h-3 w-3" />
+              {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            </p>
           )}
-          {canComplete && (
-            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1 text-green-700 border-green-300 hover:bg-green-50" onClick={markSessionComplete} disabled={isPending} data-testid="mark-complete-btn">
-              <CheckCircle className="h-3 w-3" /> Complete
-            </Button>
-          )}
-          {canChat && (
-            <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground" onClick={() => setLocation(`/bookings/${booking.id}/chat`)} data-testid="chat-btn">
-              <MessageSquare className="h-3 w-3" /> Chat
-            </Button>
+          {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute raised — under review</p>}
+          {booking.mentorEarning && ["session_completed", "payout_released"].includes(booking.status) && (
+            <p className="text-xs text-green-700 mt-0.5">Earning: ${Number(booking.mentorEarning).toFixed(2)}</p>
           )}
         </div>
+        <div className="text-right shrink-0 space-y-1.5">
+          <div>
+            <span className={`inline-block text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}`}>{statusLabel}</span>
+            <p className="text-sm font-semibold text-foreground mt-0.5">${Number(booking.amount).toFixed(0)}</p>
+          </div>
+          <div className="flex flex-col gap-1 items-end">
+            {canSchedule && (
+              <Button size="sm" className="text-xs h-7 px-2 gap-1" onClick={() => onAddLink(booking)} data-testid="schedule-session-btn">
+                <Video className="h-3 w-3" /> Schedule Session
+              </Button>
+            )}
+            {canReschedule && (
+              <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => onAddLink(booking)} data-testid="reschedule-btn">
+                <Calendar className="h-3 w-3" /> Reschedule
+              </Button>
+            )}
+            {canComplete && (
+              <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1 text-green-700 border-green-300 hover:bg-green-50" onClick={markSessionComplete} disabled={isPending} data-testid="mark-complete-btn">
+                <CheckCircle className="h-3 w-3" /> Complete
+              </Button>
+            )}
+            {canChat && (
+              <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground" onClick={() => setLocation(`/bookings/${booking.id}/chat`)} data-testid="chat-btn">
+                <MessageSquare className="h-3 w-3" /> Chat
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
+      {/* Meeting link — shown prominently once generated */}
+      {booking.meetingLink && (
+        <div className="ml-14 flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
+          <Video className="h-4 w-4 text-primary shrink-0" />
+          <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary font-medium hover:underline truncate flex-1">
+            Join Meeting Room
+          </a>
+          <button
+            type="button"
+            onClick={() => { navigator.clipboard.writeText(booking.meetingLink); }}
+            className="text-muted-foreground hover:text-foreground"
+            data-testid="copy-meeting-link-btn"
+            title="Copy link"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+          <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground" title="Open in new tab">
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
+      )}
     </div>
   );
 }
@@ -498,7 +508,7 @@ function MentorDashboardContent() {
         )}
       </div>
 
-      {linkBooking && <MeetingLinkDialog booking={linkBooking} onClose={() => setLinkBooking(null)} />}
+      {linkBooking && <ScheduleSessionDialog booking={linkBooking} onClose={() => setLinkBooking(null)} />}
       {payoutOpen && <PayoutRequestDialog balance={payoutInfo?.withdrawableBalance ?? 0} onClose={() => setPayoutOpen(false)} />}
       <Footer />
     </div>

@@ -3,6 +3,8 @@ import { getAuth } from "@clerk/express";
 import { db, bookingsTable, packagesTable, mentorProfilesTable, usersTable, reviewsTable, disputesTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
+import { createMeetingRoom } from "../lib/meeting";
+import { sendEmail, meetingConfirmedEmail } from "../lib/email";
 
 const router = Router();
 
@@ -215,19 +217,78 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/bookings/:bookingId/meeting-link
+// PATCH /api/bookings/:bookingId/meeting-link — mentor sets time, platform generates meeting room
 router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
   try {
     const bookingId = parseInt(req.params.bookingId);
-    const { meetingLink, scheduledAt } = req.body;
-    const updateData: any = { meetingLink, status: "paid_pending_session" };
-    if (scheduledAt) updateData.scheduledAt = new Date(scheduledAt);
+    const { scheduledAt } = req.body;
 
-    const [updated] = await db.update(bookingsTable).set(updateData).where(eq(bookingsTable.id, bookingId)).returning();
+    if (!scheduledAt) {
+      res.status(400).json({ error: "scheduledAt is required" });
+      return;
+    }
+
+    // Verify the caller is the mentor for this booking
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    if (!mentor || mentor.userId !== user.id) {
+      res.status(403).json({ error: "Only the mentor can schedule this session" });
+      return;
+    }
+
+    // Auto-generate meeting room URL
+    const meetingLink = await createMeetingRoom(bookingId);
+
+    const [updated] = await db.update(bookingsTable)
+      .set({ meetingLink, scheduledAt: new Date(scheduledAt), status: "paid_pending_session" })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
     if (!updated) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    // Fetch mentee + package details for email
+    const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+    const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    const packageName = pkg?.title ?? "Mentorship Session";
+    const scheduledAtIso = new Date(scheduledAt).toISOString();
+
+    // Send confirmation emails (non-fatal if email service not configured)
+    if (menteeUser?.email) {
+      await sendEmail(
+        menteeUser.email,
+        "Your GoMindscout session is confirmed — meeting link inside",
+        meetingConfirmedEmail({
+          recipientName: menteeUser.name ?? "there",
+          otherPartyName: mentor.displayName ?? mentorUser?.name ?? "Your mentor",
+          role: "mentee",
+          scheduledAt: scheduledAtIso,
+          meetingLink,
+          packageName,
+        })
+      );
+    }
+    if (mentorUser?.email) {
+      await sendEmail(
+        mentorUser.email,
+        "Session confirmed — GoMindscout meeting link",
+        meetingConfirmedEmail({
+          recipientName: mentor.displayName ?? mentorUser.name ?? "there",
+          otherPartyName: menteeUser?.name ?? "Your mentee",
+          role: "mentor",
+          scheduledAt: scheduledAtIso,
+          meetingLink,
+          packageName,
+        })
+      );
+    }
+
     res.json(await enrichBooking(updated));
   } catch (err) {
-    req.log.error({ err }, "Error updating meeting link");
+    req.log.error({ err }, "Error scheduling session");
     res.status(500).json({ error: "Internal server error" });
   }
 });

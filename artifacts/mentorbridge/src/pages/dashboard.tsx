@@ -191,7 +191,15 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
           </p>
         )}
         {booking.meetingLink && canChat && (
-          <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline mt-0.5 block">Join meeting</a>
+          <a
+            href={booking.meetingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded px-2 py-1 hover:bg-primary/20 transition-colors"
+            data-testid="join-meeting-link"
+          >
+            Join Meeting Room
+          </a>
         )}
         {booking.hasDispute && (
           <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed — under review</p>

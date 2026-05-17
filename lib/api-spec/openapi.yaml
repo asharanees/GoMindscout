@@ -1014,9 +1014,8 @@ components:
 
     MeetingLinkUpdate:
       type: object
-      required: [meetingLink]
+      required: [scheduledAt]
       properties:
-        meetingLink: { type: string }
         scheduledAt: { type: string }
 
     Review:
