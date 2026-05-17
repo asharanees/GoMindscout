@@ -10,4 +10,5 @@ import type { PayoutRequestInputMethod } from "./payoutRequestInputMethod";
 export interface PayoutRequestInput {
   amount: number;
   method?: PayoutRequestInputMethod;
+  accountDetails?: string;
 }

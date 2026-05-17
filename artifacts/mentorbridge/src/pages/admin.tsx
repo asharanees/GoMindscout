@@ -508,6 +508,7 @@ function AdminContent() {
                         <th className="pb-2 font-medium text-muted-foreground">Mentor</th>
                         <th className="pb-2 font-medium text-muted-foreground">Amount</th>
                         <th className="pb-2 font-medium text-muted-foreground">Method</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Account Details</th>
                         <th className="pb-2 font-medium text-muted-foreground">Status</th>
                         <th className="pb-2 font-medium text-muted-foreground">Date</th>
                         <th className="pb-2 font-medium text-muted-foreground">Actions</th>
@@ -520,6 +521,15 @@ function AdminContent() {
                           <td className="py-3">{p.mentorName || "—"}</td>
                           <td className="py-3 font-medium">${Number(p.amount).toFixed(2)}</td>
                           <td className="py-3 capitalize text-muted-foreground">{p.method.replace("_", " ")}</td>
+                          <td className="py-3 max-w-xs">
+                            {p.accountDetails ? (
+                              <div className="text-xs text-muted-foreground whitespace-pre-line bg-muted/40 rounded p-2 leading-relaxed">
+                                {p.accountDetails}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground italic">Not provided</span>
+                            )}
+                          </td>
                           <td className="py-3">
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAYOUT_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-800"}`}>
                               {p.status.replace("_", " ")}

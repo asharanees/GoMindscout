@@ -1128,6 +1128,7 @@ components:
         amount: { type: number }
         method: { type: string }
         status: { type: string, enum: [pending, approved, paid_out, rejected] }
+        accountDetails: { type: ["string", "null"] }
         adminNote: { type: ["string", "null"] }
         createdAt: { type: string }
         updatedAt: { type: string }
@@ -1151,6 +1152,7 @@ components:
         method:
           type: string
           enum: [bank_transfer, payoneer, wise, manual]
+        accountDetails: { type: string }
 
     PayoutStatusUpdate:
       type: object

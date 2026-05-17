@@ -663,6 +663,7 @@ export const GetMentorPayoutsResponse = zod.object({
       amount: zod.number(),
       method: zod.string(),
       status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+      accountDetails: zod.string().nullish(),
       adminNote: zod.string().nullish(),
       createdAt: zod.string(),
       updatedAt: zod.string().optional(),
@@ -676,6 +677,7 @@ export const GetMentorPayoutsResponse = zod.object({
 export const RequestPayoutBody = zod.object({
   amount: zod.number(),
   method: zod.enum(["bank_transfer", "payoneer", "wise", "manual"]).optional(),
+  accountDetails: zod.string().optional(),
 });
 
 /**
@@ -963,6 +965,7 @@ export const AdminListPayoutsResponseItem = zod.object({
   amount: zod.number(),
   method: zod.string(),
   status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+  accountDetails: zod.string().nullish(),
   adminNote: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string().optional(),
@@ -987,6 +990,7 @@ export const AdminUpdatePayoutResponse = zod.object({
   amount: zod.number(),
   method: zod.string(),
   status: zod.enum(["pending", "approved", "paid_out", "rejected"]),
+  accountDetails: zod.string().nullish(),
   adminNote: zod.string().nullish(),
   createdAt: zod.string(),
   updatedAt: zod.string().optional(),

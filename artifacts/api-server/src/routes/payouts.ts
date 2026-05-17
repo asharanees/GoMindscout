@@ -13,6 +13,7 @@ function payoutToResponse(p: any) {
     amount: Number(p.amount),
     method: p.method,
     status: p.status,
+    accountDetails: p.accountDetails ?? null,
     adminNote: p.adminNote ?? null,
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
@@ -66,10 +67,14 @@ router.get("/", requireAuth, async (req, res) => {
 // POST /api/payouts/request — mentor requests payout
 router.post("/request", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const { amount, method } = req.body;
+  const { amount, method, accountDetails } = req.body;
 
   if (!amount || amount <= 0) {
     res.status(400).json({ error: "Valid amount required" });
+    return;
+  }
+  if (!accountDetails || !accountDetails.trim()) {
+    res.status(400).json({ error: "Account details are required for payout processing" });
     return;
   }
 
@@ -84,6 +89,7 @@ router.post("/request", requireAuth, async (req, res) => {
       mentorId: mentor.id,
       amount: amount.toString(),
       method: method ?? "bank_transfer",
+      accountDetails: accountDetails.trim(),
       status: "pending",
     }).returning();
 

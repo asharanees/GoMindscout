@@ -14,6 +14,8 @@ export interface PayoutRequest {
   method: string;
   status: PayoutRequestStatus;
   /** @nullable */
+  accountDetails?: string | null;
+  /** @nullable */
   adminNote?: string | null;
   createdAt: string;
   updatedAt?: string;

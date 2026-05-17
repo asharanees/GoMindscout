@@ -148,20 +148,70 @@ function MeetingLinkDialog({ booking, onClose }: { booking: any; onClose: () => 
   );
 }
 
+const ACCOUNT_DETAIL_FIELDS: Record<string, { label: string; placeholder: string; fields: { key: string; label: string; placeholder: string }[] }> = {
+  bank_transfer: {
+    label: "Bank Transfer Details",
+    placeholder: "",
+    fields: [
+      { key: "accountHolder", label: "Account Holder Name", placeholder: "Full legal name" },
+      { key: "bankName", label: "Bank Name", placeholder: "e.g. Chase, Barclays" },
+      { key: "accountNumber", label: "Account Number / IBAN", placeholder: "Account or IBAN number" },
+      { key: "routingSwift", label: "Routing / SWIFT / Sort Code", placeholder: "Routing or SWIFT code" },
+      { key: "country", label: "Bank Country", placeholder: "e.g. United States" },
+    ],
+  },
+  payoneer: {
+    label: "Payoneer Details",
+    placeholder: "",
+    fields: [
+      { key: "payoneerEmail", label: "Payoneer Email / Account ID", placeholder: "email@example.com or account ID" },
+    ],
+  },
+  wise: {
+    label: "Wise Details",
+    placeholder: "",
+    fields: [
+      { key: "wiseEmail", label: "Wise Email / Account ID", placeholder: "email@example.com or account ID" },
+    ],
+  },
+  manual: {
+    label: "Payment Instructions",
+    placeholder: "",
+    fields: [
+      { key: "notes", label: "Notes / Instructions", placeholder: "Describe how you'd like to receive payment" },
+    ],
+  },
+};
+
 function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: () => void }) {
   const [amount, setAmount] = useState(balance.toFixed(2));
   const [method, setMethod] = useState("bank_transfer");
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutate: requestPayout, isPending } = useRequestPayout();
+
+  const methodConfig = ACCOUNT_DETAIL_FIELDS[method];
+
+  function setField(key: string, value: string) {
+    setFieldValues((prev) => ({ ...prev, [key]: value }));
+  }
 
   function submit() {
     const amt = parseFloat(amount);
     if (!amt || amt <= 0 || amt > balance) {
       toast({ title: "Invalid amount", variant: "destructive" }); return;
     }
+    const missing = methodConfig.fields.find((f) => !fieldValues[f.key]?.trim());
+    if (missing) {
+      toast({ title: `Please fill in: ${missing.label}`, variant: "destructive" }); return;
+    }
+    const accountDetails = methodConfig.fields
+      .map((f) => `${f.label}: ${fieldValues[f.key]?.trim()}`)
+      .join("\n");
+
     requestPayout(
-      { data: { amount: amt, method: method as any } },
+      { data: { amount: amt, method: method as any, accountDetails } },
       {
         onSuccess: () => {
           toast({ title: "Payout requested!", description: "Admin will review within 2 business days." });
@@ -175,7 +225,7 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>Request Payout</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
           <p className="text-sm text-muted-foreground">Available balance: <strong className="text-foreground">${balance.toFixed(2)}</strong></p>
@@ -185,7 +235,7 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
           </div>
           <div className="space-y-2">
             <Label>Payout Method</Label>
-            <Select value={method} onValueChange={setMethod}>
+            <Select value={method} onValueChange={(v) => { setMethod(v); setFieldValues({}); }}>
               <SelectTrigger data-testid="payout-method-select">
                 <SelectValue />
               </SelectTrigger>
@@ -196,6 +246,20 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
                 <SelectItem value="manual">Manual / Other</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="border-t pt-3 space-y-3">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{methodConfig.label}</p>
+            {methodConfig.fields.map((f) => (
+              <div key={f.key} className="space-y-1">
+                <Label className="text-sm">{f.label}</Label>
+                <Input
+                  placeholder={f.placeholder}
+                  value={fieldValues[f.key] ?? ""}
+                  onChange={(e) => setField(f.key, e.target.value)}
+                  data-testid={`payout-field-${f.key}`}
+                />
+              </div>
+            ))}
           </div>
         </div>
         <DialogFooter>

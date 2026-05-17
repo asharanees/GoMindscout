@@ -407,6 +407,8 @@ export interface PayoutRequest {
   method: string;
   status: PayoutRequestStatus;
   /** @nullable */
+  accountDetails?: string | null;
+  /** @nullable */
   adminNote?: string | null;
   createdAt: string;
   updatedAt?: string;
@@ -431,6 +433,7 @@ export const PayoutRequestInputMethod = {
 export interface PayoutRequestInput {
   amount: number;
   method?: PayoutRequestInputMethod;
+  accountDetails?: string;
 }
 
 export type PayoutStatusUpdateStatus =

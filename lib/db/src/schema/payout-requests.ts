@@ -11,6 +11,7 @@ export const payoutRequestsTable = pgTable("payout_requests", {
   // bank_transfer | payoneer | wise | manual
   status: text("status").notNull().default("pending"),
   // pending | approved | paid_out | rejected
+  accountDetails: text("account_details"),
   adminNote: text("admin_note"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
