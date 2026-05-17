@@ -30,9 +30,12 @@ router.get("/", requireAuth, async (req, res) => {
     const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
-    // Calculate withdrawable balance: payout_released bookings minus pending/approved payout requests
+    // Calculate withdrawable balance: payout_released (new flow) + completed (legacy) bookings minus pending/approved payout requests
     const releasedBookings = await db.select().from(bookingsTable)
-      .where(and(eq(bookingsTable.mentorId, mentor.id), eq(bookingsTable.status, "payout_released")));
+      .where(and(
+        eq(bookingsTable.mentorId, mentor.id),
+        sql`${bookingsTable.status} IN ('payout_released', 'completed')`
+      ));
     const totalReleased = releasedBookings.reduce((s, b) => s + Number(b.mentorEarning ?? 0), 0);
 
     const pendingPayouts = await db.select().from(payoutRequestsTable)
