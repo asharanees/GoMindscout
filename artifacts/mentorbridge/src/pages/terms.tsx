@@ -7,7 +7,7 @@ export default function TermsPage() {
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-16 w-full flex-1">
         <h1 className="text-3xl font-bold text-foreground mb-2">Terms of Service</h1>
-        <p className="text-muted-foreground text-sm mb-10">Last updated: January 1, 2025</p>
+        <p className="text-muted-foreground text-sm mb-10">Last updated: May 17, 2026</p>
 
         <div className="prose prose-sm max-w-none text-foreground space-y-8">
           <section>
@@ -27,7 +27,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">4. Payments and Fees</h2>
-            <p className="text-muted-foreground leading-relaxed">GoMindscout charges a 15% platform fee on all transactions. This fee is deducted from the amount paid to the mentor. Payments are processed securely by Stripe. Prices are displayed in USD. Refunds may be issued at our discretion, typically for cancellations made more than 24 hours before a scheduled session.</p>
+            <p className="text-muted-foreground leading-relaxed">GoMindscout charges a 20% platform fee on all transactions. This fee is deducted from the amount paid to the mentor, who retains 80% of the session price. Payments are processed securely by Stripe. Prices are displayed in USD. Mentor earnings are held for 48 hours after session completion to allow for dispute resolution, after which they are released to the mentor's withdrawable balance. Refunds may be issued at our discretion, typically for cancellations made more than 24 hours before a scheduled session.</p>
           </section>
 
           <section>

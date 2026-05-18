@@ -7,7 +7,7 @@ export default function PrivacyPage() {
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-16 w-full flex-1">
         <h1 className="text-3xl font-bold text-foreground mb-2">Privacy Policy</h1>
-        <p className="text-muted-foreground text-sm mb-10">Last updated: January 1, 2025</p>
+        <p className="text-muted-foreground text-sm mb-10">Last updated: May 17, 2026</p>
 
         <div className="prose prose-sm max-w-none text-foreground space-y-8">
           <section>
@@ -22,7 +22,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">3. Information Sharing</h2>
-            <p className="text-muted-foreground leading-relaxed">We share your name and profile information with mentors or mentees as part of the booking process. We do not sell your personal data to third parties. We share data with service providers (Stripe for payments, Clerk for authentication) strictly to operate the platform.</p>
+            <p className="text-muted-foreground leading-relaxed">We share your name and profile information with mentors or mentees as part of the booking process. We do not sell your personal data to third parties. We share data with service providers strictly to operate the platform: Stripe (payment processing), Clerk (authentication), Daily.co (video meeting rooms), and Resend (transactional email delivery). Each provider processes only the data required for their specific function.</p>
           </section>
 
           <section>
