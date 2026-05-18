@@ -47,7 +47,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">8. Contact</h2>
-            <p className="text-muted-foreground leading-relaxed">Questions about these Terms should be directed to our contact page or emailed to legal@mentorbridge.com.</p>
+            <p className="text-muted-foreground leading-relaxed">Questions about these Terms should be directed to our contact page or emailed to admin@gomindscout.com.</p>
           </section>
         </div>
       </div>

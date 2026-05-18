@@ -36,8 +36,8 @@ export default function ContactPage() {
         <div className="grid md:grid-cols-3 gap-8">
           <div className="space-y-5">
             {[
-              { icon: <Mail className="h-5 w-5 text-primary" />, title: "Email Us", desc: "support@mentorbridge.com", sub: "For general questions" },
-              { icon: <MessageSquare className="h-5 w-5 text-primary" />, title: "Mentor Support", desc: "mentors@mentorbridge.com", sub: "For mentor-specific issues" },
+              { icon: <Mail className="h-5 w-5 text-primary" />, title: "Email Us", desc: "admin@gomindscout.com", sub: "For general questions" },
+              { icon: <MessageSquare className="h-5 w-5 text-primary" />, title: "Mentor Support", desc: "admin@gomindscout.com", sub: "For mentor-specific issues" },
               { icon: <HelpCircle className="h-5 w-5 text-primary" />, title: "Response Time", desc: "Within 1 business day", sub: "Mon-Fri, 9am-6pm EST" },
             ].map(({ icon, title, desc, sub }) => (
               <Card key={title} className="p-4 flex items-start gap-3">
