@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useGetMentorDashboardStats,
@@ -19,16 +20,25 @@ import {
   useUpdateBookingStatus,
   useGetMentorPayouts,
   useRequestPayout,
+  useApproveBooking,
+  useRejectBooking,
+  useCounterProposeBooking,
   getListMyBookingsQueryKey,
   getGetMentorDashboardStatsQueryKey,
   getGetMentorPayoutsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare, Wallet, ArrowDownToLine, Video, Copy, ExternalLink } from "lucide-react";
+import {
+  Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare,
+  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw,
+} from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
+  awaiting_mentor_approval: "bg-orange-100 text-orange-800",
+  confirmed: "bg-blue-100 text-blue-800",
+  counter_proposed: "bg-purple-100 text-purple-800",
   paid_pending_session: "bg-blue-100 text-blue-800",
   session_completed: "bg-emerald-100 text-emerald-800",
   under_review: "bg-orange-100 text-orange-800",
@@ -43,6 +53,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Pending Payment",
+  awaiting_mentor_approval: "Awaiting Your Approval",
+  confirmed: "Confirmed",
+  counter_proposed: "Counter-Proposed",
   paid_pending_session: "Paid — Awaiting Session",
   session_completed: "Session Done",
   under_review: "Under Review",
@@ -125,6 +138,203 @@ function ScheduleSessionDialog({ booking, onClose }: { booking: any; onClose: ()
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CounterProposeDialog({ booking, onClose }: { booking: any; onClose: () => void }) {
+  const [proposedAt, setProposedAt] = useState("");
+  const [note, setNote] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: counterPropose, isPending } = useCounterProposeBooking();
+
+  function submit() {
+    if (!proposedAt) { toast({ title: "Please select a time", variant: "destructive" }); return; }
+    counterPropose(
+      { bookingId: booking.id, data: { proposedAt: new Date(proposedAt).toISOString(), note: note || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Counter-proposal sent", description: "The mentee will be notified to accept or decline." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          onClose();
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader><DialogTitle>Propose Alternative Time</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          {booking.proposedAt && (
+            <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground">
+              Mentee proposed:{" "}
+              <strong className="text-foreground">
+                {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </strong>
+            </div>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="counter-time">Your Proposed Time</Label>
+            <Input
+              id="counter-time"
+              type="datetime-local"
+              value={proposedAt}
+              onChange={(e) => setProposedAt(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              data-testid="counter-propose-input"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="counter-note">Note to mentee (optional)</Label>
+            <Textarea
+              id="counter-note"
+              placeholder="Let them know why you'd prefer a different time..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              data-testid="counter-propose-note"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={isPending || !proposedAt} data-testid="send-counter-propose-btn">
+            {isPending ? "Sending..." : "Send Counter-Proposal"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RejectDialog({ booking, onClose }: { booking: any; onClose: () => void }) {
+  const [note, setNote] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: rejectBooking, isPending } = useRejectBooking();
+
+  function submit() {
+    rejectBooking(
+      { bookingId: booking.id, data: { note: note || undefined } },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking rejected", description: "The mentee has been notified." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMentorDashboardStatsQueryKey() });
+          onClose();
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader><DialogTitle>Reject Booking</DialogTitle></DialogHeader>
+        <div className="space-y-3 py-2">
+          <p className="text-sm text-muted-foreground">The booking will be cancelled and the mentee notified. Refund will be issued per policy.</p>
+          <div className="space-y-2">
+            <Label htmlFor="reject-note">Reason (optional)</Label>
+            <Textarea
+              id="reject-note"
+              placeholder="Let the mentee know why..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              data-testid="reject-note-input"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="destructive" onClick={submit} disabled={isPending} data-testid="confirm-reject-btn">
+            {isPending ? "Rejecting..." : "Reject Booking"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ApprovalRow({ booking }: { booking: any }) {
+  const [counterOpen, setCounterOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: approveBooking, isPending: approving } = useApproveBooking();
+  const initials = (booking.menteeName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  function handleApprove() {
+    approveBooking(
+      { bookingId: booking.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Booking approved!", description: "Meeting room generated and confirmation emails sent." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMentorDashboardStatsQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  return (
+    <div className="py-4 border-b border-border last:border-0" data-testid="approval-row">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+          <AvatarImage src={booking.menteeAvatarUrl ?? undefined} />
+          <AvatarFallback className="bg-muted text-xs font-semibold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-foreground">{booking.menteeName || "Mentee"}</p>
+          <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"} · ${Number(booking.amount).toFixed(0)}</p>
+          {booking.proposedAt ? (
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+              <Calendar className="h-3 w-3" />
+              Proposed:{" "}
+              {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground mt-1">No time proposed — you can suggest one</p>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2 mt-3 ml-12">
+        <Button
+          size="sm"
+          className="h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700"
+          onClick={handleApprove}
+          disabled={approving}
+          data-testid="approve-booking-btn"
+        >
+          <ThumbsUp className="h-3 w-3" /> Approve
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-purple-300 text-purple-700 hover:bg-purple-50"
+          onClick={() => setCounterOpen(true)}
+          data-testid="counter-propose-btn"
+        >
+          <RotateCcw className="h-3 w-3" /> Counter-Propose
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+          onClick={() => setRejectOpen(true)}
+          data-testid="reject-booking-btn"
+        >
+          <ThumbsDown className="h-3 w-3" /> Reject
+        </Button>
+      </div>
+      {counterOpen && <CounterProposeDialog booking={booking} onClose={() => setCounterOpen(false)} />}
+      {rejectOpen && <RejectDialog booking={booking} onClose={() => setRejectOpen(false)} />}
+    </div>
   );
 }
 
@@ -278,8 +488,8 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
 
   const canSchedule = ["paid", "scheduled", "paid_pending_session"].includes(booking.status) && !booking.meetingLink;
   const canReschedule = ["paid", "scheduled", "paid_pending_session"].includes(booking.status) && !!booking.meetingLink;
-  const canComplete = ["paid_pending_session", "scheduled", "paid"].includes(booking.status) && !!booking.meetingLink;
-  const canChat = !["pending_payment", "cancelled", "refunded"].includes(booking.status);
+  const canComplete = ["confirmed", "paid_pending_session", "scheduled", "paid"].includes(booking.status) && !!booking.meetingLink;
+  const canChat = !["pending_payment", "awaiting_mentor_approval", "cancelled", "refunded"].includes(booking.status);
 
   return (
     <div className="py-4 border-b border-border last:border-0 space-y-3" data-testid="mentor-booking-row">
@@ -331,7 +541,6 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
           </div>
         </div>
       </div>
-      {/* Meeting link — shown prominently once generated */}
       {booking.meetingLink && (
         <div className="ml-14 flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
           <Video className="h-4 w-4 text-primary shrink-0" />
@@ -363,9 +572,10 @@ function MentorDashboardContent() {
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
   const { data: payoutInfo, isLoading: payoutsLoading } = useGetMentorPayouts();
 
-  const active = (bookings ?? []).filter((b: any) => ["paid_pending_session", "paid", "scheduled"].includes(b.status));
+  const awaitingApproval = (bookings ?? []).filter((b: any) => b.status === "awaiting_mentor_approval");
+  const active = (bookings ?? []).filter((b: any) => ["confirmed", "paid_pending_session", "paid", "scheduled"].includes(b.status));
   const inProgress = (bookings ?? []).filter((b: any) => ["session_completed", "under_review", "disputed"].includes(b.status));
-  const history = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded"].includes(b.status));
+  const history = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded", "counter_proposed"].includes(b.status));
 
   const statusBadge = stats?.profileStatus === "approved"
     ? <Badge className="bg-green-100 text-green-800 border-green-200">Approved</Badge>
@@ -476,6 +686,25 @@ function MentorDashboardContent() {
             </>
           )}
         </Card>
+
+        {/* Awaiting Approval */}
+        {(bookingsLoading || awaitingApproval.length > 0) && (
+          <Card className="p-6 border-orange-200 bg-orange-50/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-5 w-5 text-orange-600" />
+              <h2 className="font-semibold text-foreground">Awaiting Your Approval</h2>
+              {awaitingApproval.length > 0 && (
+                <span className="ml-auto text-xs font-semibold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">
+                  {awaitingApproval.length}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Review and approve, counter-propose, or reject new booking requests.</p>
+            {bookingsLoading ? <Skeleton className="h-20" /> : (
+              awaitingApproval.map((b: any) => <ApprovalRow key={b.id} booking={b} />)
+            )}
+          </Card>
+        )}
 
         {/* Active sessions */}
         <Card className="p-6">

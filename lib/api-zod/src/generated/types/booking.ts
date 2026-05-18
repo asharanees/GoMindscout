@@ -14,6 +14,10 @@ export interface Booking {
   packageId: number;
   status: BookingStatus;
   /** @nullable */
+  proposedAt?: string | null;
+  /** @nullable */
+  mentorProposedAt?: string | null;
+  /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
   sessionCompletedAt?: string | null;

@@ -9,9 +9,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCreateMentorProfile, useCreatePackage, useListCategories, useUpdateMe } from "@workspace/api-client-react";
+import { useCreateMentorProfile, useCreatePackage, useListCategories, useUpdateMe, useSetMyAvailability } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle } from "lucide-react";
+
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+const DAY_LABELS: Record<number, string> = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" };
+
+interface DayState { dayOfWeek: number; isActive: boolean; startTime: string; endTime: string; }
+
+function defaultDays(): DayState[] {
+  return DAY_ORDER.map((d) => ({ dayOfWeek: d, isActive: d >= 1 && d <= 5, startTime: "09:00", endTime: "17:00" }));
+}
 
 function OnboardingContent() {
   const [, setLocation] = useLocation();
@@ -21,6 +30,17 @@ function OnboardingContent() {
   const { mutate: createProfile, isPending: profilePending } = useCreateMentorProfile();
   const { mutate: createPackage } = useCreatePackage();
   const { mutate: updateMe } = useUpdateMe();
+  const { mutate: setAvailability } = useSetMyAvailability();
+
+  const [days, setDays] = useState<DayState[]>(defaultDays());
+  const [timezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+
+  function toggleDay(dow: number) {
+    setDays((prev) => prev.map((d) => d.dayOfWeek === dow ? { ...d, isActive: !d.isActive } : d));
+  }
+  function updateTime(dow: number, field: "startTime" | "endTime", value: string) {
+    setDays((prev) => prev.map((d) => d.dayOfWeek === dow ? { ...d, [field]: value } : d));
+  }
 
   const [form, setForm] = useState({
     fullName: "",
@@ -84,10 +104,25 @@ function OnboardingContent() {
             { title: "60-min Deep Dive", description: "An in-depth session to tackle your specific challenge.", type: "video_60", durationMinutes: 60, price: form.hourlyRate ? parseFloat(form.hourlyRate) : 150 },
             { title: "Email Advice", description: "Send me a detailed question and I'll give you thorough written guidance.", type: "email", price: 49 },
           ];
-
           defaultPackages.forEach((pkg) => {
             createPackage({ data: { ...pkg, price: pkg.price } as any });
           });
+
+          // Save availability
+          const activeDays = days.filter((d) => d.isActive);
+          if (activeDays.length > 0) {
+            setAvailability({
+              data: {
+                availability: activeDays.map((d) => ({
+                  dayOfWeek: d.dayOfWeek,
+                  startTime: d.startTime,
+                  endTime: d.endTime,
+                  isActive: true,
+                })),
+                timezone,
+              } as any,
+            });
+          }
 
           setSubmitted(true);
         },
@@ -209,6 +244,53 @@ function OnboardingContent() {
             <Label htmlFor="calendly">Calendly URL (optional)</Label>
             <Input id="calendly" type="url" placeholder="https://calendly.com/yourname" value={form.calendlyUrl} onChange={(e) => update("calendlyUrl", e.target.value)} data-testid="calendly-input" />
           </div>
+        </Card>
+
+        <Card className="p-6 space-y-5">
+          <div>
+            <h2 className="font-semibold text-foreground">Availability (Optional)</h2>
+            <p className="text-xs text-muted-foreground mt-1">Set your weekly availability so mentees can book slots. You can update this anytime from your profile.</p>
+          </div>
+          <div className="space-y-3">
+            {days.map((day) => (
+              <div key={day.dayOfWeek} className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => toggleDay(day.dayOfWeek)}
+                  data-testid={`toggle-day-${day.dayOfWeek}`}
+                  className={`min-w-[48px] text-xs font-semibold py-1.5 px-2 rounded-lg border transition-colors ${
+                    day.isActive
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+                  }`}
+                >
+                  {DAY_LABELS[day.dayOfWeek]}
+                </button>
+                {day.isActive ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      type="time"
+                      value={day.startTime}
+                      onChange={(e) => updateTime(day.dayOfWeek, "startTime", e.target.value)}
+                      className="h-8 text-sm w-32"
+                      data-testid={`start-time-${day.dayOfWeek}`}
+                    />
+                    <span className="text-xs text-muted-foreground">to</span>
+                    <Input
+                      type="time"
+                      value={day.endTime}
+                      onChange={(e) => updateTime(day.dayOfWeek, "endTime", e.target.value)}
+                      className="h-8 text-sm w-32"
+                      data-testid={`end-time-${day.dayOfWeek}`}
+                    />
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground flex-1">Unavailable</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">Timezone: <strong>{timezone}</strong> (detected from your browser)</p>
         </Card>
 
         <Button type="submit" className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90" disabled={profilePending} data-testid="submit-profile-btn">

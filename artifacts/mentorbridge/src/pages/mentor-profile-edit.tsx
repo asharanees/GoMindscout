@@ -19,8 +19,169 @@ import {
   useListMentorPackages,
   useCreatePackage,
   useUpdatePackage,
+  useGetMentorAvailability,
+  useSetMyAvailability,
+  getGetMentorAvailabilityQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+
+// ─── Availability Editor ─────────────────────────────────────────────────────
+
+const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
+const DAY_LABELS: Record<number, string> = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" };
+
+interface DayState {
+  dayOfWeek: number;
+  isActive: boolean;
+  startTime: string;
+  endTime: string;
+}
+
+function defaultDays(): DayState[] {
+  return DAY_ORDER.map((d) => ({
+    dayOfWeek: d,
+    isActive: d >= 1 && d <= 5, // Mon–Fri on by default
+    startTime: "09:00",
+    endTime: "17:00",
+  }));
+}
+
+function AvailabilitySection({ mentorId }: { mentorId: number }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [days, setDays] = useState<DayState[]>(defaultDays());
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [synced, setSynced] = useState(false);
+
+  const { data: availability, isLoading } = useGetMentorAvailability(mentorId, {
+    query: { enabled: !!mentorId, queryKey: getGetMentorAvailabilityQueryKey(mentorId) },
+  });
+  const { mutate: setAvailability, isPending: saving } = useSetMyAvailability();
+
+  useEffect(() => {
+    if (availability && !synced) {
+      setSynced(true);
+      if (availability.length > 0 && availability[0].timezone) {
+        setTimezone(availability[0].timezone);
+      }
+      setDays(
+        DAY_ORDER.map((d) => {
+          const existing = availability.find((a) => a.dayOfWeek === d);
+          return existing
+            ? { dayOfWeek: d, isActive: existing.isActive, startTime: existing.startTime, endTime: existing.endTime }
+            : { dayOfWeek: d, isActive: false, startTime: "09:00", endTime: "17:00" };
+        })
+      );
+    }
+  }, [availability, synced]);
+
+  function toggleDay(dow: number) {
+    setDays((prev) => prev.map((d) => d.dayOfWeek === dow ? { ...d, isActive: !d.isActive } : d));
+  }
+
+  function updateTime(dow: number, field: "startTime" | "endTime", value: string) {
+    setDays((prev) => prev.map((d) => d.dayOfWeek === dow ? { ...d, [field]: value } : d));
+  }
+
+  function save() {
+    const activeDays = days.filter((d) => d.isActive);
+    setAvailability(
+      {
+        data: {
+          availability: activeDays.map((d) => ({
+            dayOfWeek: d.dayOfWeek,
+            startTime: d.startTime,
+            endTime: d.endTime,
+            isActive: true,
+          })),
+          timezone,
+        } as any,
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Availability saved!", description: "Mentees will see your available slots when booking." });
+          queryClient.invalidateQueries({ queryKey: getGetMentorAvailabilityQueryKey(mentorId) });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  if (isLoading) return <Skeleton className="h-48 rounded-xl" />;
+
+  return (
+    <Card className="p-6 space-y-5">
+      <div>
+        <h2 className="font-semibold text-foreground">Availability</h2>
+        <p className="text-xs text-muted-foreground mt-1">Set the days and times you're available for sessions. Mentees will see open slots when booking.</p>
+      </div>
+
+      <div className="space-y-3">
+        {days.map((day) => (
+          <div key={day.dayOfWeek} className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => toggleDay(day.dayOfWeek)}
+              data-testid={`toggle-day-${day.dayOfWeek}`}
+              className={`min-w-[48px] text-xs font-semibold py-1.5 px-2 rounded-lg border transition-colors ${
+                day.isActive
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted text-muted-foreground border-border hover:border-primary/40"
+              }`}
+            >
+              {DAY_LABELS[day.dayOfWeek]}
+            </button>
+            {day.isActive ? (
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  type="time"
+                  value={day.startTime}
+                  onChange={(e) => updateTime(day.dayOfWeek, "startTime", e.target.value)}
+                  className="h-8 text-sm w-32"
+                  data-testid={`start-time-${day.dayOfWeek}`}
+                />
+                <span className="text-xs text-muted-foreground">to</span>
+                <Input
+                  type="time"
+                  value={day.endTime}
+                  onChange={(e) => updateTime(day.dayOfWeek, "endTime", e.target.value)}
+                  className="h-8 text-sm w-32"
+                  data-testid={`end-time-${day.dayOfWeek}`}
+                />
+              </div>
+            ) : (
+              <span className="text-xs text-muted-foreground flex-1">Unavailable</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-sm">Timezone</Label>
+        <Input
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          placeholder="e.g. America/New_York"
+          className="h-8 text-sm"
+          data-testid="timezone-input"
+        />
+        <p className="text-xs text-muted-foreground">Use IANA timezone names (e.g. America/New_York, Europe/London)</p>
+      </div>
+
+      <Button
+        type="button"
+        onClick={save}
+        disabled={saving}
+        variant="outline"
+        className="w-full"
+        data-testid="save-availability-btn"
+      >
+        {saving ? "Saving availability..." : "Save Availability"}
+      </Button>
+    </Card>
+  );
+}
 
 function EditContent() {
   const [, setLocation] = useLocation();
@@ -253,6 +414,9 @@ function EditContent() {
             </div>
           </Card>
         )}
+
+        {/* Availability */}
+        {mentor?.id && <AvailabilitySection mentorId={mentor.id} />}
 
         <div className="flex gap-3">
           <Button type="button" variant="outline" className="flex-1" onClick={() => setLocation("/mentor/dashboard")}>Cancel</Button>

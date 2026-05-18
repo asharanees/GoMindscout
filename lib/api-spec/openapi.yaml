@@ -14,6 +14,8 @@ tags:
     description: Mentor categories
   - name: mentors
     description: Mentor profiles
+  - name: availability
+    description: Mentor availability and slot management
   - name: packages
     description: Mentor packages
   - name: bookings
@@ -203,6 +205,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MentorProfile"
+
+  /mentors/{mentorId}/availability:
+    get:
+      operationId: getMentorAvailability
+      tags: [availability]
+      summary: Get a mentor's weekly availability schedule
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Availability schedule
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MentorAvailabilityDay"
+
+  /mentors/me/availability:
+    put:
+      operationId: setMyAvailability
+      tags: [availability]
+      summary: Set own mentor availability schedule (replaces all existing)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetAvailabilityInput"
+      responses:
+        "200":
+          description: Updated availability
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MentorAvailabilityDay"
+
+  /mentors/{mentorId}/slots:
+    get:
+      operationId: getMentorSlots
+      tags: [availability]
+      summary: Get available booking slots for a mentor on a given date
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: date
+          in: query
+          required: true
+          schema: { type: string, description: "YYYY-MM-DD" }
+        - name: durationMinutes
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Available slots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AvailabilitySlot"
 
   /mentors/{mentorId}:
     get:
@@ -401,6 +471,107 @@ paths:
       responses:
         "200":
           description: Updated booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/approve:
+    post:
+      operationId: approveBooking
+      tags: [bookings]
+      summary: Mentor approves a booking (generates meeting room, sends emails)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Approved booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/reject:
+    post:
+      operationId: rejectBooking
+      tags: [bookings]
+      summary: Mentor rejects a booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingCancelInput"
+      responses:
+        "200":
+          description: Rejected booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/counter-propose:
+    post:
+      operationId: counterProposeBooking
+      tags: [bookings]
+      summary: Mentor proposes a different time for the booking
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CounterProposeInput"
+      responses:
+        "200":
+          description: Counter-proposed booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/accept-counter:
+    post:
+      operationId: acceptCounterProposal
+      tags: [bookings]
+      summary: Mentee accepts mentor's counter-proposed time (generates meeting room)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Confirmed booking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Booking"
+
+  /bookings/{bookingId}/decline-counter:
+    post:
+      operationId: declineCounterProposal
+      tags: [bookings]
+      summary: Mentee declines mentor's counter-proposed time (cancels booking)
+      parameters:
+        - name: bookingId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Cancelled booking
           content:
             application/json:
               schema:
@@ -956,6 +1127,48 @@ components:
         price: { type: number }
         isActive: { type: boolean }
 
+    MentorAvailabilityDay:
+      type: object
+      required: [dayOfWeek, startTime, endTime, timezone, isActive]
+      properties:
+        id: { type: integer }
+        dayOfWeek: { type: integer, description: "0=Sun,1=Mon,...,6=Sat" }
+        startTime: { type: string, description: "HH:MM 24h" }
+        endTime: { type: string, description: "HH:MM 24h" }
+        timezone: { type: string }
+        isActive: { type: boolean }
+
+    SetAvailabilityInput:
+      type: object
+      required: [availability, timezone]
+      properties:
+        timezone: { type: string }
+        availability:
+          type: array
+          items:
+            type: object
+            required: [dayOfWeek, startTime, endTime]
+            properties:
+              dayOfWeek: { type: integer }
+              startTime: { type: string }
+              endTime: { type: string }
+              isActive: { type: boolean }
+
+    AvailabilitySlot:
+      type: object
+      required: [start, end, available]
+      properties:
+        start: { type: string, description: "ISO 8601 datetime" }
+        end: { type: string, description: "ISO 8601 datetime" }
+        available: { type: boolean }
+
+    CounterProposeInput:
+      type: object
+      required: [proposedAt]
+      properties:
+        proposedAt: { type: string, description: "ISO 8601 datetime" }
+        note: { type: string }
+
     Booking:
       type: object
       required: [id, menteeId, mentorId, packageId, status, amount, createdAt]
@@ -966,7 +1179,9 @@ components:
         packageId: { type: integer }
         status:
           type: string
-          enum: [pending_payment, paid_pending_session, session_completed, under_review, disputed, payout_released, cancelled, refunded, paid, scheduled, completed]
+          enum: [pending_payment, awaiting_mentor_approval, confirmed, counter_proposed, session_completed, under_review, disputed, payout_released, cancelled, refunded, paid_pending_session, paid, scheduled, completed]
+        proposedAt: { type: ["string", "null"] }
+        mentorProposedAt: { type: ["string", "null"] }
         scheduledAt: { type: ["string", "null"] }
         sessionCompletedAt: { type: ["string", "null"] }
         meetingLink: { type: ["string", "null"] }
@@ -990,6 +1205,7 @@ components:
       required: [packageId]
       properties:
         packageId: { type: integer }
+        proposedAt: { type: string, description: "ISO 8601 datetime for the proposed session time" }
 
     BookingWithCheckout:
       type: object

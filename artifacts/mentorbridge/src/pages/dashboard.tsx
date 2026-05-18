@@ -15,15 +15,20 @@ import {
   useListMyBookings,
   useCreateReview,
   useCancelBooking,
+  useAcceptCounterProposal,
+  useDeclineCounterProposal,
   getListMyBookingsQueryKey,
   getGetMenteeDashboardStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle } from "lucide-react";
+import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle, ThumbsUp, ThumbsDown } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
+  awaiting_mentor_approval: "bg-orange-100 text-orange-800",
+  confirmed: "bg-blue-100 text-blue-800",
+  counter_proposed: "bg-purple-100 text-purple-800",
   paid_pending_session: "bg-blue-100 text-blue-800",
   session_completed: "bg-emerald-100 text-emerald-800",
   under_review: "bg-orange-100 text-orange-800",
@@ -31,7 +36,6 @@ const STATUS_COLORS: Record<string, string> = {
   payout_released: "bg-green-100 text-green-800",
   cancelled: "bg-red-100 text-red-800",
   refunded: "bg-gray-100 text-gray-800",
-  // legacy
   paid: "bg-blue-100 text-blue-800",
   scheduled: "bg-indigo-100 text-indigo-800",
   completed: "bg-green-100 text-green-800",
@@ -39,6 +43,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Pending Payment",
+  awaiting_mentor_approval: "Awaiting Mentor Approval",
+  confirmed: "Confirmed",
+  counter_proposed: "Mentor Proposed New Time",
   paid_pending_session: "Paid — Awaiting Session",
   session_completed: "Session Done",
   under_review: "Under Review",
@@ -51,7 +58,7 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "Completed",
 };
 
-const ACTIVE_STATUSES = ["paid_pending_session", "paid", "scheduled"];
+const ACTIVE_STATUSES = ["awaiting_mentor_approval", "confirmed", "counter_proposed", "paid_pending_session", "paid", "scheduled"];
 const DONE_STATUSES = ["session_completed", "payout_released", "completed", "cancelled", "refunded", "under_review", "disputed"];
 const REVIEWABLE_STATUSES = ["session_completed", "payout_released", "completed", "under_review"];
 
@@ -147,6 +154,94 @@ function ReviewDialog({ booking, onClose }: { booking: any; onClose: () => void 
   );
 }
 
+function CounterProposalCard({ booking }: { booking: any }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: acceptCounter, isPending: accepting } = useAcceptCounterProposal();
+  const { mutate: declineCounter, isPending: declining } = useDeclineCounterProposal();
+
+  function handleAccept() {
+    acceptCounter(
+      { bookingId: booking.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Counter-proposal accepted!", description: "Meeting room generated. Check your email for the link." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMenteeDashboardStatsQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  function handleDecline() {
+    if (!confirm("Declining will cancel this booking. Are you sure?")) return;
+    declineCounter(
+      { bookingId: booking.id },
+      {
+        onSuccess: () => {
+          toast({ title: "Counter-proposal declined", description: "The booking has been cancelled." });
+          queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
+          queryClient.invalidateQueries({ queryKey: getGetMenteeDashboardStatsQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  return (
+    <div className="py-4 border-b border-border last:border-0" data-testid="counter-proposal-row">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-9 w-9 shrink-0 mt-0.5">
+          <AvatarImage src={booking.mentorAvatarUrl ?? undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-foreground">{booking.mentorName || "Mentor"}</p>
+          <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"} · ${Number(booking.amount).toFixed(0)}</p>
+          {booking.proposedAt && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Your proposed time:{" "}
+              {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </p>
+          )}
+          {booking.mentorProposedAt && (
+            <div className="mt-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+              <p className="text-xs font-semibold text-purple-800 mb-0.5">Mentor's counter-proposal:</p>
+              <p className="text-sm font-medium text-purple-900">
+                {new Date(booking.mentorProposedAt).toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2 mt-3 ml-12">
+        <Button
+          size="sm"
+          className="h-8 text-xs gap-1.5 bg-green-600 hover:bg-green-700"
+          onClick={handleAccept}
+          disabled={accepting || declining}
+          data-testid="accept-counter-btn"
+        >
+          <ThumbsUp className="h-3 w-3" /> Accept New Time
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs gap-1.5 border-red-300 text-red-600 hover:bg-red-50"
+          onClick={handleDecline}
+          disabled={accepting || declining}
+          data-testid="decline-counter-btn"
+        >
+          <ThumbsDown className="h-3 w-3" /> Decline
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -157,9 +252,9 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
   const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
   const canReview = REVIEWABLE_STATUSES.includes(booking.status) && !booking.hasReview;
-  const canChat = !["pending_payment", "cancelled", "refunded"].includes(booking.status);
-  const canDispute = ["paid_pending_session", "session_completed", "paid", "scheduled", "completed"].includes(booking.status) && !booking.hasDispute;
-  const canCancel = ["paid_pending_session", "pending_payment", "paid", "scheduled"].includes(booking.status);
+  const canChat = !["pending_payment", "awaiting_mentor_approval", "counter_proposed", "cancelled", "refunded"].includes(booking.status);
+  const canDispute = ["confirmed", "paid_pending_session", "session_completed", "paid", "scheduled", "completed"].includes(booking.status) && !booking.hasDispute;
+  const canCancel = ["awaiting_mentor_approval", "confirmed", "paid_pending_session", "pending_payment", "paid", "scheduled"].includes(booking.status);
 
   function handleCancel() {
     if (!confirm("Are you sure you want to cancel this booking? Refund policy applies.")) return;
@@ -185,6 +280,11 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-sm text-foreground">{booking.mentorName || "Mentor"}</p>
         <p className="text-xs text-muted-foreground">{booking.packageTitle || booking.packageType || "Session"}</p>
+        {booking.proposedAt && !booking.scheduledAt && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+            <Clock className="h-3 w-3" /> Proposed: {new Date(booking.proposedAt).toLocaleDateString()} at {new Date(booking.proposedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </p>
+        )}
         {booking.scheduledAt && (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
             <Calendar className="h-3 w-3" /> {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -245,7 +345,8 @@ function DashboardContent() {
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
 
-  const upcoming = (bookings ?? []).filter((b: any) => ACTIVE_STATUSES.includes(b.status));
+  const counterProposed = (bookings ?? []).filter((b: any) => b.status === "counter_proposed");
+  const upcoming = (bookings ?? []).filter((b: any) => ACTIVE_STATUSES.includes(b.status) && b.status !== "counter_proposed");
   const inProgress = (bookings ?? []).filter((b: any) => ["session_completed", "under_review", "disputed"].includes(b.status));
   const past = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded"].includes(b.status));
 
@@ -280,6 +381,21 @@ function DashboardContent() {
             ))
           )}
         </div>
+
+        {/* Counter-proposals that need action */}
+        {counterProposed.length > 0 && (
+          <Card className="p-6 border-purple-200 bg-purple-50/30">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-5 w-5 text-purple-600" />
+              <h2 className="font-semibold text-foreground">Mentor Proposed New Times</h2>
+              <span className="ml-auto text-xs font-semibold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full">
+                {counterProposed.length}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-4">Your mentor suggested different times. Review and accept or decline.</p>
+            {counterProposed.map((b: any) => <CounterProposalCard key={b.id} booking={b} />)}
+          </Card>
+        )}
 
         <Card className="p-6">
           <h2 className="font-semibold text-foreground mb-4">Upcoming Sessions</h2>

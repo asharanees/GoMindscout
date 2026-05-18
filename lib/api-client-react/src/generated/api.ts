@@ -19,6 +19,7 @@ import type {
 import type {
   AdminListMentorsParams,
   AdminStats,
+  AvailabilitySlot,
   Booking,
   BookingCancelInput,
   BookingInput,
@@ -28,16 +29,19 @@ import type {
   ChatMessage,
   ChatMessageInput,
   ChatMessageResponse,
+  CounterProposeInput,
   Dispute,
   DisputeInput,
   DisputeResolution,
   FeatureToggle,
+  GetMentorSlotsParams,
   HealthStatus,
   ListMentorsParams,
   ListMyBookingsParams,
   MeetingLinkUpdate,
   MenteeDashboardStats,
   MentorApproval,
+  MentorAvailabilityDay,
   MentorDashboardStats,
   MentorListResponse,
   MentorProfile,
@@ -52,6 +56,7 @@ import type {
   PayoutStatusUpdate,
   Review,
   ReviewInput,
+  SetAvailabilityInput,
   UserProfile,
   UserProfileUpdate,
   UserSuspendInput,
@@ -780,6 +785,299 @@ export const useUpdateMyMentorProfile = <
 > => {
   return useMutation(getUpdateMyMentorProfileMutationOptions(options));
 };
+
+/**
+ * @summary Get a mentor's weekly availability schedule
+ */
+export const getGetMentorAvailabilityUrl = (mentorId: number) => {
+  return `/api/mentors/${mentorId}/availability`;
+};
+
+export const getMentorAvailability = async (
+  mentorId: number,
+  options?: RequestInit,
+): Promise<MentorAvailabilityDay[]> => {
+  return customFetch<MentorAvailabilityDay[]>(
+    getGetMentorAvailabilityUrl(mentorId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMentorAvailabilityQueryKey = (mentorId: number) => {
+  return [`/api/mentors/${mentorId}/availability`] as const;
+};
+
+export const getGetMentorAvailabilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMentorAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  mentorId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMentorAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMentorAvailabilityQueryKey(mentorId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMentorAvailability>>
+  > = ({ signal }) =>
+    getMentorAvailability(mentorId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!mentorId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMentorAvailability>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMentorAvailabilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMentorAvailability>>
+>;
+export type GetMentorAvailabilityQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a mentor's weekly availability schedule
+ */
+
+export function useGetMentorAvailability<
+  TData = Awaited<ReturnType<typeof getMentorAvailability>>,
+  TError = ErrorType<unknown>,
+>(
+  mentorId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMentorAvailability>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMentorAvailabilityQueryOptions(mentorId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set own mentor availability schedule (replaces all existing)
+ */
+export const getSetMyAvailabilityUrl = () => {
+  return `/api/mentors/me/availability`;
+};
+
+export const setMyAvailability = async (
+  setAvailabilityInput: SetAvailabilityInput,
+  options?: RequestInit,
+): Promise<MentorAvailabilityDay[]> => {
+  return customFetch<MentorAvailabilityDay[]>(getSetMyAvailabilityUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setAvailabilityInput),
+  });
+};
+
+export const getSetMyAvailabilityMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMyAvailability>>,
+    TError,
+    { data: BodyType<SetAvailabilityInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setMyAvailability>>,
+  TError,
+  { data: BodyType<SetAvailabilityInput> },
+  TContext
+> => {
+  const mutationKey = ["setMyAvailability"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setMyAvailability>>,
+    { data: BodyType<SetAvailabilityInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setMyAvailability(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetMyAvailabilityMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setMyAvailability>>
+>;
+export type SetMyAvailabilityMutationBody = BodyType<SetAvailabilityInput>;
+export type SetMyAvailabilityMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set own mentor availability schedule (replaces all existing)
+ */
+export const useSetMyAvailability = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setMyAvailability>>,
+    TError,
+    { data: BodyType<SetAvailabilityInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setMyAvailability>>,
+  TError,
+  { data: BodyType<SetAvailabilityInput> },
+  TContext
+> => {
+  return useMutation(getSetMyAvailabilityMutationOptions(options));
+};
+
+/**
+ * @summary Get available booking slots for a mentor on a given date
+ */
+export const getGetMentorSlotsUrl = (
+  mentorId: number,
+  params: GetMentorSlotsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/mentors/${mentorId}/slots?${stringifiedParams}`
+    : `/api/mentors/${mentorId}/slots`;
+};
+
+export const getMentorSlots = async (
+  mentorId: number,
+  params: GetMentorSlotsParams,
+  options?: RequestInit,
+): Promise<AvailabilitySlot[]> => {
+  return customFetch<AvailabilitySlot[]>(
+    getGetMentorSlotsUrl(mentorId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetMentorSlotsQueryKey = (
+  mentorId: number,
+  params?: GetMentorSlotsParams,
+) => {
+  return [
+    `/api/mentors/${mentorId}/slots`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetMentorSlotsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMentorSlots>>,
+  TError = ErrorType<unknown>,
+>(
+  mentorId: number,
+  params: GetMentorSlotsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMentorSlots>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMentorSlotsQueryKey(mentorId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMentorSlots>>> = ({
+    signal,
+  }) => getMentorSlots(mentorId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!mentorId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMentorSlots>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMentorSlotsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMentorSlots>>
+>;
+export type GetMentorSlotsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get available booking slots for a mentor on a given date
+ */
+
+export function useGetMentorSlots<
+  TData = Awaited<ReturnType<typeof getMentorSlots>>,
+  TError = ErrorType<unknown>,
+>(
+  mentorId: number,
+  params: GetMentorSlotsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMentorSlots>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMentorSlotsQueryOptions(mentorId, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get a mentor profile by ID
@@ -1651,6 +1949,432 @@ export const useUpdateMeetingLink = <
   TContext
 > => {
   return useMutation(getUpdateMeetingLinkMutationOptions(options));
+};
+
+/**
+ * @summary Mentor approves a booking (generates meeting room, sends emails)
+ */
+export const getApproveBookingUrl = (bookingId: number) => {
+  return `/api/bookings/${bookingId}/approve`;
+};
+
+export const approveBooking = async (
+  bookingId: number,
+  options?: RequestInit,
+): Promise<Booking> => {
+  return customFetch<Booking>(getApproveBookingUrl(bookingId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getApproveBookingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveBooking>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof approveBooking>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  const mutationKey = ["approveBooking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof approveBooking>>,
+    { bookingId: number }
+  > = (props) => {
+    const { bookingId } = props ?? {};
+
+    return approveBooking(bookingId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ApproveBookingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof approveBooking>>
+>;
+
+export type ApproveBookingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mentor approves a booking (generates meeting room, sends emails)
+ */
+export const useApproveBooking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof approveBooking>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof approveBooking>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  return useMutation(getApproveBookingMutationOptions(options));
+};
+
+/**
+ * @summary Mentor rejects a booking
+ */
+export const getRejectBookingUrl = (bookingId: number) => {
+  return `/api/bookings/${bookingId}/reject`;
+};
+
+export const rejectBooking = async (
+  bookingId: number,
+  bookingCancelInput: BookingCancelInput,
+  options?: RequestInit,
+): Promise<Booking> => {
+  return customFetch<Booking>(getRejectBookingUrl(bookingId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(bookingCancelInput),
+  });
+};
+
+export const getRejectBookingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectBooking>>,
+    TError,
+    { bookingId: number; data: BodyType<BookingCancelInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rejectBooking>>,
+  TError,
+  { bookingId: number; data: BodyType<BookingCancelInput> },
+  TContext
+> => {
+  const mutationKey = ["rejectBooking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rejectBooking>>,
+    { bookingId: number; data: BodyType<BookingCancelInput> }
+  > = (props) => {
+    const { bookingId, data } = props ?? {};
+
+    return rejectBooking(bookingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RejectBookingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rejectBooking>>
+>;
+export type RejectBookingMutationBody = BodyType<BookingCancelInput>;
+export type RejectBookingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mentor rejects a booking
+ */
+export const useRejectBooking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rejectBooking>>,
+    TError,
+    { bookingId: number; data: BodyType<BookingCancelInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rejectBooking>>,
+  TError,
+  { bookingId: number; data: BodyType<BookingCancelInput> },
+  TContext
+> => {
+  return useMutation(getRejectBookingMutationOptions(options));
+};
+
+/**
+ * @summary Mentor proposes a different time for the booking
+ */
+export const getCounterProposeBookingUrl = (bookingId: number) => {
+  return `/api/bookings/${bookingId}/counter-propose`;
+};
+
+export const counterProposeBooking = async (
+  bookingId: number,
+  counterProposeInput: CounterProposeInput,
+  options?: RequestInit,
+): Promise<Booking> => {
+  return customFetch<Booking>(getCounterProposeBookingUrl(bookingId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(counterProposeInput),
+  });
+};
+
+export const getCounterProposeBookingMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof counterProposeBooking>>,
+    TError,
+    { bookingId: number; data: BodyType<CounterProposeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof counterProposeBooking>>,
+  TError,
+  { bookingId: number; data: BodyType<CounterProposeInput> },
+  TContext
+> => {
+  const mutationKey = ["counterProposeBooking"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof counterProposeBooking>>,
+    { bookingId: number; data: BodyType<CounterProposeInput> }
+  > = (props) => {
+    const { bookingId, data } = props ?? {};
+
+    return counterProposeBooking(bookingId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CounterProposeBookingMutationResult = NonNullable<
+  Awaited<ReturnType<typeof counterProposeBooking>>
+>;
+export type CounterProposeBookingMutationBody = BodyType<CounterProposeInput>;
+export type CounterProposeBookingMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mentor proposes a different time for the booking
+ */
+export const useCounterProposeBooking = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof counterProposeBooking>>,
+    TError,
+    { bookingId: number; data: BodyType<CounterProposeInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof counterProposeBooking>>,
+  TError,
+  { bookingId: number; data: BodyType<CounterProposeInput> },
+  TContext
+> => {
+  return useMutation(getCounterProposeBookingMutationOptions(options));
+};
+
+/**
+ * @summary Mentee accepts mentor's counter-proposed time (generates meeting room)
+ */
+export const getAcceptCounterProposalUrl = (bookingId: number) => {
+  return `/api/bookings/${bookingId}/accept-counter`;
+};
+
+export const acceptCounterProposal = async (
+  bookingId: number,
+  options?: RequestInit,
+): Promise<Booking> => {
+  return customFetch<Booking>(getAcceptCounterProposalUrl(bookingId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getAcceptCounterProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptCounterProposal>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acceptCounterProposal>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  const mutationKey = ["acceptCounterProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acceptCounterProposal>>,
+    { bookingId: number }
+  > = (props) => {
+    const { bookingId } = props ?? {};
+
+    return acceptCounterProposal(bookingId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcceptCounterProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acceptCounterProposal>>
+>;
+
+export type AcceptCounterProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mentee accepts mentor's counter-proposed time (generates meeting room)
+ */
+export const useAcceptCounterProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acceptCounterProposal>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acceptCounterProposal>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  return useMutation(getAcceptCounterProposalMutationOptions(options));
+};
+
+/**
+ * @summary Mentee declines mentor's counter-proposed time (cancels booking)
+ */
+export const getDeclineCounterProposalUrl = (bookingId: number) => {
+  return `/api/bookings/${bookingId}/decline-counter`;
+};
+
+export const declineCounterProposal = async (
+  bookingId: number,
+  options?: RequestInit,
+): Promise<Booking> => {
+  return customFetch<Booking>(getDeclineCounterProposalUrl(bookingId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDeclineCounterProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineCounterProposal>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof declineCounterProposal>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  const mutationKey = ["declineCounterProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof declineCounterProposal>>,
+    { bookingId: number }
+  > = (props) => {
+    const { bookingId } = props ?? {};
+
+    return declineCounterProposal(bookingId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeclineCounterProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof declineCounterProposal>>
+>;
+
+export type DeclineCounterProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mentee declines mentor's counter-proposed time (cancels booking)
+ */
+export const useDeclineCounterProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof declineCounterProposal>>,
+    TError,
+    { bookingId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof declineCounterProposal>>,
+  TError,
+  { bookingId: number },
+  TContext
+> => {
+  return useMutation(getDeclineCounterProposalMutationOptions(options));
 };
 
 /**

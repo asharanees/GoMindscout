@@ -41,7 +41,7 @@ function PackageCard({ pkg, mentorId }: { pkg: any; mentorId: number }) {
             </span>
           )}
         </div>
-        <Link href={`/book/${pkg.id}`}>
+        <Link href={`/book/${pkg.id}?mentorId=${mentorId}`}>
           <Button size="sm" className="bg-primary hover:bg-primary/90" data-testid="book-now-btn">Book Now</Button>
         </Link>
       </div>

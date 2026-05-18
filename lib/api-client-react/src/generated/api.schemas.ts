@@ -173,17 +173,58 @@ export interface PackageUpdate {
   isActive?: boolean;
 }
 
+export interface MentorAvailabilityDay {
+  id?: number;
+  /** 0=Sun,1=Mon,...,6=Sat */
+  dayOfWeek: number;
+  /** HH:MM 24h */
+  startTime: string;
+  /** HH:MM 24h */
+  endTime: string;
+  timezone: string;
+  isActive: boolean;
+}
+
+export type SetAvailabilityInputAvailabilityItem = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive?: boolean;
+};
+
+export interface SetAvailabilityInput {
+  timezone: string;
+  availability: SetAvailabilityInputAvailabilityItem[];
+}
+
+export interface AvailabilitySlot {
+  /** ISO 8601 datetime */
+  start: string;
+  /** ISO 8601 datetime */
+  end: string;
+  available: boolean;
+}
+
+export interface CounterProposeInput {
+  /** ISO 8601 datetime */
+  proposedAt: string;
+  note?: string;
+}
+
 export type BookingStatus = (typeof BookingStatus)[keyof typeof BookingStatus];
 
 export const BookingStatus = {
   pending_payment: "pending_payment",
-  paid_pending_session: "paid_pending_session",
+  awaiting_mentor_approval: "awaiting_mentor_approval",
+  confirmed: "confirmed",
+  counter_proposed: "counter_proposed",
   session_completed: "session_completed",
   under_review: "under_review",
   disputed: "disputed",
   payout_released: "payout_released",
   cancelled: "cancelled",
   refunded: "refunded",
+  paid_pending_session: "paid_pending_session",
   paid: "paid",
   scheduled: "scheduled",
   completed: "completed",
@@ -195,6 +236,10 @@ export interface Booking {
   mentorId: number;
   packageId: number;
   status: BookingStatus;
+  /** @nullable */
+  proposedAt?: string | null;
+  /** @nullable */
+  mentorProposedAt?: string | null;
   /** @nullable */
   scheduledAt?: string | null;
   /** @nullable */
@@ -228,6 +273,8 @@ export interface Booking {
 
 export interface BookingInput {
   packageId: number;
+  /** ISO 8601 datetime for the proposed session time */
+  proposedAt?: string;
 }
 
 export interface BookingWithCheckout {
@@ -523,6 +570,14 @@ export const ListMentorsSortBy = {
   experience: "experience",
   newest: "newest",
 } as const;
+
+export type GetMentorSlotsParams = {
+  /**
+   * YYYY-MM-DD
+   */
+  date: string;
+  durationMinutes?: number;
+};
 
 export type ListMyBookingsParams = {
   role?: ListMyBookingsRole;

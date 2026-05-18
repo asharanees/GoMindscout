@@ -13,6 +13,7 @@ import adminRouter from "./admin";
 import chatRouter from "./chat";
 import disputesRouter from "./disputes";
 import payoutsRouter from "./payouts";
+import availabilityRouter from "./availability";
 
 const router: IRouter = Router();
 
@@ -25,9 +26,10 @@ router.use("/bookings", bookingsRouter);
 router.use("/payments", paymentsRouter);
 router.use("/reviews", reviewsRouter);
 
-// Mount at /mentors so /:mentorId/packages and /:mentorId/reviews resolve correctly
+// Mount at /mentors so /:mentorId/packages, /:mentorId/reviews, /:mentorId/availability, /:mentorId/slots resolve correctly
 router.use("/mentors", packagesRouter);
 router.use("/mentors", reviewsRouter);
+router.use("/mentors", availabilityRouter);
 
 router.use("/dashboard", dashboardRouter);
 router.use("/chat", chatRouter);

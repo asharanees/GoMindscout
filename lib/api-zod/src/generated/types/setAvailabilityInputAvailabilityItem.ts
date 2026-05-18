@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface BookingInput {
-  packageId: number;
-  /** ISO 8601 datetime for the proposed session time */
-  proposedAt?: string;
-}
+export type SetAvailabilityInputAvailabilityItem = {
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  isActive?: boolean;
+};

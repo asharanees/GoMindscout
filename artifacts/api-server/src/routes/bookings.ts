@@ -53,6 +53,8 @@ async function enrichBooking(booking: any) {
     mentorId: booking.mentorId,
     packageId: booking.packageId,
     status: booking.status,
+    proposedAt: booking.proposedAt?.toISOString() ?? null,
+    mentorProposedAt: booking.mentorProposedAt?.toISOString() ?? null,
     scheduledAt: booking.scheduledAt?.toISOString() ?? null,
     sessionCompletedAt: booking.sessionCompletedAt?.toISOString() ?? null,
     meetingLink: booking.meetingLink,
@@ -109,7 +111,7 @@ router.get("/", requireAuth, async (req, res) => {
 // POST /api/bookings — create booking + Stripe checkout
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const { packageId } = req.body;
+  const { packageId, proposedAt } = req.body;
 
   try {
     const user = await getUserByClerkId(userId!);
@@ -132,6 +134,7 @@ router.post("/", requireAuth, async (req, res) => {
       mentorId: mentor.id,
       packageId: pkg.id,
       status: "pending_payment",
+      proposedAt: proposedAt ? new Date(proposedAt) : undefined,
       amount: amount.toString(),
       platformFee: platformFee.toString(),
       mentorEarning: mentorEarning.toString(),
@@ -163,11 +166,11 @@ router.post("/", requireAuth, async (req, res) => {
       await db.update(bookingsTable).set({ stripeSessionId: session.id }).where(eq(bookingsTable.id, booking.id));
       checkoutUrl = session.url!;
     } else {
-      // No Stripe key — auto-confirm for dev/demo
+      // No Stripe key — go to awaiting_mentor_approval for dev/demo
       await db.update(bookingsTable)
-        .set({ status: "paid_pending_session" })
+        .set({ status: "awaiting_mentor_approval" })
         .where(eq(bookingsTable.id, booking.id));
-      booking.status = "paid_pending_session";
+      booking.status = "awaiting_mentor_approval";
     }
 
     const enriched = await enrichBooking(booking);
@@ -262,8 +265,8 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
         menteeUser.email,
         "Your GoMindscout session is confirmed — meeting link inside",
         meetingConfirmedEmail({
-          recipientName: menteeUser.name ?? "there",
-          otherPartyName: mentor.displayName ?? mentorUser?.name ?? "Your mentor",
+          recipientName: menteeUser?.fullName ?? "there",
+          otherPartyName: mentorUser?.fullName ?? "Your mentor",
           role: "mentee",
           scheduledAt: scheduledAtIso,
           meetingLink,
@@ -276,8 +279,8 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
         mentorUser.email,
         "Session confirmed — GoMindscout meeting link",
         meetingConfirmedEmail({
-          recipientName: mentor.displayName ?? mentorUser.name ?? "there",
-          otherPartyName: menteeUser?.name ?? "Your mentee",
+          recipientName: mentorUser?.fullName ?? "there",
+          otherPartyName: menteeUser?.fullName ?? "Your mentee",
           role: "mentor",
           scheduledAt: scheduledAtIso,
           meetingLink,
@@ -339,6 +342,202 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
     res.json(await enrichBooking(updated));
   } catch (err) {
     req.log.error({ err }, "Error cancelling booking");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/bookings/:bookingId/approve — mentor approves, generates meeting room
+router.post("/:bookingId/approve", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const bookingId = parseInt(req.params.bookingId);
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    if (!mentor || mentor.userId !== user.id) { res.status(403).json({ error: "Only the mentor can approve this booking" }); return; }
+
+    if (booking.status !== "awaiting_mentor_approval") {
+      res.status(400).json({ error: "Booking is not awaiting approval" }); return;
+    }
+
+    // Generate meeting room on approval
+    const meetingLink = await createMeetingRoom(bookingId);
+
+    const scheduledAt = booking.proposedAt ?? null;
+    const [updated] = await db.update(bookingsTable)
+      .set({ status: "confirmed", meetingLink, scheduledAt: scheduledAt ?? undefined })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
+
+    // Send confirmation emails
+    const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+    const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    const packageName = pkg?.title ?? "Mentorship Session";
+    const scheduledAtIso = scheduledAt?.toISOString() ?? new Date().toISOString();
+
+    if (menteeUser?.email) {
+      await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed",
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, meetingLink, packageName })
+      );
+    }
+    if (mentorUser?.email) {
+      await sendEmail(mentorUser.email, "Session confirmed — GoMindscout",
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
+      );
+    }
+
+    res.json(await enrichBooking(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error approving booking");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/bookings/:bookingId/reject — mentor rejects booking
+router.post("/:bookingId/reject", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  const { note } = req.body;
+  try {
+    const bookingId = parseInt(req.params.bookingId);
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    if (!mentor || mentor.userId !== user.id) { res.status(403).json({ error: "Only the mentor can reject this booking" }); return; }
+
+    if (booking.status !== "awaiting_mentor_approval") {
+      res.status(400).json({ error: "Booking is not awaiting approval" }); return;
+    }
+
+    const [updated] = await db.update(bookingsTable)
+      .set({ status: "cancelled", cancellationNote: note ? `Mentor rejected: ${note}` : "Mentor rejected this booking" })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
+
+    res.json(await enrichBooking(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error rejecting booking");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/bookings/:bookingId/counter-propose — mentor suggests a different time
+router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  const { proposedAt } = req.body;
+  try {
+    const bookingId = parseInt(req.params.bookingId);
+    if (!proposedAt) { res.status(400).json({ error: "proposedAt is required" }); return; }
+
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    if (!mentor || mentor.userId !== user.id) { res.status(403).json({ error: "Only the mentor can counter-propose" }); return; }
+
+    if (booking.status !== "awaiting_mentor_approval") {
+      res.status(400).json({ error: "Booking is not awaiting approval" }); return;
+    }
+
+    const [updated] = await db.update(bookingsTable)
+      .set({ status: "counter_proposed", mentorProposedAt: new Date(proposedAt) })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
+
+    res.json(await enrichBooking(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error counter-proposing booking");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/bookings/:bookingId/accept-counter — mentee accepts mentor's counter-proposal
+router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const bookingId = parseInt(req.params.bookingId);
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    if (booking.menteeId !== user.id) { res.status(403).json({ error: "Only the mentee can accept a counter-proposal" }); return; }
+
+    if (booking.status !== "counter_proposed") {
+      res.status(400).json({ error: "No counter-proposal to accept" }); return;
+    }
+
+    // Generate meeting room on acceptance
+    const meetingLink = await createMeetingRoom(bookingId);
+
+    const [updated] = await db.update(bookingsTable)
+      .set({ status: "confirmed", scheduledAt: booking.mentorProposedAt ?? undefined, meetingLink })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
+
+    // Send confirmation emails
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+    const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    const packageName = pkg?.title ?? "Mentorship Session";
+    const scheduledAtIso = (booking.mentorProposedAt ?? new Date()).toISOString();
+
+    if (menteeUser?.email) {
+      await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed",
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, meetingLink, packageName })
+      );
+    }
+    if (mentorUser?.email) {
+      await sendEmail(mentorUser.email, "Session confirmed — GoMindscout",
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
+      );
+    }
+
+    res.json(await enrichBooking(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error accepting counter-proposal");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// POST /api/bookings/:bookingId/decline-counter — mentee declines mentor's counter-proposal
+router.post("/:bookingId/decline-counter", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const bookingId = parseInt(req.params.bookingId);
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
+    if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    if (booking.menteeId !== user.id) { res.status(403).json({ error: "Only the mentee can decline a counter-proposal" }); return; }
+
+    if (booking.status !== "counter_proposed") {
+      res.status(400).json({ error: "No counter-proposal to decline" }); return;
+    }
+
+    const [updated] = await db.update(bookingsTable)
+      .set({ status: "cancelled", cancellationNote: "Mentee declined mentor's counter-proposal" })
+      .where(eq(bookingsTable.id, bookingId))
+      .returning();
+
+    res.json(await enrichBooking(updated));
+  } catch (err) {
+    req.log.error({ err }, "Error declining counter-proposal");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -6,17 +6,22 @@ import { mentorProfilesTable } from "./mentor-profiles";
 import { packagesTable } from "./packages";
 
 // Booking status flow (Upwork-style):
-// pending_payment → paid_pending_session → session_completed → payout_released
+// pending_payment → awaiting_mentor_approval → confirmed → session_completed → payout_released
+// Mentor can counter-propose: → counter_proposed → (mentee accepts → confirmed | mentee declines → cancelled)
+// Mentor can reject: → cancelled
 // Any paid status can go to: under_review (dispute raised) → disputed → resolved
-// Legacy: paid, scheduled, completed (kept for backward compat)
+// Legacy: paid_pending_session | paid | scheduled | completed (kept for backward compat)
 export const bookingsTable = pgTable("bookings", {
   id: serial("id").primaryKey(),
   menteeId: integer("mentee_id").notNull().references(() => usersTable.id),
   mentorId: integer("mentor_id").notNull().references(() => mentorProfilesTable.id),
   packageId: integer("package_id").notNull().references(() => packagesTable.id),
   status: text("status").notNull().default("pending_payment"),
-  // pending_payment | paid_pending_session | session_completed | under_review | disputed | payout_released | cancelled | refunded
-  // legacy: paid | scheduled | completed
+  // pending_payment | awaiting_mentor_approval | confirmed | counter_proposed | session_completed
+  // | under_review | disputed | payout_released | cancelled | refunded
+  // legacy: paid_pending_session | paid | scheduled | completed
+  proposedAt: timestamp("proposed_at", { withTimezone: true }),
+  mentorProposedAt: timestamp("mentor_proposed_at", { withTimezone: true }),
   scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
   sessionCompletedAt: timestamp("session_completed_at", { withTimezone: true }),
   meetingLink: text("meeting_link"),
