@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import {
   useGetMentor,
   useListMentorPackages,
@@ -16,7 +15,7 @@ import {
   getListMentorPackagesQueryKey,
   getListMentorReviewsQueryKey,
 } from "@workspace/api-client-react";
-import { Globe, Linkedin, Clock, Video, CheckCircle } from "lucide-react";
+import { Globe, Linkedin, Clock, Video, CheckCircle, Briefcase, Award, BookOpen, ShieldCheck, ExternalLink } from "lucide-react";
 
 function PackageCard({ pkg, mentorId }: { pkg: any; mentorId: number }) {
   const typeIcon = <Video className="h-4 w-4" />;
@@ -62,6 +61,18 @@ function YouTubeEmbed({ url }: { url: string }) {
       />
     </div>
   );
+}
+
+function formatDateRange(startDate: string | null | undefined, endDate: string | null | undefined, isCurrent?: boolean) {
+  const start = startDate ? new Date(startDate + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
+  const end = isCurrent ? "Present" : endDate ? new Date(endDate + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" }) : "";
+  if (!start && !end) return "";
+  return `${start}${start && end ? " - " : ""}${end}`;
+}
+
+function formatMonthYear(date: string | null | undefined) {
+  if (!date) return "";
+  return new Date(date + "-01").toLocaleDateString(undefined, { month: "short", year: "numeric" });
 }
 
 export default function MentorProfilePage() {
@@ -127,7 +138,7 @@ export default function MentorProfilePage() {
                     <div className="flex items-center gap-2 mt-3">
                       <StarRating rating={mentor.averageRating} size="md" showValue />
                       <span className="text-sm text-muted-foreground">({mentor.totalReviews} review{mentor.totalReviews !== 1 ? "s" : ""})</span>
-                      <span className="text-muted-foreground">·</span>
+                      <span className="text-muted-foreground">.</span>
                       <span className="text-sm text-muted-foreground">{mentor.totalSessions} session{mentor.totalSessions !== 1 ? "s" : ""}</span>
                     </div>
                   )}
@@ -160,6 +171,95 @@ export default function MentorProfilePage() {
               <Card className="p-6">
                 <h2 className="font-semibold text-foreground mb-3">About</h2>
                 <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{mentor.bio}</p>
+              </Card>
+            )}
+
+            {/* Experience */}
+            {mentor.experiences && mentor.experiences.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold text-foreground">Experience</h2>
+                </div>
+                <div className="space-y-5">
+                  {mentor.experiences.map((exp: any) => (
+                    <div key={exp.id} className="relative pl-5 border-l-2 border-primary/20 last:pb-0">
+                      <div className="absolute -left-[5px] top-1 h-2.5 w-2.5 rounded-full bg-primary/60" />
+                      <h3 className="font-semibold text-foreground text-sm">{exp.title}</h3>
+                      <p className="text-sm text-muted-foreground">{exp.company}{exp.location ? ` · ${exp.location}` : ""}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{formatDateRange(exp.startDate, exp.endDate, exp.isCurrent)}</p>
+                      {exp.description && <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{exp.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Certifications */}
+            {mentor.certifications && mentor.certifications.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold text-foreground">Certifications</h2>
+                </div>
+                <div className="space-y-4">
+                  {mentor.certifications.map((cert: any) => (
+                    <div key={cert.id}>
+                      <h3 className="font-semibold text-foreground text-sm">{cert.name}</h3>
+                      <p className="text-sm text-muted-foreground">{cert.issuer}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Issued {formatMonthYear(cert.issueDate)}
+                        {cert.expiryDate ? ` · Expires ${formatMonthYear(cert.expiryDate)}` : ""}
+                        {cert.credentialId ? ` · Credential ID: ${cert.credentialId}` : ""}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Honors & Awards */}
+            {mentor.honorsAwards && mentor.honorsAwards.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Award className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold text-foreground">Honors & Awards</h2>
+                </div>
+                <div className="space-y-4">
+                  {mentor.honorsAwards.map((h: any) => (
+                    <div key={h.id}>
+                      <h3 className="font-semibold text-foreground text-sm">{h.title}</h3>
+                      {h.issuer && <p className="text-sm text-muted-foreground">{h.issuer}</p>}
+                      {h.date && <p className="text-xs text-muted-foreground mt-0.5">{formatMonthYear(h.date)}</p>}
+                      {h.description && <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{h.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Publications */}
+            {mentor.publications && mentor.publications.length > 0 && (
+              <Card className="p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold text-foreground">Publications</h2>
+                </div>
+                <div className="space-y-4">
+                  {mentor.publications.map((pub: any) => (
+                    <div key={pub.id}>
+                      <h3 className="font-semibold text-foreground text-sm">{pub.title}</h3>
+                      {pub.publisher && <p className="text-sm text-muted-foreground">{pub.publisher}</p>}
+                      {pub.date && <p className="text-xs text-muted-foreground mt-0.5">{formatMonthYear(pub.date)}</p>}
+                      {pub.description && <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{pub.description}</p>}
+                      {pub.url && (
+                        <a href={pub.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                          View publication <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 

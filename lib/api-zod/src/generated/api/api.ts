@@ -101,6 +101,55 @@ export const ListMentorsResponse = zod.object({
       introVideoUrl: zod.string().nullish(),
       linkedinUrl: zod.string().nullish(),
       calendlyUrl: zod.string().nullish(),
+      experiences: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            title: zod.string().optional(),
+            company: zod.string().optional(),
+            location: zod.string().nullish(),
+            startDate: zod.string().nullish(),
+            endDate: zod.string().nullish(),
+            isCurrent: zod.boolean().optional(),
+            description: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
+      honorsAwards: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            title: zod.string().optional(),
+            issuer: zod.string().nullish(),
+            date: zod.string().nullish(),
+            description: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
+      publications: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            title: zod.string().optional(),
+            publisher: zod.string().nullish(),
+            url: zod.string().nullish(),
+            date: zod.string().nullish(),
+            description: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
+      certifications: zod
+        .array(
+          zod.object({
+            id: zod.string().optional(),
+            name: zod.string().optional(),
+            issuer: zod.string().nullish(),
+            issueDate: zod.string().nullish(),
+            expiryDate: zod.string().nullish(),
+            credentialId: zod.string().nullish(),
+          }),
+        )
+        .nullish(),
       status: zod.enum(["pending", "approved", "rejected", "suspended"]),
       isFeatured: zod.boolean().optional(),
       averageRating: zod.number().nullish(),
@@ -129,6 +178,55 @@ export const CreateMentorProfileBody = zod.object({
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .optional(),
 });
 
 /**
@@ -151,6 +249,55 @@ export const GetFeaturedMentorsResponseItem = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -182,6 +329,55 @@ export const GetMyMentorProfileResponse = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -205,6 +401,55 @@ export const UpdateMyMentorProfileBody = zod.object({
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .optional(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .optional(),
 });
 
 export const UpdateMyMentorProfileResponse = zod.object({
@@ -224,6 +469,55 @@ export const UpdateMyMentorProfileResponse = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -321,6 +615,55 @@ export const GetMentorResponse = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -1112,6 +1455,55 @@ export const AdminListMentorsResponseItem = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -1150,6 +1542,55 @@ export const AdminApproveMentorResponse = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),
@@ -1186,6 +1627,55 @@ export const AdminFeatureMentorResponse = zod.object({
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
+  experiences: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        company: zod.string().optional(),
+        location: zod.string().nullish(),
+        startDate: zod.string().nullish(),
+        endDate: zod.string().nullish(),
+        isCurrent: zod.boolean().optional(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  honorsAwards: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  publications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        title: zod.string().optional(),
+        publisher: zod.string().nullish(),
+        url: zod.string().nullish(),
+        date: zod.string().nullish(),
+        description: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
+  certifications: zod
+    .array(
+      zod.object({
+        id: zod.string().optional(),
+        name: zod.string().optional(),
+        issuer: zod.string().nullish(),
+        issueDate: zod.string().nullish(),
+        expiryDate: zod.string().nullish(),
+        credentialId: zod.string().nullish(),
+      }),
+    )
+    .nullish(),
   status: zod.enum(["pending", "approved", "rejected", "suspended"]),
   isFeatured: zod.boolean().optional(),
   averageRating: zod.number().nullish(),

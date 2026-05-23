@@ -56,6 +56,58 @@ export const MentorProfileStatus = {
   suspended: "suspended",
 } as const;
 
+export interface MentorExperience {
+  id?: string;
+  title?: string;
+  company?: string;
+  /** @nullable */
+  location?: string | null;
+  /** @nullable */
+  startDate?: string | null;
+  /** @nullable */
+  endDate?: string | null;
+  isCurrent?: boolean;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface MentorHonorAward {
+  id?: string;
+  title?: string;
+  /** @nullable */
+  issuer?: string | null;
+  /** @nullable */
+  date?: string | null;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface MentorPublication {
+  id?: string;
+  title?: string;
+  /** @nullable */
+  publisher?: string | null;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  date?: string | null;
+  /** @nullable */
+  description?: string | null;
+}
+
+export interface MentorCertification {
+  id?: string;
+  name?: string;
+  /** @nullable */
+  issuer?: string | null;
+  /** @nullable */
+  issueDate?: string | null;
+  /** @nullable */
+  expiryDate?: string | null;
+  /** @nullable */
+  credentialId?: string | null;
+}
+
 export interface MentorProfile {
   id: number;
   userId: number;
@@ -84,6 +136,14 @@ export interface MentorProfile {
   linkedinUrl?: string | null;
   /** @nullable */
   calendlyUrl?: string | null;
+  /** @nullable */
+  experiences?: MentorExperience[] | null;
+  /** @nullable */
+  honorsAwards?: MentorHonorAward[] | null;
+  /** @nullable */
+  publications?: MentorPublication[] | null;
+  /** @nullable */
+  certifications?: MentorCertification[] | null;
   status: MentorProfileStatus;
   isFeatured?: boolean;
   /** @nullable */
@@ -105,6 +165,10 @@ export interface MentorProfileInput {
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  experiences?: MentorExperience[];
+  honorsAwards?: MentorHonorAward[];
+  publications?: MentorPublication[];
+  certifications?: MentorCertification[];
 }
 
 export interface MentorProfileUpdate {
@@ -119,6 +183,10 @@ export interface MentorProfileUpdate {
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  experiences?: MentorExperience[];
+  honorsAwards?: MentorHonorAward[];
+  publications?: MentorPublication[];
+  certifications?: MentorCertification[];
 }
 
 export interface MentorListResponse {

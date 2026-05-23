@@ -8,10 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateMentorProfile, useCreatePackage, useListCategories, useUpdateMe, useSetMyAvailability } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Plus, Trash2, Briefcase, Award, BookOpen, ShieldCheck } from "lucide-react";
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 const DAY_LABELS: Record<number, string> = { 0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed", 4: "Thu", 5: "Fri", 6: "Sat" };
@@ -20,6 +21,10 @@ interface DayState { dayOfWeek: number; isActive: boolean; startTime: string; en
 
 function defaultDays(): DayState[] {
   return DAY_ORDER.map((d) => ({ dayOfWeek: d, isActive: d >= 1 && d <= 5, startTime: "09:00", endTime: "17:00" }));
+}
+
+function uid() {
+  return Math.random().toString(36).slice(2, 10);
 }
 
 function OnboardingContent() {
@@ -61,6 +66,54 @@ function OnboardingContent() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  // ── Experience ──
+  const [experiences, setExperiences] = useState<Array<{ id: string; title: string; company: string; location: string; startDate: string; endDate: string; isCurrent: boolean; description: string }>>([]);
+  function addExperience() {
+    setExperiences((prev) => [...prev, { id: uid(), title: "", company: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" }]);
+  }
+  function removeExperience(id: string) {
+    setExperiences((prev) => prev.filter((e) => e.id !== id));
+  }
+  function updateExperience(id: string, key: string, value: any) {
+    setExperiences((prev) => prev.map((e) => e.id === id ? { ...e, [key]: value } : e));
+  }
+
+  // ── Honors & Awards ──
+  const [honorsAwards, setHonorsAwards] = useState<Array<{ id: string; title: string; issuer: string; date: string; description: string }>>([]);
+  function addHonor() {
+    setHonorsAwards((prev) => [...prev, { id: uid(), title: "", issuer: "", date: "", description: "" }]);
+  }
+  function removeHonor(id: string) {
+    setHonorsAwards((prev) => prev.filter((h) => h.id !== id));
+  }
+  function updateHonor(id: string, key: string, value: string) {
+    setHonorsAwards((prev) => prev.map((h) => h.id === id ? { ...h, [key]: value } : h));
+  }
+
+  // ── Publications ──
+  const [publications, setPublications] = useState<Array<{ id: string; title: string; publisher: string; url: string; date: string; description: string }>>([]);
+  function addPublication() {
+    setPublications((prev) => [...prev, { id: uid(), title: "", publisher: "", url: "", date: "", description: "" }]);
+  }
+  function removePublication(id: string) {
+    setPublications((prev) => prev.filter((p) => p.id !== id));
+  }
+  function updatePublication(id: string, key: string, value: string) {
+    setPublications((prev) => prev.map((p) => p.id === id ? { ...p, [key]: value } : p));
+  }
+
+  // ── Certifications ──
+  const [certifications, setCertifications] = useState<Array<{ id: string; name: string; issuer: string; issueDate: string; expiryDate: string; credentialId: string }>>([]);
+  function addCert() {
+    setCertifications((prev) => [...prev, { id: uid(), name: "", issuer: "", issueDate: "", expiryDate: "", credentialId: "" }]);
+  }
+  function removeCert(id: string) {
+    setCertifications((prev) => prev.filter((c) => c.id !== id));
+  }
+  function updateCert(id: string, key: string, value: string) {
+    setCertifications((prev) => prev.map((c) => c.id === id ? { ...c, [key]: value } : c));
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.fullName.trim()) {
@@ -94,6 +147,10 @@ function OnboardingContent() {
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
           calendlyUrl: form.calendlyUrl || undefined,
+          experiences: experiences.length > 0 ? experiences : undefined,
+          honorsAwards: honorsAwards.length > 0 ? honorsAwards : undefined,
+          publications: publications.length > 0 ? publications : undefined,
+          certifications: certifications.length > 0 ? certifications : undefined,
         } as any,
       },
       {
@@ -143,7 +200,7 @@ function OnboardingContent() {
             </div>
             <h1 className="text-2xl font-bold text-foreground mb-3">Profile Submitted!</h1>
             <p className="text-muted-foreground mb-6 leading-relaxed">
-              Your mentor profile is now under review. Our team will approve it within 1–2 business days. You'll receive a notification once you're live.
+              Your mentor profile is now under review. Our team will approve it within 1-2 business days. You'll receive a notification once you're live.
             </p>
             <Button onClick={() => setLocation("/mentor/dashboard")} className="bg-primary hover:bg-primary/90" data-testid="go-to-mentor-dashboard">
               Go to Mentor Dashboard
@@ -166,6 +223,7 @@ function OnboardingContent() {
       </div>
 
       <form onSubmit={submit} className="flex-1 max-w-2xl mx-auto px-4 py-8 w-full space-y-6">
+        {/* ── BASIC PROFILE ── */}
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-foreground">Your Professional Profile</h2>
 
@@ -226,6 +284,213 @@ function OnboardingContent() {
           </div>
         </Card>
 
+        {/* ── EXPERIENCE ── */}
+        <Card className="p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Experience</h2>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addExperience} className="gap-1">
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </div>
+          {experiences.length === 0 && <p className="text-sm text-muted-foreground">Add your work history to build credibility.</p>}
+          <div className="space-y-4">
+            {experiences.map((exp) => (
+              <div key={exp.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Position</span>
+                  <button type="button" onClick={() => removeExperience(exp.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Title</Label>
+                    <Input value={exp.title} onChange={(e) => updateExperience(exp.id, "title", e.target.value)} placeholder="e.g. VP of Product" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Company</Label>
+                    <Input value={exp.company} onChange={(e) => updateExperience(exp.id, "company", e.target.value)} placeholder="e.g. Google" className="h-9" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Location</Label>
+                    <Input value={exp.location} onChange={(e) => updateExperience(exp.id, "location", e.target.value)} placeholder="e.g. San Francisco, CA" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Start Date</Label>
+                    <Input type="month" value={exp.startDate} onChange={(e) => updateExperience(exp.id, "startDate", e.target.value)} className="h-9" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">End Date</Label>
+                    <Input type="month" value={exp.endDate} onChange={(e) => updateExperience(exp.id, "endDate", e.target.value)} disabled={exp.isCurrent} className="h-9" />
+                  </div>
+                  <div className="flex items-center gap-2 pt-5">
+                    <Checkbox id={`current-${exp.id}`} checked={exp.isCurrent} onCheckedChange={(v) => updateExperience(exp.id, "isCurrent", !!v)} />
+                    <Label htmlFor={`current-${exp.id}`} className="text-xs cursor-pointer">I currently work here</Label>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Summary</Label>
+                  <Textarea value={exp.description} onChange={(e) => updateExperience(exp.id, "description", e.target.value)} placeholder="Brief overview of your role and achievements..." rows={2} className="text-sm" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* ── HONORS & AWARDS ── */}
+        <Card className="p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Honors & Awards</h2>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addHonor} className="gap-1">
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </div>
+          {honorsAwards.length === 0 && <p className="text-sm text-muted-foreground">Add recognitions that show your impact.</p>}
+          <div className="space-y-4">
+            {honorsAwards.map((h) => (
+              <div key={h.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Award</span>
+                  <button type="button" onClick={() => removeHonor(h.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Title</Label>
+                    <Input value={h.title} onChange={(e) => updateHonor(h.id, "title", e.target.value)} placeholder="e.g. 40 Under 40" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Issuer</Label>
+                    <Input value={h.issuer} onChange={(e) => updateHonor(h.id, "issuer", e.target.value)} placeholder="e.g. Forbes" className="h-9" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date</Label>
+                    <Input type="month" value={h.date} onChange={(e) => updateHonor(h.id, "date", e.target.value)} className="h-9" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea value={h.description} onChange={(e) => updateHonor(h.id, "description", e.target.value)} placeholder="What was this award for?" rows={2} className="text-sm" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* ── PUBLICATIONS ── */}
+        <Card className="p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Publications</h2>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addPublication} className="gap-1">
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </div>
+          {publications.length === 0 && <p className="text-sm text-muted-foreground">Add articles, papers, or books you've authored.</p>}
+          <div className="space-y-4">
+            {publications.map((p) => (
+              <div key={p.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Publication</span>
+                  <button type="button" onClick={() => removePublication(p.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Title</Label>
+                    <Input value={p.title} onChange={(e) => updatePublication(p.id, "title", e.target.value)} placeholder="e.g. The Product Manager's Playbook" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Publisher</Label>
+                    <Input value={p.publisher} onChange={(e) => updatePublication(p.id, "publisher", e.target.value)} placeholder="e.g. Harvard Business Review" className="h-9" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">URL</Label>
+                    <Input type="url" value={p.url} onChange={(e) => updatePublication(p.id, "url", e.target.value)} placeholder="https://..." className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Date</Label>
+                    <Input type="month" value={p.date} onChange={(e) => updatePublication(p.id, "date", e.target.value)} className="h-9" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea value={p.description} onChange={(e) => updatePublication(p.id, "description", e.target.value)} placeholder="Brief summary..." rows={2} className="text-sm" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* ── CERTIFICATIONS ── */}
+        <Card className="p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-foreground">Certifications</h2>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addCert} className="gap-1">
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+          </div>
+          {certifications.length === 0 && <p className="text-sm text-muted-foreground">Add credentials that validate your expertise.</p>}
+          <div className="space-y-4">
+            {certifications.map((c) => (
+              <div key={c.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Certification</span>
+                  <button type="button" onClick={() => removeCert(c.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Name</Label>
+                    <Input value={c.name} onChange={(e) => updateCert(c.id, "name", e.target.value)} placeholder="e.g. AWS Solutions Architect" className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Issuing Organization</Label>
+                    <Input value={c.issuer} onChange={(e) => updateCert(c.id, "issuer", e.target.value)} placeholder="e.g. Amazon Web Services" className="h-9" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Issue Date</Label>
+                    <Input type="month" value={c.issueDate} onChange={(e) => updateCert(c.id, "issueDate", e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Expiry Date</Label>
+                    <Input type="month" value={c.expiryDate} onChange={(e) => updateCert(c.id, "expiryDate", e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Credential ID</Label>
+                    <Input value={c.credentialId} onChange={(e) => updateCert(c.id, "credentialId", e.target.value)} placeholder="Optional" className="h-9" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* ── LINKS & MEDIA ── */}
         <Card className="p-6 space-y-5">
           <h2 className="font-semibold text-foreground">Links & Media</h2>
 
@@ -245,6 +510,7 @@ function OnboardingContent() {
           </div>
         </Card>
 
+        {/* ── AVAILABILITY ── */}
         <Card className="p-6 space-y-5">
           <div>
             <h2 className="font-semibold text-foreground">Availability (Optional)</h2>

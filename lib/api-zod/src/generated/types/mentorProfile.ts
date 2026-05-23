@@ -5,7 +5,11 @@
  * GoMindscout API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MentorCertification } from "./mentorCertification";
+import type { MentorExperience } from "./mentorExperience";
+import type { MentorHonorAward } from "./mentorHonorAward";
 import type { MentorProfileStatus } from "./mentorProfileStatus";
+import type { MentorPublication } from "./mentorPublication";
 
 export interface MentorProfile {
   id: number;
@@ -35,6 +39,14 @@ export interface MentorProfile {
   linkedinUrl?: string | null;
   /** @nullable */
   calendlyUrl?: string | null;
+  /** @nullable */
+  experiences?: MentorExperience[] | null;
+  /** @nullable */
+  honorsAwards?: MentorHonorAward[] | null;
+  /** @nullable */
+  publications?: MentorPublication[] | null;
+  /** @nullable */
+  certifications?: MentorCertification[] | null;
   status: MentorProfileStatus;
   isFeatured?: boolean;
   /** @nullable */

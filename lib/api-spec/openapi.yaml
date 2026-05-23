@@ -1107,12 +1107,57 @@ components:
         introVideoUrl: { type: ["string", "null"] }
         linkedinUrl: { type: ["string", "null"] }
         calendlyUrl: { type: ["string", "null"] }
+        experiences: { type: ["array", "null"], items: { $ref: "#/components/schemas/MentorExperience" } }
+        honorsAwards: { type: ["array", "null"], items: { $ref: "#/components/schemas/MentorHonorAward" } }
+        publications: { type: ["array", "null"], items: { $ref: "#/components/schemas/MentorPublication" } }
+        certifications: { type: ["array", "null"], items: { $ref: "#/components/schemas/MentorCertification" } }
         status: { type: string, enum: [pending, approved, rejected, suspended] }
         isFeatured: { type: boolean }
         averageRating: { type: ["number", "null"] }
         totalReviews: { type: integer }
         totalSessions: { type: integer }
         createdAt: { type: string }
+
+    MentorExperience:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        company: { type: string }
+        location: { type: ["string", "null"] }
+        startDate: { type: ["string", "null"] }
+        endDate: { type: ["string", "null"] }
+        isCurrent: { type: boolean }
+        description: { type: ["string", "null"] }
+
+    MentorHonorAward:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        issuer: { type: ["string", "null"] }
+        date: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+
+    MentorPublication:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        publisher: { type: ["string", "null"] }
+        url: { type: ["string", "null"] }
+        date: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+
+    MentorCertification:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        issuer: { type: ["string", "null"] }
+        issueDate: { type: ["string", "null"] }
+        expiryDate: { type: ["string", "null"] }
+        credentialId: { type: ["string", "null"] }
 
     MentorProfileInput:
       type: object
@@ -1129,6 +1174,10 @@ components:
         introVideoUrl: { type: string }
         linkedinUrl: { type: string }
         calendlyUrl: { type: string }
+        experiences: { type: array, items: { $ref: "#/components/schemas/MentorExperience" } }
+        honorsAwards: { type: array, items: { $ref: "#/components/schemas/MentorHonorAward" } }
+        publications: { type: array, items: { $ref: "#/components/schemas/MentorPublication" } }
+        certifications: { type: array, items: { $ref: "#/components/schemas/MentorCertification" } }
 
     MentorProfileUpdate:
       type: object
@@ -1144,6 +1193,10 @@ components:
         introVideoUrl: { type: string }
         linkedinUrl: { type: string }
         calendlyUrl: { type: string }
+        experiences: { type: array, items: { $ref: "#/components/schemas/MentorExperience" } }
+        honorsAwards: { type: array, items: { $ref: "#/components/schemas/MentorHonorAward" } }
+        publications: { type: array, items: { $ref: "#/components/schemas/MentorPublication" } }
+        certifications: { type: array, items: { $ref: "#/components/schemas/MentorCertification" } }
 
     MentorListResponse:
       type: object

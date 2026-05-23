@@ -5,6 +5,10 @@
  * GoMindscout API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MentorCertification } from "./mentorCertification";
+import type { MentorExperience } from "./mentorExperience";
+import type { MentorHonorAward } from "./mentorHonorAward";
+import type { MentorPublication } from "./mentorPublication";
 
 export interface MentorProfileInput {
   headline: string;
@@ -18,4 +22,8 @@ export interface MentorProfileInput {
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  experiences?: MentorExperience[];
+  honorsAwards?: MentorHonorAward[];
+  publications?: MentorPublication[];
+  certifications?: MentorCertification[];
 }

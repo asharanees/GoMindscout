@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, numeric, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, numeric, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -19,6 +19,10 @@ export const mentorProfilesTable = pgTable("mentor_profiles", {
   introVideoUrl: text("intro_video_url"),
   linkedinUrl: text("linkedin_url"),
   calendlyUrl: text("calendly_url"),
+  experiences: jsonb("experiences"),
+  honorsAwards: jsonb("honors_awards"),
+  publications: jsonb("publications"),
+  certifications: jsonb("certifications"),
   status: text("status").notNull().default("pending"), // pending | approved | rejected | suspended
   isFeatured: boolean("is_featured").notNull().default(false),
   rejectionReason: text("rejection_reason"),

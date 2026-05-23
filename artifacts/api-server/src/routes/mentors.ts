@@ -24,6 +24,10 @@ function buildMentorResponse(mentor: any, user: any, category: any, avgRating: n
     introVideoUrl: mentor.introVideoUrl,
     linkedinUrl: mentor.linkedinUrl,
     calendlyUrl: mentor.calendlyUrl,
+    experiences: mentor.experiences ?? null,
+    honorsAwards: mentor.honorsAwards ?? null,
+    publications: mentor.publications ?? null,
+    certifications: mentor.certifications ?? null,
     status: mentor.status,
     isFeatured: mentor.isFeatured,
     averageRating: avgRating,
@@ -163,10 +167,10 @@ router.patch("/me", requireAuth, async (req, res) => {
     const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
-    const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl } = req.body;
+    const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications } = req.body;
     const [updated] = await db
       .update(mentorProfilesTable)
-      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), introVideoUrl, linkedinUrl, calendlyUrl })
+      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications })
       .where(eq(mentorProfilesTable.id, mentor.id))
       .returning();
 
@@ -188,7 +192,7 @@ router.post("/", requireAuth, async (req, res) => {
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl } = req.body;
+    const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications } = req.body;
 
     const [mentor] = await db.insert(mentorProfilesTable).values({
       userId: user.id,
@@ -203,6 +207,10 @@ router.post("/", requireAuth, async (req, res) => {
       introVideoUrl,
       linkedinUrl,
       calendlyUrl,
+      experiences,
+      honorsAwards,
+      publications,
+      certifications,
       status: "pending",
       isFeatured: false,
     }).returning();
