@@ -77,3 +77,84 @@ export function meetingConfirmedEmail({
 </body>
 </html>`;
 }
+
+const CTA = `display:inline-block;background:#1a7a5e;color:#fff;text-decoration:none;padding:12px 28px;border-radius:6px;font-weight:600;font-size:15px;`;
+const HDR = `background:#1a7a5e;border-radius:8px;padding:24px;margin-bottom:24px;`;
+const FTR = `font-size:13px;color:#888;border-top:1px solid #eee;padding-top:16px;margin-top:24px;`;
+
+function baseEmail(title: string, body: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Inter,Arial,sans-serif;color:#111;max-width:560px;margin:0 auto;padding:32px 16px;">
+<div style="${HDR}"><h1 style="color:#fff;font-size:22px;margin:0;">GoMindscout — ${title}</h1></div>
+${body}
+<p style="${FTR}">— The GoMindscout Team</p>
+</body></html>`;
+}
+
+export function bookingRequestEmail({ mentorName, menteeName, packageName, proposedAt }: {
+  mentorName: string; menteeName: string; packageName: string; proposedAt: string | null;
+}): string {
+  const timeStr = proposedAt
+    ? `<p style="font-size:14px;"><strong>Requested time:</strong> ${new Date(proposedAt).toLocaleString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit", timeZoneName:"short" })}</p>`
+    : "";
+  return baseEmail("New Booking Request", `
+<p style="font-size:16px;">Hi ${mentorName},</p>
+<p style="font-size:15px;line-height:1.6;"><strong>${menteeName}</strong> has requested a session: <strong>${packageName}</strong>.</p>
+${timeStr}
+<p style="margin-top:20px;"><a href="/mentor/dashboard" style="${CTA}">Review Request</a></p>
+<p style="font-size:13px;color:#666;margin-top:16px;">Please approve, counter-propose, or reject from your mentor dashboard.</p>`);
+}
+
+export function bookingRejectedEmail({ menteeName, mentorName, packageName, note }: {
+  menteeName: string; mentorName: string; packageName: string; note: string | null;
+}): string {
+  const noteStr = note ? `<p style="font-size:14px;color:#666;">Reason: ${note}</p>` : "";
+  return baseEmail("Booking Not Accepted", `
+<p style="font-size:16px;">Hi ${menteeName},</p>
+<p style="font-size:15px;line-height:1.6;">Unfortunately, <strong>${mentorName}</strong> was unable to accept your booking for <strong>${packageName}</strong>.</p>
+${noteStr}
+<p style="margin-top:20px;"><a href="/mentors" style="${CTA}">Find Another Mentor</a></p>`);
+}
+
+export function counterProposedEmail({ menteeName, mentorName, packageName, proposedAt }: {
+  menteeName: string; mentorName: string; packageName: string; proposedAt: string;
+}): string {
+  const dateStr = new Date(proposedAt).toLocaleString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit", timeZoneName:"short" });
+  return baseEmail("New Time Proposed", `
+<p style="font-size:16px;">Hi ${menteeName},</p>
+<p style="font-size:15px;line-height:1.6;"><strong>${mentorName}</strong> cannot make your requested time for <strong>${packageName}</strong>, but has proposed an alternative:</p>
+<div style="background:#f8f9fa;border-left:3px solid #1a7a5e;border-radius:4px;padding:16px;margin:16px 0;font-size:15px;font-weight:600;">${dateStr}</div>
+<p style="margin-top:20px;"><a href="/dashboard" style="${CTA}">Accept or Decline</a></p>`);
+}
+
+export function counterDeclinedEmail({ mentorName, menteeName, packageName }: {
+  mentorName: string; menteeName: string; packageName: string;
+}): string {
+  return baseEmail("Counter-Proposal Declined", `
+<p style="font-size:16px;">Hi ${mentorName},</p>
+<p style="font-size:15px;line-height:1.6;"><strong>${menteeName}</strong> declined your proposed time for <strong>${packageName}</strong>. The booking has been cancelled.</p>
+<p style="margin-top:20px;"><a href="/mentor/dashboard" style="${CTA}">View Dashboard</a></p>`);
+}
+
+export function paymentConfirmedMentorEmail({ mentorName, menteeName, packageName, proposedAt }: {
+  mentorName: string; menteeName: string; packageName: string; proposedAt: string | null;
+}): string {
+  const timeStr = proposedAt
+    ? `<p style="font-size:14px;"><strong>Requested time:</strong> ${new Date(proposedAt).toLocaleString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit", timeZoneName:"short" })}</p>`
+    : "";
+  return baseEmail("New Paid Booking — Action Required", `
+<p style="font-size:16px;">Hi ${mentorName},</p>
+<p style="font-size:15px;line-height:1.6;"><strong>${menteeName}</strong> has paid for a session: <strong>${packageName}</strong>. Please review and approve or counter-propose.</p>
+${timeStr}
+<p style="margin-top:20px;"><a href="/mentor/dashboard" style="${CTA}">Review in Dashboard</a></p>`);
+}
+
+export function chatMessageEmail({ recipientName, senderName, preview, }: {
+  recipientName: string; senderName: string; preview: string;
+}): string {
+  const safePreview = preview.length > 120 ? preview.slice(0, 120) + "…" : preview;
+  return baseEmail("New Message", `
+<p style="font-size:16px;">Hi ${recipientName},</p>
+<p style="font-size:15px;line-height:1.6;">You have a new message from <strong>${senderName}</strong>:</p>
+<div style="background:#f8f9fa;border-left:3px solid #1a7a5e;border-radius:4px;padding:16px;margin:16px 0;font-size:14px;color:#444;">${safePreview}</div>
+<p style="margin-top:20px;"><a href="/dashboard" style="${CTA}">Reply in Dashboard</a></p>`);
+}

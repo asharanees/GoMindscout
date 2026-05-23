@@ -8,3 +8,4 @@ export * from "./reviews";
 export * from "./disputes";
 export * from "./chat-messages";
 export * from "./payout-requests";
+export * from "./notifications";

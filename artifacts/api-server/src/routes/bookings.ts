@@ -4,7 +4,8 @@ import { db, bookingsTable, packagesTable, mentorProfilesTable, usersTable, revi
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 import { createMeetingRoom } from "../lib/meeting";
-import { sendEmail, meetingConfirmedEmail } from "../lib/email";
+import { sendEmail, meetingConfirmedEmail, bookingRequestEmail, bookingRejectedEmail, counterProposedEmail, counterDeclinedEmail, paymentConfirmedMentorEmail } from "../lib/email";
+import { createNotification } from "../lib/notifications";
 
 const router = Router();
 
@@ -171,6 +172,27 @@ router.post("/", requireAuth, async (req, res) => {
         .set({ status: "awaiting_mentor_approval" })
         .where(eq(bookingsTable.id, booking.id));
       booking.status = "awaiting_mentor_approval";
+
+      // Notify mentor of new booking request
+      const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+      createNotification({
+        userId: mentor.userId,
+        type: "booking_created",
+        title: "New booking request",
+        message: `${user.fullName || "A mentee"} requested a session: ${pkg.title}`,
+        link: "/mentor/dashboard",
+        userEmail: mentorUser?.email,
+        emailSubject: `New booking request — ${pkg.title}`,
+        emailHtml: bookingRequestEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: user.fullName ?? "A mentee", packageName: pkg.title, proposedAt: proposedAt ?? null }),
+      }).catch(() => {});
+      // Notify mentee that booking is submitted
+      createNotification({
+        userId: user.id,
+        type: "booking_created",
+        title: "Booking submitted",
+        message: `Your session request for "${pkg.title}" is awaiting mentor approval.`,
+        link: "/dashboard",
+      }).catch(() => {});
     }
 
     const enriched = await enrichBooking(booking);
@@ -289,6 +311,15 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
       );
     }
 
+    // In-app notification for mentee (email already sent via meetingConfirmedEmail above)
+    createNotification({
+      userId: booking.menteeId,
+      type: "session_confirmed",
+      title: "Session scheduled!",
+      message: `Your session "${packageName}" with ${mentorUser?.fullName ?? "your mentor"} has been scheduled. Meeting link is ready.`,
+      link: "/dashboard",
+    }).catch(() => {});
+
     res.json(await enrichBooking(updated));
   } catch (err) {
     req.log.error({ err }, "Error scheduling session");
@@ -391,6 +422,15 @@ router.post("/:bookingId/approve", requireAuth, async (req, res) => {
       );
     }
 
+    // In-app notification for mentee (meeting email already sent above)
+    createNotification({
+      userId: booking.menteeId,
+      type: "booking_approved",
+      title: "Session confirmed!",
+      message: `${mentorUser?.fullName ?? "Your mentor"} approved your booking for "${packageName}". Your meeting link is ready.`,
+      link: "/dashboard",
+    }).catch(() => {});
+
     res.json(await enrichBooking(updated));
   } catch (err) {
     req.log.error({ err }, "Error approving booking");
@@ -421,6 +461,20 @@ router.post("/:bookingId/reject", requireAuth, async (req, res) => {
       .set({ status: "cancelled", cancellationNote: note ? `Mentor rejected: ${note}` : "Mentor rejected this booking" })
       .where(eq(bookingsTable.id, bookingId))
       .returning();
+
+    const [menteeUserR] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUserR] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+    const [pkgR] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    createNotification({
+      userId: booking.menteeId,
+      type: "booking_rejected",
+      title: "Booking not accepted",
+      message: `${mentorUserR?.fullName ?? "Your mentor"} was unable to accept your booking for "${pkgR?.title ?? "the session"}"${note ? `: ${note}` : "."}`,
+      link: "/mentors",
+      userEmail: menteeUserR?.email,
+      emailSubject: "Your GoMindscout booking was not accepted",
+      emailHtml: bookingRejectedEmail({ menteeName: menteeUserR?.fullName ?? "there", mentorName: mentorUserR?.fullName ?? "Your mentor", packageName: pkgR?.title ?? "the session", note: note ?? null }),
+    }).catch(() => {});
 
     res.json(await enrichBooking(updated));
   } catch (err) {
@@ -454,6 +508,20 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
       .set({ status: "counter_proposed", mentorProposedAt: new Date(proposedAt) })
       .where(eq(bookingsTable.id, bookingId))
       .returning();
+
+    const [menteeUserCP] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUserCP] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+    const [pkgCP] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    createNotification({
+      userId: booking.menteeId,
+      type: "counter_proposed",
+      title: "Mentor proposed a new time",
+      message: `${mentorUserCP?.fullName ?? "Your mentor"} suggested a different time for "${pkgCP?.title ?? "the session"}".`,
+      link: "/dashboard",
+      userEmail: menteeUserCP?.email,
+      emailSubject: "Your mentor proposed a new session time — GoMindscout",
+      emailHtml: counterProposedEmail({ menteeName: menteeUserCP?.fullName ?? "there", mentorName: mentorUserCP?.fullName ?? "Your mentor", packageName: pkgCP?.title ?? "the session", proposedAt }),
+    }).catch(() => {});
 
     res.json(await enrichBooking(updated));
   } catch (err) {
@@ -506,6 +574,17 @@ router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
       );
     }
 
+    // In-app notification for mentor (meeting email already sent above)
+    if (mentor) {
+      createNotification({
+        userId: mentor.userId,
+        type: "counter_accepted",
+        title: "Counter-proposal accepted",
+        message: `${menteeUser?.fullName ?? "Your mentee"} accepted your proposed time for "${packageName}". Meeting link generated.`,
+        link: "/mentor/dashboard",
+      }).catch(() => {});
+    }
+
     res.json(await enrichBooking(updated));
   } catch (err) {
     req.log.error({ err }, "Error accepting counter-proposal");
@@ -534,6 +613,23 @@ router.post("/:bookingId/decline-counter", requireAuth, async (req, res) => {
       .set({ status: "cancelled", cancellationNote: "Mentee declined mentor's counter-proposal" })
       .where(eq(bookingsTable.id, bookingId))
       .returning();
+
+    const [mentorDC] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+    const [mentorUserDC] = mentorDC ? await db.select().from(usersTable).where(eq(usersTable.id, mentorDC.userId)).limit(1) : [null];
+    const [menteeUserDC] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [pkgDC] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    if (mentorDC) {
+      createNotification({
+        userId: mentorDC.userId,
+        type: "counter_declined",
+        title: "Counter-proposal declined",
+        message: `${menteeUserDC?.fullName ?? "Your mentee"} declined your proposed time for "${pkgDC?.title ?? "the session"}".`,
+        link: "/mentor/dashboard",
+        userEmail: mentorUserDC?.email,
+        emailSubject: "Your counter-proposal was declined — GoMindscout",
+        emailHtml: counterDeclinedEmail({ mentorName: mentorUserDC?.fullName ?? "there", menteeName: menteeUserDC?.fullName ?? "Your mentee", packageName: pkgDC?.title ?? "the session" }),
+      }).catch(() => {});
+    }
 
     res.json(await enrichBooking(updated));
   } catch (err) {

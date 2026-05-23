@@ -1368,3 +1368,45 @@ export const AdminSuspendUserResponse = zod.object({
   role: zod.enum(["mentee", "mentor", "admin"]),
   createdAt: zod.string(),
 });
+
+/**
+ * @summary Get current user's notifications
+ */
+export const ListNotificationsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  type: zod.string(),
+  title: zod.string(),
+  message: zod.string(),
+  link: zod.string().nullish(),
+  isRead: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListNotificationsResponse = zod.array(
+  ListNotificationsResponseItem,
+);
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkAllNotificationsReadResponse = zod.object({
+  success: zod.boolean(),
+});
+
+/**
+ * @summary Mark a single notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  notificationId: zod.coerce.number(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  type: zod.string(),
+  title: zod.string(),
+  message: zod.string(),
+  link: zod.string().nullish(),
+  isRead: zod.boolean(),
+  createdAt: zod.string(),
+});

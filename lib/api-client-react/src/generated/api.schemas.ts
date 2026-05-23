@@ -537,6 +537,18 @@ export interface FeatureToggle {
   isFeatured: boolean;
 }
 
+export interface Notification {
+  id: number;
+  userId: number;
+  type: string;
+  title: string;
+  message: string;
+  /** @nullable */
+  link?: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
 export interface AdminStats {
   totalMentors: number;
   pendingMentors: number;
@@ -594,4 +606,8 @@ export const ListMyBookingsRole = {
 
 export type AdminListMentorsParams = {
   status?: string;
+};
+
+export type MarkAllNotificationsRead200 = {
+  success: boolean;
 };

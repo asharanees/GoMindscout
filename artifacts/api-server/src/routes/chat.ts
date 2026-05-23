@@ -3,6 +3,8 @@ import { getAuth } from "@clerk/express";
 import { db, chatMessagesTable, bookingsTable, usersTable, mentorProfilesTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
+import { createNotification } from "../lib/notifications";
+import { chatMessageEmail } from "../lib/email";
 
 const router = Router();
 
@@ -110,6 +112,22 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
       isFlagged,
       flagReason,
     }).returning();
+
+    // Notify the other party
+    const otherUserId = isMentee ? (mentor?.userId ?? null) : booking.menteeId;
+    if (otherUserId) {
+      const [otherUser] = await db.select().from(usersTable).where(eq(usersTable.id, otherUserId)).limit(1);
+      createNotification({
+        userId: otherUserId,
+        type: "chat_message",
+        title: `New message from ${user.fullName ?? "someone"}`,
+        message: content.trim().length > 80 ? content.trim().slice(0, 80) + "…" : content.trim(),
+        link: "/dashboard",
+        userEmail: otherUser?.email,
+        emailSubject: `New message from ${user.fullName ?? "someone"} on GoMindscout`,
+        emailHtml: chatMessageEmail({ recipientName: otherUser?.fullName ?? "there", senderName: user.fullName ?? "Someone", preview: content.trim() }),
+      }).catch(() => {});
+    }
 
     res.status(201).json({
       ...messageToResponse(msg, user),

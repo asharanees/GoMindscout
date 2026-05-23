@@ -12,6 +12,7 @@ import {
 import { useGetMe } from "@workspace/api-client-react";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
+import NotificationPanel from "@/components/NotificationPanel";
 
 export default function Navbar() {
   const { isSignedIn, signOut } = useAuth();
@@ -67,6 +68,7 @@ export default function Navbar() {
 
           {/* Auth buttons */}
           <div className="hidden md:flex items-center gap-3">
+            {isSignedIn && <NotificationPanel />}
             {isSignedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

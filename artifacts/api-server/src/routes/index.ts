@@ -14,6 +14,7 @@ import chatRouter from "./chat";
 import disputesRouter from "./disputes";
 import payoutsRouter from "./payouts";
 import availabilityRouter from "./availability";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -35,6 +36,7 @@ router.use("/dashboard", dashboardRouter);
 router.use("/chat", chatRouter);
 router.use("/disputes", disputesRouter);
 router.use("/payouts", payoutsRouter);
+router.use("/notifications", notificationsRouter);
 
 // Admin auth (login/logout/me) — no session required
 router.use("/admin", adminAuthRouter);
