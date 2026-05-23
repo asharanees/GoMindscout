@@ -54,7 +54,7 @@ async function getMentorStats(mentorId: number) {
   };
 }
 
-// GET /api/mentors — search + filter
+// GET /api/mentors - search + filter
 router.get("/", async (req, res) => {
   try {
     const { search, category, language, minPrice, maxPrice, sortBy, page = "1", limit = "12" } = req.query as Record<string, string>;
@@ -132,7 +132,7 @@ router.get("/featured", async (req, res) => {
   }
 });
 
-// GET /api/mentors/me — own mentor profile
+// GET /api/mentors/me - own mentor profile
 router.get("/me", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -181,7 +181,7 @@ router.patch("/me", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/mentors — create mentor profile
+// POST /api/mentors - create mentor profile
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {

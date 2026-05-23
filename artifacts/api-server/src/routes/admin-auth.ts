@@ -38,7 +38,7 @@ router.post("/logout", (req, res) => {
   res.json({ success: true });
 });
 
-// GET /api/admin/me — check if admin session is active
+// GET /api/admin/me - check if admin session is active
 router.get("/me", requireAdminSession, (req, res) => {
   res.json({ authenticated: true });
 });

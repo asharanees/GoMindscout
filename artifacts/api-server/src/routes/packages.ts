@@ -34,7 +34,7 @@ router.get("/:mentorId/packages", async (req, res) => {
   }
 });
 
-// POST /api/packages — create package for own mentor profile
+// POST /api/packages - create package for own mentor profile
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {

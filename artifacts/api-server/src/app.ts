@@ -39,7 +39,7 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(cors({ credentials: true, origin: true }));
 app.use(cookieParser(process.env.SESSION_SECRET));
 
-// Raw body for Stripe webhook — must come before express.json()
+// Raw body for Stripe webhook - must come before express.json()
 app.use("/api/payments/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json());

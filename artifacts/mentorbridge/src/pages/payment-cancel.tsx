@@ -15,7 +15,7 @@ export default function PaymentCancelPage() {
           </div>
           <h1 className="text-2xl font-bold text-foreground mb-2">Payment Cancelled</h1>
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            No worries — your booking wasn't completed and you haven't been charged. You can try again whenever you're ready.
+            No worries - your booking wasn't completed and you haven't been charged. You can try again whenever you're ready.
           </p>
           <div className="flex flex-col gap-3">
             <Link href="/mentors">

@@ -12,7 +12,7 @@ export default function PrivacyPage() {
         <div className="prose prose-sm max-w-none text-foreground space-y-8">
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Information We Collect</h2>
-            <p className="text-muted-foreground leading-relaxed">We collect information you provide when creating an account (name, email, profile photo), when creating a mentor profile (bio, expertise, rates), and during transactions (booking details, but not card numbers — those are handled by Stripe). We also collect usage data like pages visited and features used.</p>
+            <p className="text-muted-foreground leading-relaxed">We collect information you provide when creating an account (name, email, profile photo), when creating a mentor profile (bio, expertise, rates), and during transactions (booking details, but not card numbers - those are handled by Stripe). We also collect usage data like pages visited and features used.</p>
           </section>
 
           <section>
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">4. Mentor Profiles</h2>
-            <p className="text-muted-foreground leading-relaxed">Mentor profiles — including your name, photo, bio, and expertise — are publicly visible on the platform. You control what information appears in your profile.</p>
+            <p className="text-muted-foreground leading-relaxed">Mentor profiles - including your name, photo, bio, and expertise - are publicly visible on the platform. You control what information appears in your profile.</p>
           </section>
 
           <section>

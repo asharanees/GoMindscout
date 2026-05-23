@@ -52,9 +52,9 @@ export default function BecomeAMentorPage() {
           <h2 className="text-2xl font-bold text-foreground text-center mb-10">How It Works for Mentors</h2>
           <div className="space-y-6">
             {[
-              { step: "1", title: "Apply & Get Approved", desc: "Fill out your profile — your background, expertise, and rates. Our team reviews every application within 48 hours. We approve mentors who have genuine expertise and a professional track record." },
+              { step: "1", title: "Apply & Get Approved", desc: "Fill out your profile - your background, expertise, and rates. Our team reviews every application within 48 hours. We approve mentors who have genuine expertise and a professional track record." },
               { step: "2", title: "Set Up Your Packages", desc: "Create session packages: 30-min calls, 60-min deep dives, or async email advice. We suggest starting prices based on your industry, but you're always in control." },
-              { step: "3", title: "Get Booked & Earn", desc: "Once approved and live, mentees can find and book you directly. You'll receive 80% of every session fee — GoMindscout retains a 20% platform fee that covers operations, marketing, and payment processing. Earnings are released to your balance 48 hours after session completion." },
+              { step: "3", title: "Get Booked & Earn", desc: "Once approved and live, mentees can find and book you directly. You'll receive 80% of every session fee - GoMindscout retains a 20% platform fee that covers operations, marketing, and payment processing. Earnings are released to your balance 48 hours after session completion." },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-5 bg-white rounded-xl p-6 border border-border shadow-xs">
                 <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-bold shrink-0">{step}</div>
@@ -93,7 +93,7 @@ export default function BecomeAMentorPage() {
           <p className="text-white/80 mb-8">Applications take 10 minutes. Most mentors are live within 48 hours of applying.</p>
           <Link href={isSignedIn ? "/mentor/onboarding" : "/sign-up"}>
             <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-semibold" data-testid="cta-apply-btn">
-              Apply Now — It's Free
+              Apply Now - It's Free
             </Button>
           </Link>
         </div>

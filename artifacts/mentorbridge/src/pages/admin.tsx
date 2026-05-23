@@ -424,8 +424,8 @@ function AdminContent() {
                       {bookings.map((b: any) => (
                         <tr key={b.id} className="border-b border-border/50 last:border-0">
                           <td className="py-3 text-muted-foreground">#{b.id}</td>
-                          <td className="py-3">{b.menteeName || "—"}</td>
-                          <td className="py-3">{b.mentorName || "—"}</td>
+                          <td className="py-3">{b.menteeName || "-"}</td>
+                          <td className="py-3">{b.mentorName || "-"}</td>
                           <td className="py-3 font-medium">${Number(b.amount).toFixed(0)}</td>
                           <td className="py-3 text-green-700">${Number(b.platformFee).toFixed(0)}</td>
                           <td className="py-3">
@@ -518,7 +518,7 @@ function AdminContent() {
                       {payouts.map((p: any) => (
                         <tr key={p.id} className="border-b border-border/50 last:border-0">
                           <td className="py-3 text-muted-foreground">#{p.id}</td>
-                          <td className="py-3">{p.mentorName || "—"}</td>
+                          <td className="py-3">{p.mentorName || "-"}</td>
                           <td className="py-3 font-medium">${Number(p.amount).toFixed(2)}</td>
                           <td className="py-3 capitalize text-muted-foreground">{p.method.replace("_", " ")}</td>
                           <td className="py-3 max-w-xs">

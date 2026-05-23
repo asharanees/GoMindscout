@@ -20,7 +20,7 @@ function payoutToResponse(p: any) {
   };
 }
 
-// GET /api/payouts — mentor's own payout requests + withdrawable balance
+// GET /api/payouts - mentor's own payout requests + withdrawable balance
 router.get("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
 
@@ -64,7 +64,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/payouts/request — mentor requests payout
+// POST /api/payouts/request - mentor requests payout
 router.post("/request", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { amount, method, accountDetails } = req.body;

@@ -38,10 +38,10 @@ router.use("/disputes", disputesRouter);
 router.use("/payouts", payoutsRouter);
 router.use("/notifications", notificationsRouter);
 
-// Admin auth (login/logout/me) — no session required
+// Admin auth (login/logout/me) - no session required
 router.use("/admin", adminAuthRouter);
 
-// Admin data routes — protected by session middleware inside adminRouter
+// Admin data routes - protected by session middleware inside adminRouter
 router.use("/admin", adminRouter);
 
 export default router;

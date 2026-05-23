@@ -13,7 +13,7 @@ function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2025-04-30.basil" });
 }
 
-// POST /api/payments/webhook — Stripe webhook (raw body already set in app.ts)
+// POST /api/payments/webhook - Stripe webhook (raw body already set in app.ts)
 router.post("/webhook", async (req: Request, res: Response) => {
   const sig = req.headers["stripe-signature"] as string;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -69,7 +69,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
               message: `${menteeUser?.fullName ?? "A mentee"} paid for a session: ${pkgTitle}. Needs your approval.`,
               link: "/mentor/dashboard",
               userEmail: mentorUser?.email,
-              emailSubject: `New paid booking awaiting your approval — ${pkgTitle}`,
+              emailSubject: `New paid booking awaiting your approval - ${pkgTitle}`,
               emailHtml: paymentConfirmedMentorEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: menteeUser?.fullName ?? "A mentee", packageName: pkgTitle, proposedAt: booking.proposedAt?.toISOString() ?? null }),
             }).catch(() => {});
           }

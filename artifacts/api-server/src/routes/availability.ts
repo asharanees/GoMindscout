@@ -48,7 +48,7 @@ router.get("/:mentorId/availability", async (req, res) => {
   }
 });
 
-// PUT /api/mentors/me/availability  — replaces the mentor's full schedule
+// PUT /api/mentors/me/availability  - replaces the mentor's full schedule
 router.put("/me/availability", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {

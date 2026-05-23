@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
         setLocation("/admin");
       }
     } catch {
-      setError("Network error — please try again");
+      setError("Network error - please try again");
     } finally {
       setLoading(false);
     }

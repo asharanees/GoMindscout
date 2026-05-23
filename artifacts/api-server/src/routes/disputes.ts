@@ -23,7 +23,7 @@ function disputeToResponse(dispute: any, opener?: any) {
   };
 }
 
-// POST /api/disputes — open a dispute
+// POST /api/disputes - open a dispute
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { bookingId, reason, description, evidenceUrl } = req.body;
@@ -77,7 +77,7 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// GET /api/disputes/:bookingId — get dispute for a booking
+// GET /api/disputes/:bookingId - get dispute for a booking
 router.get("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const bookingId = parseInt(req.params.bookingId);

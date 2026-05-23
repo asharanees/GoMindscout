@@ -3,7 +3,7 @@ const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@gomindscout.com";
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   if (!RESEND_API_KEY) {
-    // Email sending skipped — set RESEND_API_KEY to enable
+    // Email sending skipped - set RESEND_API_KEY to enable
     return;
   }
   try {
@@ -16,7 +16,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
     });
   } catch {
-    // Non-fatal — log but don't throw
+    // Non-fatal - log but don't throw
   }
 }
 
@@ -56,7 +56,7 @@ export function meetingConfirmedEmail({
 <head><meta charset="UTF-8"></head>
 <body style="font-family: Inter, Arial, sans-serif; color: #111; max-width: 560px; margin: 0 auto; padding: 32px 16px;">
   <div style="background: #1a7a5e; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-    <h1 style="color: #fff; font-size: 22px; margin: 0;">GoMindscout — Session Confirmed</h1>
+    <h1 style="color: #fff; font-size: 22px; margin: 0;">GoMindscout - Session Confirmed</h1>
   </div>
   <p style="font-size: 16px;">Hi ${recipientName},</p>
   <p style="font-size: 15px; line-height: 1.6;">${intro}</p>
@@ -72,7 +72,7 @@ export function meetingConfirmedEmail({
   </div>
   <p style="font-size: 13px; color: #888; border-top: 1px solid #eee; padding-top: 16px; margin-top: 24px;">
     This link is unique to your session. Do not share it publicly.<br>
-    — The GoMindscout Team
+    - The GoMindscout Team
   </p>
 </body>
 </html>`;
@@ -84,9 +84,9 @@ const FTR = `font-size:13px;color:#888;border-top:1px solid #eee;padding-top:16p
 
 function baseEmail(title: string, body: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Inter,Arial,sans-serif;color:#111;max-width:560px;margin:0 auto;padding:32px 16px;">
-<div style="${HDR}"><h1 style="color:#fff;font-size:22px;margin:0;">GoMindscout — ${title}</h1></div>
+<div style="${HDR}"><h1 style="color:#fff;font-size:22px;margin:0;">GoMindscout - ${title}</h1></div>
 ${body}
-<p style="${FTR}">— The GoMindscout Team</p>
+<p style="${FTR}">- The GoMindscout Team</p>
 </body></html>`;
 }
 
@@ -141,7 +141,7 @@ export function paymentConfirmedMentorEmail({ mentorName, menteeName, packageNam
   const timeStr = proposedAt
     ? `<p style="font-size:14px;"><strong>Requested time:</strong> ${new Date(proposedAt).toLocaleString("en-US", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit", timeZoneName:"short" })}</p>`
     : "";
-  return baseEmail("New Paid Booking — Action Required", `
+  return baseEmail("New Paid Booking - Action Required", `
 <p style="font-size:16px;">Hi ${mentorName},</p>
 <p style="font-size:15px;line-height:1.6;"><strong>${menteeName}</strong> has paid for a session: <strong>${packageName}</strong>. Please review and approve or counter-propose.</p>
 ${timeStr}

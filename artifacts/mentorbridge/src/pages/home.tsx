@@ -77,7 +77,7 @@ export default function Home() {
 
               <p className="mt-5 text-lg text-muted-foreground leading-relaxed">
                 Work with real industry experts to learn new skills, accelerate
-                your career, or build your startup — on your schedule, at your pace.
+                your career, or build your startup - on your schedule, at your pace.
               </p>
 
               <form onSubmit={handleSearch} className="mt-8 flex items-center gap-2">
@@ -149,7 +149,7 @@ export default function Home() {
             Mentorship, designed for real progress
           </h2>
           <p className="mt-3 text-muted-foreground">
-            A focused way to get unstuck — without the noise of generic courses
+            A focused way to get unstuck - without the noise of generic courses
             or one-size-fits-all advice.
           </p>
         </div>
@@ -164,7 +164,7 @@ export default function Home() {
             {
               icon: <Wallet className="h-5 w-5" />,
               title: "Flexible plans",
-              desc: "Quick Q&A, deep-dive calls, or ongoing monthly mentorship — only pay for what you need.",
+              desc: "Quick Q&A, deep-dive calls, or ongoing monthly mentorship - only pay for what you need.",
             },
             {
               icon: <ShieldCheck className="h-5 w-5" />,
@@ -174,7 +174,7 @@ export default function Home() {
             {
               icon: <TrendingUp className="h-5 w-5" />,
               title: "Built for outcomes",
-              desc: "Walk away with clear next steps after every call — not vague pep talks.",
+              desc: "Walk away with clear next steps after every call - not vague pep talks.",
             },
           ].map(({ icon, title, desc }) => (
             <div
@@ -212,13 +212,13 @@ export default function Home() {
                 icon: <Compass className="h-5 w-5" />,
                 step: "01",
                 title: "Discover",
-                desc: "Browse a curated network of experts — engineers, designers, founders and managers.",
+                desc: "Browse a curated network of experts - engineers, designers, founders and managers.",
               },
               {
                 icon: <Sparkles className="h-5 w-5" />,
                 step: "02",
                 title: "Start",
-                desc: "Choose a plan that fits — quick Q&A, regular calls or project-based mentorship.",
+                desc: "Choose a plan that fits - quick Q&A, regular calls or project-based mentorship.",
               },
               {
                 icon: <Video className="h-5 w-5" />,
@@ -319,7 +319,7 @@ export default function Home() {
 
             <div className="space-y-5 text-foreground text-base sm:text-lg leading-relaxed">
               <p>
-                We've all felt it — stuck at a crossroads in our career, sitting
+                We've all felt it - stuck at a crossroads in our career, sitting
                 on an idea we don't know how to ship, or trying to break into an
                 industry where we don't know a single person on the inside.
               </p>
@@ -329,7 +329,7 @@ export default function Home() {
                 with someone who's already walked the road you're about to walk.
               </p>
               <p>
-                GoMindscout exists to make those conversations possible — at any
+                GoMindscout exists to make those conversations possible - at any
                 stage, in any field, for anyone with the ambition to ask. No
                 gatekeepers. No fluff. Just real people sharing real experience,
                 one session at a time.
@@ -360,7 +360,7 @@ export default function Home() {
               Pay per session. Cancel anytime.
             </h2>
             <p className="mt-4 text-muted-foreground leading-relaxed">
-              Every mentor sets their own packages — from quick async advice to
+              Every mentor sets their own packages - from quick async advice to
               full deep-dive calls. You only pay for what you book. No monthly
               fees, no surprise charges.
             </p>
@@ -378,7 +378,7 @@ export default function Home() {
               {
                 icon: <ShieldCheck className="h-5 w-5" />,
                 title: "Mentor-set pricing",
-                desc: "Every package is priced by the mentor — see the full cost before you book.",
+                desc: "Every package is priced by the mentor - see the full cost before you book.",
               },
               {
                 icon: <Wallet className="h-5 w-5" />,

@@ -109,7 +109,7 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings — create booking + Stripe checkout
+// POST /api/bookings - create booking + Stripe checkout
 router.post("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { packageId, proposedAt } = req.body;
@@ -167,7 +167,7 @@ router.post("/", requireAuth, async (req, res) => {
       await db.update(bookingsTable).set({ stripeSessionId: session.id }).where(eq(bookingsTable.id, booking.id));
       checkoutUrl = session.url!;
     } else {
-      // No Stripe key — go to awaiting_mentor_approval for dev/demo
+      // No Stripe key - go to awaiting_mentor_approval for dev/demo
       await db.update(bookingsTable)
         .set({ status: "awaiting_mentor_approval" })
         .where(eq(bookingsTable.id, booking.id));
@@ -182,7 +182,7 @@ router.post("/", requireAuth, async (req, res) => {
         message: `${user.fullName || "A mentee"} requested a session: ${pkg.title}`,
         link: "/mentor/dashboard",
         userEmail: mentorUser?.email,
-        emailSubject: `New booking request — ${pkg.title}`,
+        emailSubject: `New booking request - ${pkg.title}`,
         emailHtml: bookingRequestEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: user.fullName ?? "A mentee", packageName: pkg.title, proposedAt: proposedAt ?? null }),
       }).catch(() => {});
       // Notify mentee that booking is submitted
@@ -216,7 +216,7 @@ router.get("/:bookingId", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/bookings/:bookingId — update status (mentor marks session complete, etc.)
+// PATCH /api/bookings/:bookingId - update status (mentor marks session complete, etc.)
 router.patch("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -242,7 +242,7 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
   }
 });
 
-// PATCH /api/bookings/:bookingId/meeting-link — mentor sets time, platform generates meeting room
+// PATCH /api/bookings/:bookingId/meeting-link - mentor sets time, platform generates meeting room
 router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -285,7 +285,7 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
     if (menteeUser?.email) {
       await sendEmail(
         menteeUser.email,
-        "Your GoMindscout session is confirmed — meeting link inside",
+        "Your GoMindscout session is confirmed - meeting link inside",
         meetingConfirmedEmail({
           recipientName: menteeUser?.fullName ?? "there",
           otherPartyName: mentorUser?.fullName ?? "Your mentor",
@@ -299,7 +299,7 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
     if (mentorUser?.email) {
       await sendEmail(
         mentorUser.email,
-        "Session confirmed — GoMindscout meeting link",
+        "Session confirmed - GoMindscout meeting link",
         meetingConfirmedEmail({
           recipientName: mentorUser?.fullName ?? "there",
           otherPartyName: menteeUser?.fullName ?? "Your mentee",
@@ -377,7 +377,7 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings/:bookingId/approve — mentor approves, generates meeting room
+// POST /api/bookings/:bookingId/approve - mentor approves, generates meeting room
 router.post("/:bookingId/approve", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -417,7 +417,7 @@ router.post("/:bookingId/approve", requireAuth, async (req, res) => {
       );
     }
     if (mentorUser?.email) {
-      await sendEmail(mentorUser.email, "Session confirmed — GoMindscout",
+      await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
         meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
       );
     }
@@ -438,7 +438,7 @@ router.post("/:bookingId/approve", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings/:bookingId/reject — mentor rejects booking
+// POST /api/bookings/:bookingId/reject - mentor rejects booking
 router.post("/:bookingId/reject", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { note } = req.body;
@@ -483,7 +483,7 @@ router.post("/:bookingId/reject", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings/:bookingId/counter-propose — mentor suggests a different time
+// POST /api/bookings/:bookingId/counter-propose - mentor suggests a different time
 router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { proposedAt } = req.body;
@@ -519,7 +519,7 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
       message: `${mentorUserCP?.fullName ?? "Your mentor"} suggested a different time for "${pkgCP?.title ?? "the session"}".`,
       link: "/dashboard",
       userEmail: menteeUserCP?.email,
-      emailSubject: "Your mentor proposed a new session time — GoMindscout",
+      emailSubject: "Your mentor proposed a new session time - GoMindscout",
       emailHtml: counterProposedEmail({ menteeName: menteeUserCP?.fullName ?? "there", mentorName: mentorUserCP?.fullName ?? "Your mentor", packageName: pkgCP?.title ?? "the session", proposedAt }),
     }).catch(() => {});
 
@@ -530,7 +530,7 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings/:bookingId/accept-counter — mentee accepts mentor's counter-proposal
+// POST /api/bookings/:bookingId/accept-counter - mentee accepts mentor's counter-proposal
 router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -569,7 +569,7 @@ router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
       );
     }
     if (mentorUser?.email) {
-      await sendEmail(mentorUser.email, "Session confirmed — GoMindscout",
+      await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
         meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
       );
     }
@@ -592,7 +592,7 @@ router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/bookings/:bookingId/decline-counter — mentee declines mentor's counter-proposal
+// POST /api/bookings/:bookingId/decline-counter - mentee declines mentor's counter-proposal
 router.post("/:bookingId/decline-counter", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
@@ -626,7 +626,7 @@ router.post("/:bookingId/decline-counter", requireAuth, async (req, res) => {
         message: `${menteeUserDC?.fullName ?? "Your mentee"} declined your proposed time for "${pkgDC?.title ?? "the session"}".`,
         link: "/mentor/dashboard",
         userEmail: mentorUserDC?.email,
-        emailSubject: "Your counter-proposal was declined — GoMindscout",
+        emailSubject: "Your counter-proposal was declined - GoMindscout",
         emailHtml: counterDeclinedEmail({ mentorName: mentorUserDC?.fullName ?? "there", menteeName: menteeUserDC?.fullName ?? "Your mentee", packageName: pkgDC?.title ?? "the session" }),
       }).catch(() => {});
     }

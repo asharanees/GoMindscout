@@ -23,10 +23,10 @@ export default function AboutPage() {
           <div>
             <h2 className="text-2xl font-bold text-foreground mb-4">Our Mission</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              The professional world has always run on relationships and access. People with the right networks get the right opportunities. GoMindscout was built to democratize that access — to give every professional, regardless of where they started, a direct line to the experience and wisdom they need.
+              The professional world has always run on relationships and access. People with the right networks get the right opportunities. GoMindscout was built to democratize that access - to give every professional, regardless of where they started, a direct line to the experience and wisdom they need.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              We're not a jobs board or a coaching app. We're a bridge — between where you are and where you want to be, built from real human connection.
+              We're not a jobs board or a coaching app. We're a bridge - between where you are and where you want to be, built from real human connection.
             </p>
           </div>
           <div className="bg-muted/40 rounded-2xl p-8 border border-border">
@@ -55,7 +55,7 @@ export default function AboutPage() {
               { icon: <Heart className="h-6 w-6 text-primary" />, title: "Human First", desc: "Every interaction on GoMindscout is built around genuine human connection, not transactional exchanges." },
               { icon: <Shield className="h-6 w-6 text-primary" />, title: "Quality Over Quantity", desc: "Every mentor on our platform is reviewed by our team. We'd rather have 500 great mentors than 5,000 mediocre ones." },
               { icon: <Globe className="h-6 w-6 text-primary" />, title: "Global Access", desc: "Whether you're in New York or Nairobi, you deserve access to world-class expertise." },
-              { icon: <Zap className="h-6 w-6 text-primary" />, title: "Real Results", desc: "We measure success in promotions earned, businesses launched, and problems solved — not sessions booked." },
+              { icon: <Zap className="h-6 w-6 text-primary" />, title: "Real Results", desc: "We measure success in promotions earned, businesses launched, and problems solved - not sessions booked." },
             ].map(({ icon, title, desc }) => (
               <div key={title} className="flex gap-4 bg-white rounded-xl p-5 border border-border shadow-xs">
                 <div className="h-11 w-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">{icon}</div>

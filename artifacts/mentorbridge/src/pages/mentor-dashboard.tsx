@@ -56,7 +56,7 @@ const STATUS_LABELS: Record<string, string> = {
   awaiting_mentor_approval: "Awaiting Your Approval",
   confirmed: "Confirmed",
   counter_proposed: "Counter-Proposed",
-  paid_pending_session: "Paid — Awaiting Session",
+  paid_pending_session: "Paid - Awaiting Session",
   session_completed: "Session Done",
   under_review: "Under Review",
   disputed: "Disputed",
@@ -299,7 +299,7 @@ function ApprovalRow({ booking }: { booking: any }) {
               {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground mt-1">No time proposed — you can suggest one</p>
+            <p className="text-xs text-muted-foreground mt-1">No time proposed - you can suggest one</p>
           )}
         </div>
       </div>
@@ -507,7 +507,7 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
               {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
-          {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute raised — under review</p>}
+          {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute raised - under review</p>}
           {booking.mentorEarning && ["session_completed", "payout_released"].includes(booking.status) && (
             <p className="text-xs text-green-700 mt-0.5">Earning: ${Number(booking.mentorEarning).toFixed(2)}</p>
           )}
@@ -617,7 +617,7 @@ function MentorDashboardContent() {
               { icon: <Calendar className="h-5 w-5 text-primary" />, label: "Total Bookings", value: stats?.totalBookings ?? 0 },
               { icon: <CheckCircle className="h-5 w-5 text-green-600" />, label: "Completed", value: stats?.completedSessions ?? 0 },
               { icon: <DollarSign className="h-5 w-5 text-amber-500" />, label: "Total Earnings", value: `$${(stats?.totalEarnings ?? 0).toFixed(0)}` },
-              { icon: <Star className="h-5 w-5 text-amber-400" />, label: "Avg Rating", value: stats?.averageRating != null ? `${stats.averageRating}/5` : "—" },
+              { icon: <Star className="h-5 w-5 text-amber-400" />, label: "Avg Rating", value: stats?.averageRating != null ? `${stats.averageRating}/5` : "-" },
             ].map(({ icon, label, value }) => (
               <Card key={label} className="p-4 flex items-center gap-3">
                 <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">{icon}</div>

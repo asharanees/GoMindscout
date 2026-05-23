@@ -46,7 +46,7 @@ const STATUS_LABELS: Record<string, string> = {
   awaiting_mentor_approval: "Awaiting Mentor Approval",
   confirmed: "Confirmed",
   counter_proposed: "Mentor Proposed New Time",
-  paid_pending_session: "Paid — Awaiting Session",
+  paid_pending_session: "Paid - Awaiting Session",
   session_completed: "Session Done",
   under_review: "Under Review",
   disputed: "Disputed",
@@ -302,7 +302,7 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
           </a>
         )}
         {booking.hasDispute && (
-          <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed — under review</p>
+          <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed - under review</p>
         )}
         {booking.cancellationNote && (
           <p className="text-xs text-muted-foreground mt-0.5 italic">{booking.cancellationNote}</p>
@@ -413,7 +413,7 @@ function DashboardContent() {
         {inProgress.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Confirmation</h2>
-            <p className="text-xs text-muted-foreground mb-4">Sessions completed — payout releases to mentor after 48h if no dispute is raised.</p>
+            <p className="text-xs text-muted-foreground mb-4">Sessions completed - payout releases to mentor after 48h if no dispute is raised.</p>
             {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} />)}
           </Card>
         )}

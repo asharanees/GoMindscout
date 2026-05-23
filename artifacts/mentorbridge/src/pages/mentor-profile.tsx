@@ -214,7 +214,7 @@ export default function MentorProfilePage() {
             )}
           </div>
 
-          {/* Right column — packages */}
+          {/* Right column - packages */}
           <div className="space-y-4">
             <h2 className="font-semibold text-foreground text-lg">Book a Session</h2>
             {packages && packages.length > 0 ? (

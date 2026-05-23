@@ -6,7 +6,7 @@ import { requireAuth, getOrCreateUser } from "../lib/auth";
 
 const router = Router();
 
-// GET /api/users/me — get or create current user profile
+// GET /api/users/me - get or create current user profile
 router.get("/me", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const clerkUser = req.auth as any;

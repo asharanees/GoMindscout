@@ -12,7 +12,7 @@ export default function TermsPage() {
         <div className="prose prose-sm max-w-none text-foreground space-y-8">
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">1. Acceptance of Terms</h2>
-            <p className="text-muted-foreground leading-relaxed">By accessing or using GoMindscout, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the service. These terms apply to all users — mentees, mentors, and visitors.</p>
+            <p className="text-muted-foreground leading-relaxed">By accessing or using GoMindscout, you agree to be bound by these Terms of Service. If you disagree with any part of these terms, you may not access the service. These terms apply to all users - mentees, mentors, and visitors.</p>
           </section>
 
           <section>
