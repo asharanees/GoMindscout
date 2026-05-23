@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "P7I51P5jbAZXHn0gg53d2"
+uri = "file://artifacts/mentorbridge/src/assets/hero-mentorship.png"
+type = "image"
+title = "mentorship hero"
