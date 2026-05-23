@@ -113,7 +113,7 @@ function ScheduleSessionDialog({ booking, onClose }: { booking: any; onClose: ()
         <div className="space-y-4 py-2">
           <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm text-muted-foreground">
             <p className="font-medium text-foreground mb-1">Platform will auto-generate a meeting room</p>
-            <p>Once you confirm the time, a unique video meeting link is created and sent to you and your mentee by email.</p>
+            <p>Once you confirm the time, a unique video meeting link is created and shared in your dashboard.</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="scheduled-at">Session Date & Time</Label>
@@ -273,7 +273,7 @@ function ApprovalRow({ booking }: { booking: any }) {
       { bookingId: booking.id },
       {
         onSuccess: () => {
-          toast({ title: "Booking approved!", description: "Meeting room generated and confirmation emails sent." });
+          toast({ title: "Booking approved!", description: "Meeting room generated." });
           queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetMentorDashboardStatsQueryKey() });
         },

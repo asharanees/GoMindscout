@@ -341,7 +341,7 @@ export const ListMentorPackagesResponseItem = zod.object({
   mentorId: zod.number(),
   title: zod.string(),
   description: zod.string().nullish(),
-  type: zod.enum(["video_30", "video_60", "email"]),
+  type: zod.enum(["video_30", "video_60"]),
   durationMinutes: zod.number().nullish(),
   price: zod.number(),
   isActive: zod.boolean(),
@@ -356,7 +356,7 @@ export const ListMentorPackagesResponse = zod.array(
 export const CreatePackageBody = zod.object({
   title: zod.string(),
   description: zod.string().optional(),
-  type: zod.enum(["video_30", "video_60", "email"]),
+  type: zod.enum(["video_30", "video_60"]),
   durationMinutes: zod.number().optional(),
   price: zod.number(),
 });
@@ -380,7 +380,7 @@ export const UpdatePackageResponse = zod.object({
   mentorId: zod.number(),
   title: zod.string(),
   description: zod.string().nullish(),
-  type: zod.enum(["video_30", "video_60", "email"]),
+  type: zod.enum(["video_30", "video_60"]),
   durationMinutes: zod.number().nullish(),
   price: zod.number(),
   isActive: zod.boolean(),

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db, packagesTable, mentorProfilesTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 
 const router = Router();
@@ -26,7 +26,7 @@ router.get("/:mentorId/packages", async (req, res) => {
     const packages = await db
       .select()
       .from(packagesTable)
-      .where(and(eq(packagesTable.mentorId, mentorId), eq(packagesTable.isActive, true)));
+      .where(and(eq(packagesTable.mentorId, mentorId), eq(packagesTable.isActive, true), or(eq(packagesTable.type, "video_30"), eq(packagesTable.type, "video_60"))));
     res.json(packages.map(packageToResponse));
   } catch (err) {
     req.log.error({ err }, "Error listing mentor packages");
@@ -49,6 +49,7 @@ router.post("/", requireAuth, async (req, res) => {
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
     const { title, description, type, durationMinutes, price } = req.body;
+    if (type === "email") { res.status(400).json({ error: "Email packages are not supported" }); return; }
     const [pkg] = await db.insert(packagesTable).values({
       mentorId: mentor.id,
       title,

@@ -40,7 +40,6 @@ async function seed() {
       packages: [
         { title: "30-min Finance Strategy Call", type: "video_30", durationMinutes: 30, price: "125", description: "Tackle your most pressing finance question." },
         { title: "60-min CFO Advisory Session", type: "video_60", durationMinutes: 60, price: "250", description: "Deep dive into financial modeling or fundraising strategy." },
-        { title: "Email Advice", type: "email", price: "75", description: "Written guidance within 48 hours." },
       ],
     },
     {
@@ -55,7 +54,6 @@ async function seed() {
       packages: [
         { title: "30-min Engineering Career Check-in", type: "video_30", durationMinutes: 30, price: "150", description: "Career advice, job search, or system design review." },
         { title: "60-min Leadership Deep Dive", type: "video_60", durationMinutes: 60, price: "300", description: "Coaching on engineering leadership or technical strategy." },
-        { title: "Resume & LinkedIn Review", type: "email", price: "100", description: "Written feedback on your engineering profile." },
       ],
     },
     {
@@ -70,7 +68,6 @@ async function seed() {
       packages: [
         { title: "30-min PM Strategy Session", type: "video_30", durationMinutes: 30, price: "100", description: "Focused discussion on a product challenge or career move." },
         { title: "60-min Product Coaching", type: "video_60", durationMinutes: 60, price: "200", description: "In-depth coaching on product strategy or PM career development." },
-        { title: "Portfolio & Resume Review", type: "email", price: "80", description: "Detailed written feedback on your PM portfolio." },
       ],
     },
     {
@@ -85,7 +82,6 @@ async function seed() {
       packages: [
         { title: "30-min Founder Office Hours", type: "video_30", durationMinutes: 30, price: "90", description: "Quick session on fundraising, pitching, or startup strategy." },
         { title: "60-min Startup Deep Dive", type: "video_60", durationMinutes: 60, price: "175", description: "Comprehensive session on your startup's biggest challenge." },
-        { title: "Pitch Deck Review", type: "email", price: "150", description: "Detailed written feedback on your pitch deck." },
       ],
     },
     {
@@ -100,7 +96,6 @@ async function seed() {
       packages: [
         { title: "30-min Marketing Strategy Call", type: "video_30", durationMinutes: 30, price: "90", description: "Quick advice on your marketing channel or brand challenge." },
         { title: "60-min Growth Strategy Session", type: "video_60", durationMinutes: 60, price: "180", description: "Full marketing audit and growth strategy for your brand." },
-        { title: "Marketing Plan Review", type: "email", price: "75", description: "Written feedback on your marketing plan or campaign." },
       ],
     },
     {
@@ -115,7 +110,6 @@ async function seed() {
       packages: [
         { title: "30-min Healthcare Career Advice", type: "video_30", durationMinutes: 30, price: "175", description: "Career guidance for healthcare professionals." },
         { title: "60-min MedTech Strategy Session", type: "video_60", durationMinutes: 60, price: "350", description: "Strategic advice on hospital sales or career transition." },
-        { title: "Written Consultation", type: "email", price: "125", description: "Detailed written guidance on your healthcare challenge." },
       ],
     },
   ];

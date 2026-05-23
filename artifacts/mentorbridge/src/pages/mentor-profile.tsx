@@ -16,11 +16,11 @@ import {
   getListMentorPackagesQueryKey,
   getListMentorReviewsQueryKey,
 } from "@workspace/api-client-react";
-import { Globe, Linkedin, Clock, Video, Mail, CheckCircle } from "lucide-react";
+import { Globe, Linkedin, Clock, Video, CheckCircle } from "lucide-react";
 
 function PackageCard({ pkg, mentorId }: { pkg: any; mentorId: number }) {
-  const typeIcon = pkg.type === "email" ? <Mail className="h-4 w-4" /> : <Video className="h-4 w-4" />;
-  const typeLabel = pkg.type === "video_30" ? "30-min Video Call" : pkg.type === "video_60" ? "60-min Video Call" : "Email Advice";
+  const typeIcon = <Video className="h-4 w-4" />;
+  const typeLabel = pkg.type === "video_30" ? "30-min Video Call" : "60-min Video Call";
 
   return (
     <Card className="p-5 flex flex-col gap-3 hover:shadow-md transition-shadow" data-testid="package-card">

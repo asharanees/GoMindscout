@@ -11,5 +11,4 @@ export type PackageType = (typeof PackageType)[keyof typeof PackageType];
 export const PackageType = {
   video_30: "video_30",
   video_60: "video_60",
-  email: "email",
 } as const;

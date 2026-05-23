@@ -8,7 +8,7 @@ export const packagesTable = pgTable("packages", {
   mentorId: integer("mentor_id").notNull().references(() => mentorProfilesTable.id),
   title: text("title").notNull(),
   description: text("description"),
-  type: text("type").notNull(), // video_30 | video_60 | email
+  type: text("type").notNull(), // video_30 | video_60
   durationMinutes: integer("duration_minutes"),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   isActive: boolean("is_active").notNull().default(true),

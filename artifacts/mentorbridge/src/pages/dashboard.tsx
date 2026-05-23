@@ -165,7 +165,7 @@ function CounterProposalCard({ booking }: { booking: any }) {
       { bookingId: booking.id },
       {
         onSuccess: () => {
-          toast({ title: "Counter-proposal accepted!", description: "Meeting room generated. Check your email for the link." });
+          toast({ title: "Counter-proposal accepted!", description: "Meeting room generated. Check your dashboard for the link." });
           queryClient.invalidateQueries({ queryKey: getListMyBookingsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetMenteeDashboardStatsQueryKey() });
         },

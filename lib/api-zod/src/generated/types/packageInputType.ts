@@ -12,5 +12,4 @@ export type PackageInputType =
 export const PackageInputType = {
   video_30: "video_30",
   video_60: "video_60",
-  email: "email",
 } as const;

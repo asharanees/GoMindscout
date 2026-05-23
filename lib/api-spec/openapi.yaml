@@ -1165,7 +1165,7 @@ components:
         mentorId: { type: integer }
         title: { type: string }
         description: { type: ["string", "null"] }
-        type: { type: string, enum: [video_30, video_60, email] }
+        type: { type: string, enum: [video_30, video_60] }
         durationMinutes: { type: ["integer", "null"] }
         price: { type: number }
         isActive: { type: boolean }
@@ -1176,7 +1176,7 @@ components:
       properties:
         title: { type: string }
         description: { type: string }
-        type: { type: string, enum: [video_30, video_60, email] }
+        type: { type: string, enum: [video_30, video_60] }
         durationMinutes: { type: integer }
         price: { type: number }
 

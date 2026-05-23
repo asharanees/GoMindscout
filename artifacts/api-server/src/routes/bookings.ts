@@ -120,6 +120,7 @@ router.post("/", requireAuth, async (req, res) => {
 
     const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, packageId)).limit(1);
     if (!pkg) { res.status(404).json({ error: "Package not found" }); return; }
+    if (pkg.type === "email") { res.status(400).json({ error: "Email packages are not supported" }); return; }
 
     const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, pkg.mentorId)).limit(1);
     if (!mentor || mentor.status !== "approved") { res.status(400).json({ error: "Mentor not available" }); return; }

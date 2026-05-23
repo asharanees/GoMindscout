@@ -133,7 +133,6 @@ export type PackageType = (typeof PackageType)[keyof typeof PackageType];
 export const PackageType = {
   video_30: "video_30",
   video_60: "video_60",
-  email: "email",
 } as const;
 
 export interface Package {
@@ -155,7 +154,6 @@ export type PackageInputType =
 export const PackageInputType = {
   video_30: "video_30",
   video_60: "video_60",
-  email: "email",
 } as const;
 
 export interface PackageInput {

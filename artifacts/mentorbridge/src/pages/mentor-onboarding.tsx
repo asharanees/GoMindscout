@@ -102,7 +102,6 @@ function OnboardingContent() {
           const defaultPackages = [
             { title: "30-min Intro Call", description: "A quick intro session to discuss your goals and how I can help.", type: "video_30", durationMinutes: 30, price: form.hourlyRate ? parseFloat(form.hourlyRate) / 2 : 75 },
             { title: "60-min Deep Dive", description: "An in-depth session to tackle your specific challenge.", type: "video_60", durationMinutes: 60, price: form.hourlyRate ? parseFloat(form.hourlyRate) : 150 },
-            { title: "Email Advice", description: "Send me a detailed question and I'll give you thorough written guidance.", type: "email", price: 49 },
           ];
           defaultPackages.forEach((pkg) => {
             createPackage({ data: { ...pkg, price: pkg.price } as any });
