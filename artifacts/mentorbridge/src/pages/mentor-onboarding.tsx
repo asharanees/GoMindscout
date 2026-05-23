@@ -59,7 +59,6 @@ function OnboardingContent() {
     hourlyRate: "",
     introVideoUrl: "",
     linkedinUrl: "",
-    calendlyUrl: "",
   });
 
   function update(key: keyof typeof form, value: string) {
@@ -179,7 +178,6 @@ function OnboardingContent() {
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
-          calendlyUrl: form.calendlyUrl || undefined,
           experiences: experiences.length > 0 ? experiences : undefined,
           honorsAwards: honorsAwards.length > 0 ? honorsAwards : undefined,
           publications: publications.length > 0 ? publications : undefined,
@@ -538,10 +536,6 @@ function OnboardingContent() {
             <Input id="video" type="url" placeholder="https://youtube.com/watch?v=..." value={form.introVideoUrl} onChange={(e) => update("introVideoUrl", e.target.value)} data-testid="video-input" />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="calendly">Calendly URL</Label>
-            <Input id="calendly" type="url" placeholder="https://calendly.com/yourname" value={form.calendlyUrl} onChange={(e) => update("calendlyUrl", e.target.value)} data-testid="calendly-input" />
-          </div>
         </Card>
 
         {/* ── AVAILABILITY ── */}

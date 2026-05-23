@@ -212,7 +212,6 @@ function EditContent() {
     hourlyRate: "",
     introVideoUrl: "",
     linkedinUrl: "",
-    calendlyUrl: "",
   });
 
   // ── Experience ──
@@ -277,7 +276,6 @@ function EditContent() {
         hourlyRate: mentor.hourlyRate ? String(mentor.hourlyRate) : "",
         introVideoUrl: mentor.introVideoUrl ?? "",
         linkedinUrl: mentor.linkedinUrl ?? "",
-        calendlyUrl: mentor.calendlyUrl ?? "",
       });
       setExperiences((mentor.experiences ?? []).map((e: any) => ({ ...e, id: e.id || uid() })));
       setHonorsAwards((mentor.honorsAwards ?? []).map((h: any) => ({ ...h, id: h.id || uid() })));
@@ -352,7 +350,6 @@ function EditContent() {
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
-          calendlyUrl: form.calendlyUrl || undefined,
           experiences: experiences.length > 0 ? experiences : undefined,
           honorsAwards: honorsAwards.length > 0 ? honorsAwards : undefined,
           publications: publications.length > 0 ? publications : undefined,
@@ -699,10 +696,6 @@ function EditContent() {
             <Input type="url" placeholder="https://youtube.com/watch?v=..." value={form.introVideoUrl} onChange={(e) => update("introVideoUrl", e.target.value)} data-testid="edit-video" />
           </div>
 
-          <div className="space-y-2">
-            <Label>Calendly URL</Label>
-            <Input type="url" placeholder="https://calendly.com/..." value={form.calendlyUrl} onChange={(e) => update("calendlyUrl", e.target.value)} data-testid="edit-calendly" />
-          </div>
         </Card>
 
         {/* Packages */}
