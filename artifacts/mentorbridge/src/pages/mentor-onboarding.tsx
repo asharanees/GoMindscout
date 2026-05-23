@@ -116,6 +116,10 @@ function OnboardingContent() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const tags = form.expertiseTags.split(",").map((t) => t.trim()).filter(Boolean);
+    const langs = form.languages.split(",").map((l) => l.trim()).filter(Boolean);
+    const bioWords = form.bio.trim().split(/\s+/).filter(Boolean).length;
+
     if (!form.fullName.trim()) {
       toast({ title: "Full name required", description: "Please enter your full name.", variant: "destructive" });
       return;
@@ -124,9 +128,38 @@ function OnboardingContent() {
       toast({ title: "Headline required", description: "Please add a professional headline.", variant: "destructive" });
       return;
     }
-
-    const tags = form.expertiseTags.split(",").map((t) => t.trim()).filter(Boolean);
-    const langs = form.languages.split(",").map((l) => l.trim()).filter(Boolean);
+    if (!form.bio.trim()) {
+      toast({ title: "Bio required", description: "Please tell potential mentees about your background.", variant: "destructive" });
+      return;
+    }
+    if (bioWords > 500) {
+      toast({ title: "Bio too long", description: `Your bio is ${bioWords} words. Please keep it under 500 words.`, variant: "destructive" });
+      return;
+    }
+    if (!form.industry.trim()) {
+      toast({ title: "Industry required", description: "Please enter your industry.", variant: "destructive" });
+      return;
+    }
+    if (!form.categoryId) {
+      toast({ title: "Category required", description: "Please select a category.", variant: "destructive" });
+      return;
+    }
+    if (tags.length === 0) {
+      toast({ title: "Expertise tags required", description: "Please add at least one expertise tag.", variant: "destructive" });
+      return;
+    }
+    if (!form.yearsExperience || parseInt(form.yearsExperience) < 0) {
+      toast({ title: "Years of experience required", description: "Please enter your years of experience.", variant: "destructive" });
+      return;
+    }
+    if (!form.hourlyRate || parseFloat(form.hourlyRate) <= 0) {
+      toast({ title: "Hourly rate required", description: "Please enter your hourly rate.", variant: "destructive" });
+      return;
+    }
+    if (langs.length === 0) {
+      toast({ title: "Languages required", description: "Please enter at least one language you speak.", variant: "destructive" });
+      return;
+    }
 
     // Save name to user record first
     if (form.fullName.trim()) {
@@ -238,17 +271,18 @@ function OnboardingContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="bio">Bio <span className="text-destructive">*</span></Label>
             <Textarea id="bio" placeholder="Tell potential mentees about your background, what you've built, and how you can help..." rows={5} value={form.bio} onChange={(e) => update("bio", e.target.value)} data-testid="bio-input" />
+            <p className="text-xs text-muted-foreground text-right">{form.bio.trim().split(/\s+/).filter(Boolean).length} / 500 words</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="industry">Industry</Label>
+              <Label htmlFor="industry">Industry <span className="text-destructive">*</span></Label>
               <Input id="industry" placeholder="e.g. Fintech, Healthcare" value={form.industry} onChange={(e) => update("industry", e.target.value)} data-testid="industry-input" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
               <Select value={form.categoryId} onValueChange={(v) => update("categoryId", v)}>
                 <SelectTrigger id="category" data-testid="category-select">
                   <SelectValue placeholder="Select a category" />
@@ -263,23 +297,23 @@ function OnboardingContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="expertise">Expertise Tags</Label>
+            <Label htmlFor="expertise">Expertise Tags <span className="text-destructive">*</span></Label>
             <Input id="expertise" placeholder="Comma-separated: e.g. Product Strategy, GTM, Fundraising" value={form.expertiseTags} onChange={(e) => update("expertiseTags", e.target.value)} data-testid="expertise-input" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="years">Years of Experience</Label>
+              <Label htmlFor="years">Years of Experience <span className="text-destructive">*</span></Label>
               <Input id="years" type="number" min="0" placeholder="e.g. 10" value={form.yearsExperience} onChange={(e) => update("yearsExperience", e.target.value)} data-testid="years-input" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rate">Hourly Rate (USD)</Label>
+              <Label htmlFor="rate">Hourly Rate (USD) <span className="text-destructive">*</span></Label>
               <Input id="rate" type="number" min="0" placeholder="e.g. 200" value={form.hourlyRate} onChange={(e) => update("hourlyRate", e.target.value)} data-testid="rate-input" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="languages">Languages Spoken</Label>
+            <Label htmlFor="languages">Languages Spoken <span className="text-destructive">*</span></Label>
             <Input id="languages" placeholder="Comma-separated: e.g. English, Spanish" value={form.languages} onChange={(e) => update("languages", e.target.value)} data-testid="languages-input" />
           </div>
         </Card>
@@ -500,12 +534,12 @@ function OnboardingContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="video">Intro Video URL (YouTube)</Label>
+            <Label htmlFor="video">Intro Video URL</Label>
             <Input id="video" type="url" placeholder="https://youtube.com/watch?v=..." value={form.introVideoUrl} onChange={(e) => update("introVideoUrl", e.target.value)} data-testid="video-input" />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="calendly">Calendly URL (optional)</Label>
+            <Label htmlFor="calendly">Calendly URL</Label>
             <Input id="calendly" type="url" placeholder="https://calendly.com/yourname" value={form.calendlyUrl} onChange={(e) => update("calendlyUrl", e.target.value)} data-testid="calendly-input" />
           </div>
         </Card>
@@ -513,7 +547,7 @@ function OnboardingContent() {
         {/* ── AVAILABILITY ── */}
         <Card className="p-6 space-y-5">
           <div>
-            <h2 className="font-semibold text-foreground">Availability (Optional)</h2>
+            <h2 className="font-semibold text-foreground">Availability</h2>
             <p className="text-xs text-muted-foreground mt-1">Set your weekly availability so mentees can book slots. You can update this anytime from your profile.</p>
           </div>
           <div className="space-y-3">

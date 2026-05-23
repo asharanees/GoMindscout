@@ -294,10 +294,50 @@ function EditContent() {
     e.preventDefault();
     const tags = form.expertiseTags.split(",").map((t) => t.trim()).filter(Boolean);
     const langs = form.languages.split(",").map((l) => l.trim()).filter(Boolean);
+    const bioWords = form.bio.trim().split(/\s+/).filter(Boolean).length;
 
-    if (fullName.trim()) {
-      updateMe({ data: { fullName: fullName.trim() } } as any);
+    if (!fullName.trim()) {
+      toast({ title: "Full name required", description: "Please enter your full name.", variant: "destructive" });
+      return;
     }
+    if (!form.headline.trim()) {
+      toast({ title: "Headline required", description: "Please add a professional headline.", variant: "destructive" });
+      return;
+    }
+    if (!form.bio.trim()) {
+      toast({ title: "Bio required", description: "Please tell potential mentees about your background.", variant: "destructive" });
+      return;
+    }
+    if (bioWords > 500) {
+      toast({ title: "Bio too long", description: `Your bio is ${bioWords} words. Please keep it under 500 words.`, variant: "destructive" });
+      return;
+    }
+    if (!form.industry.trim()) {
+      toast({ title: "Industry required", description: "Please enter your industry.", variant: "destructive" });
+      return;
+    }
+    if (!form.categoryId) {
+      toast({ title: "Category required", description: "Please select a category.", variant: "destructive" });
+      return;
+    }
+    if (tags.length === 0) {
+      toast({ title: "Expertise tags required", description: "Please add at least one expertise tag.", variant: "destructive" });
+      return;
+    }
+    if (!form.yearsExperience || parseInt(form.yearsExperience) < 0) {
+      toast({ title: "Years of experience required", description: "Please enter your years of experience.", variant: "destructive" });
+      return;
+    }
+    if (!form.hourlyRate || parseFloat(form.hourlyRate) <= 0) {
+      toast({ title: "Hourly rate required", description: "Please enter your hourly rate.", variant: "destructive" });
+      return;
+    }
+    if (langs.length === 0) {
+      toast({ title: "Languages required", description: "Please enter at least one language you speak.", variant: "destructive" });
+      return;
+    }
+
+    updateMe({ data: { fullName: fullName.trim() } } as any);
 
     updateProfile(
       {
@@ -392,17 +432,18 @@ function EditContent() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea id="bio" rows={5} value={form.bio} onChange={(e) => update("bio", e.target.value)} data-testid="edit-bio" />
+            <Label htmlFor="bio">Bio <span className="text-destructive">*</span></Label>
+            <Textarea id="bio" rows={5} value={form.bio} onChange={(e) => update("bio", e.target.value)} data-testid="edit-bio" maxLength={3000} />
+            <p className="text-xs text-muted-foreground text-right">{form.bio.trim().split(/\s+/).filter(Boolean).length} / 500 words</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="industry">Industry</Label>
+              <Label htmlFor="industry">Industry <span className="text-destructive">*</span></Label>
               <Input id="industry" value={form.industry} onChange={(e) => update("industry", e.target.value)} data-testid="edit-industry" />
             </div>
             <div className="space-y-2">
-              <Label>Category</Label>
+              <Label>Category <span className="text-destructive">*</span></Label>
               <Select value={form.categoryId} onValueChange={(v) => update("categoryId", v)}>
                 <SelectTrigger data-testid="edit-category">
                   <SelectValue placeholder="Select category" />
@@ -417,23 +458,23 @@ function EditContent() {
           </div>
 
           <div className="space-y-2">
-            <Label>Expertise Tags</Label>
+            <Label>Expertise Tags <span className="text-destructive">*</span></Label>
             <Input placeholder="Comma-separated tags" value={form.expertiseTags} onChange={(e) => update("expertiseTags", e.target.value)} data-testid="edit-tags" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Years of Experience</Label>
+              <Label>Years of Experience <span className="text-destructive">*</span></Label>
               <Input type="number" min="0" value={form.yearsExperience} onChange={(e) => update("yearsExperience", e.target.value)} data-testid="edit-years" />
             </div>
             <div className="space-y-2">
-              <Label>Hourly Rate ($)</Label>
+              <Label>Hourly Rate ($) <span className="text-destructive">*</span></Label>
               <Input type="number" min="0" value={form.hourlyRate} onChange={(e) => update("hourlyRate", e.target.value)} data-testid="edit-rate" />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label>Languages</Label>
+            <Label>Languages <span className="text-destructive">*</span></Label>
             <Input placeholder="Comma-separated: e.g. English, Spanish" value={form.languages} onChange={(e) => update("languages", e.target.value)} data-testid="edit-languages" />
           </div>
         </Card>
@@ -654,7 +695,7 @@ function EditContent() {
           </div>
 
           <div className="space-y-2">
-            <Label>Intro Video (YouTube)</Label>
+            <Label>Intro Video URL</Label>
             <Input type="url" placeholder="https://youtube.com/watch?v=..." value={form.introVideoUrl} onChange={(e) => update("introVideoUrl", e.target.value)} data-testid="edit-video" />
           </div>
 
