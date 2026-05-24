@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable, packagesTable, mentorAvailabilityTable } from "@workspace/db";
 import { eq, and, ilike, or, gte, lte, sql, desc, asc } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 
@@ -221,6 +221,35 @@ router.post("/", requireAuth, async (req, res) => {
     res.status(201).json(buildMentorResponse(mentor, user, null, null, 0, 0));
   } catch (err) {
     req.log.error({ err }, "Error creating mentor profile");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/mentors/me - delete mentor profile and all related data
+router.delete("/me", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
+    if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
+
+    // Delete dependent records
+    await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentor.id));
+    await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentor.id));
+    await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentor.id));
+    await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentor.id));
+
+    // Delete mentor profile
+    await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentor.id));
+
+    // Revert user role from mentor back to mentee
+    await db.update(usersTable).set({ role: "mentee" }).where(eq(usersTable.id, user.id));
+
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Error deleting mentor profile");
     res.status(500).json({ error: "Internal server error" });
   }
 });

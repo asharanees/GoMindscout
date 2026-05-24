@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth, getOrCreateUser } from "../lib/auth";
+import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
 
 const router = Router();
 
@@ -92,6 +92,48 @@ router.patch("/me", requireAuth, async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Error updating user");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/users/me - delete account and all data
+router.delete("/me", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Get mentor profile if exists
+    const [mentorProfile] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
+    const mentorId = mentorProfile?.id;
+
+    if (mentorId) {
+      // Delete reviews for this mentor
+      await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
+      // Delete bookings where this user is mentor
+      await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
+    }
+
+    // Delete bookings where this user is mentee
+    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
+    // Delete chat messages
+    await db.delete(chatMessagesTable).where(eq(chatMessagesTable.senderId, user.id));
+    // Delete disputes opened by this user
+    await db.delete(disputesTable).where(eq(disputesTable.openedByUserId, user.id));
+    // Delete notifications
+    await db.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
+
+    // Delete mentor profile (cascades packages, availability via FK)
+    if (mentorId) {
+      await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
+    }
+
+    // Delete user
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Error deleting user account");
     res.status(500).json({ error: "Internal server error" });
   }
 });

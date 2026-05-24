@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -17,12 +18,13 @@ import {
   useCancelBooking,
   useAcceptCounterProposal,
   useDeclineCounterProposal,
+  useDeleteMe,
   getListMyBookingsQueryKey,
   getGetMenteeDashboardStatsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle, ThumbsUp, ThumbsDown, Trash2 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
@@ -340,8 +342,48 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
   );
 }
 
+function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { mutate: deleteAccount, isPending } = useDeleteMe();
+
+  function handleDelete() {
+    deleteAccount(undefined, {
+      onSuccess: () => {
+        toast({ title: "Account deleted", description: "Your account and all data have been removed." });
+        signOut();
+        setLocation("/");
+        onClose();
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message || "Could not delete account.", variant: "destructive" }),
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">Delete Account</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <p className="text-sm text-muted-foreground">This will permanently delete your account, all bookings, reviews, messages, and other data. This action cannot be undone.</p>
+          <p className="text-sm font-medium text-foreground">Are you sure you want to proceed?</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} data-testid="delete-account-cancel">Cancel</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={isPending} data-testid="delete-account-confirm">
+            {isPending ? "Deleting..." : "Delete Account"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function DashboardContent() {
   const [reviewBooking, setReviewBooking] = useState<any>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
 
@@ -427,6 +469,23 @@ function DashboardContent() {
       </div>
 
       {reviewBooking && <ReviewDialog booking={reviewBooking} onClose={() => setReviewBooking(null)} />}
+      {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}
+
+      <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">
+        <Card className="p-6 border-destructive/20">
+          <h2 className="font-semibold text-foreground mb-1">Account Settings</h2>
+          <p className="text-xs text-muted-foreground mb-4">Manage your account and data.</p>
+          <Button
+            variant="outline"
+            className="text-destructive border-destructive/30 hover:bg-destructive hover:text-white gap-2"
+            onClick={() => setShowDeleteDialog(true)}
+            data-testid="delete-account-btn"
+          >
+            <Trash2 className="h-4 w-4" /> Delete My Account
+          </Button>
+        </Card>
+      </div>
+
       <Footer />
     </div>
   );

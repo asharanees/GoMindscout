@@ -83,6 +83,15 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UserProfile"
+    delete:
+      operationId: deleteMe
+      tags: [users]
+      summary: Delete current user account and all associated data
+      responses:
+        "204":
+          description: Account deleted
+        "401":
+          description: Unauthorized
 
   # ── Categories ─────────────────────────────────────────────────────────────
   /categories:
@@ -207,6 +216,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MentorProfile"
+    delete:
+      operationId: deleteMyMentorProfile
+      tags: [mentors]
+      summary: Delete the authenticated mentor's profile, packages, availability and all related data
+      responses:
+        "204":
+          description: Mentor profile deleted
+        "401":
+          description: Unauthorized
+        "404":
+          description: No mentor profile found
 
   /mentors/{mentorId}/availability:
     get:

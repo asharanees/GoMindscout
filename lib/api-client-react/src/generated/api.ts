@@ -298,6 +298,85 @@ export const useUpdateMe = <
 };
 
 /**
+ * @summary Delete current user account and all associated data
+ */
+export const getDeleteMeUrl = () => {
+  return `/api/users/me`;
+};
+
+export const deleteMe = async (options?: RequestInit): Promise<void> => {
+  return customFetch<void>(getDeleteMeUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMeMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMe>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMe>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteMe"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMe>>,
+    void
+  > = () => {
+    return deleteMe(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMe>>
+>;
+
+export type DeleteMeMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete current user account and all associated data
+ */
+export const useDeleteMe = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMe>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMe>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMeMutationOptions(options));
+};
+
+/**
  * @summary List all categories with mentor counts
  */
 export const getListCategoriesUrl = () => {
@@ -786,6 +865,87 @@ export const useUpdateMyMentorProfile = <
   TContext
 > => {
   return useMutation(getUpdateMyMentorProfileMutationOptions(options));
+};
+
+/**
+ * @summary Delete the authenticated mentor's profile, packages, availability and all related data
+ */
+export const getDeleteMyMentorProfileUrl = () => {
+  return `/api/mentors/me`;
+};
+
+export const deleteMyMentorProfile = async (
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteMyMentorProfileUrl(), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteMyMentorProfileMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyMentorProfile>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteMyMentorProfile>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = ["deleteMyMentorProfile"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteMyMentorProfile>>,
+    void
+  > = () => {
+    return deleteMyMentorProfile(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMyMentorProfileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteMyMentorProfile>>
+>;
+
+export type DeleteMyMentorProfileMutationError = ErrorType<void>;
+
+/**
+ * @summary Delete the authenticated mentor's profile, packages, availability and all related data
+ */
+export const useDeleteMyMentorProfile = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteMyMentorProfile>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteMyMentorProfile>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getDeleteMyMentorProfileMutationOptions(options));
 };
 
 /**

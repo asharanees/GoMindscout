@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -23,6 +24,7 @@ import {
   useApproveBooking,
   useRejectBooking,
   useCounterProposeBooking,
+  useDeleteMyMentorProfile,
   getListMyBookingsQueryKey,
   getGetMentorDashboardStatsQueryKey,
   getGetMentorPayoutsQueryKey,
@@ -31,7 +33,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare,
-  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw,
+  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw, Trash2,
 } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -565,9 +567,47 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
   );
 }
 
+function DeleteMentorProfileDialog({ onClose }: { onClose: () => void }) {
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { mutate: deleteProfile, isPending } = useDeleteMyMentorProfile();
+
+  function handleDelete() {
+    deleteProfile(undefined, {
+      onSuccess: () => {
+        toast({ title: "Profile deleted", description: "Your mentor profile has been removed. You can create a new one anytime." });
+        setLocation("/dashboard");
+        onClose();
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message || "Could not delete mentor profile.", variant: "destructive" }),
+    });
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-destructive">Delete Mentor Profile</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <p className="text-sm text-muted-foreground">This will permanently delete your mentor profile, all packages, availability, reviews, and related booking data. Your account will remain as a mentee. This action cannot be undone.</p>
+          <p className="text-sm font-medium text-foreground">Are you sure you want to proceed?</p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} data-testid="delete-mentor-cancel">Cancel</Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={isPending} data-testid="delete-mentor-confirm">
+            {isPending ? "Deleting..." : "Delete Profile"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MentorDashboardContent() {
   const [linkBooking, setLinkBooking] = useState<any>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
   const { data: payoutInfo, isLoading: payoutsLoading } = useGetMentorPayouts();
@@ -739,6 +779,23 @@ function MentorDashboardContent() {
 
       {linkBooking && <ScheduleSessionDialog booking={linkBooking} onClose={() => setLinkBooking(null)} />}
       {payoutOpen && <PayoutRequestDialog balance={payoutInfo?.withdrawableBalance ?? 0} onClose={() => setPayoutOpen(false)} />}
+      {showDeleteDialog && <DeleteMentorProfileDialog onClose={() => setShowDeleteDialog(false)} />}
+
+      <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">
+        <Card className="p-6 border-destructive/20">
+          <h2 className="font-semibold text-foreground mb-1">Mentor Profile Settings</h2>
+          <p className="text-xs text-muted-foreground mb-4">Manage your mentor profile and data.</p>
+          <Button
+            variant="outline"
+            className="text-destructive border-destructive/30 hover:bg-destructive hover:text-white gap-2"
+            onClick={() => setShowDeleteDialog(true)}
+            data-testid="delete-mentor-profile-btn"
+          >
+            <Trash2 className="h-4 w-4" /> Delete My Mentor Profile
+          </Button>
+        </Card>
+      </div>
+
       <Footer />
     </div>
   );
