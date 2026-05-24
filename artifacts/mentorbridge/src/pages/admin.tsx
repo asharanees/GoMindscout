@@ -23,6 +23,7 @@ import {
   useAdminListPayouts,
   useAdminUpdatePayout,
   useAdminSuspendUser,
+  useAdminDeleteMentor,
   getAdminListMentorsQueryKey,
   getAdminGetStatsQueryKey,
   getAdminListDisputesQueryKey,
@@ -30,7 +31,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet } from "lucide-react";
+import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet, Trash2 } from "lucide-react";
 
 function useAdminSession() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -163,6 +164,7 @@ function MentorRow({ mentor }: { mentor: any }) {
   const { mutate: approve, isPending: approvePending } = useAdminApproveMentor();
   const { mutate: feature, isPending: featurePending } = useAdminFeatureMentor();
   const { mutate: suspend, isPending: suspendPending } = useAdminSuspendUser();
+  const { mutate: deleteMentor, isPending: deletePending } = useAdminDeleteMentor();
 
   const initials = (mentor.fullName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -194,6 +196,18 @@ function MentorRow({ mentor }: { mentor: any }) {
       onSuccess: () => {
         toast({ title: isSuspended ? "User reinstated" : "User suspended" });
         queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    });
+  }
+
+  function handleDelete() {
+    if (!confirm(`Delete ${mentor.fullName}? This will permanently remove their mentor profile, packages, bookings, reviews, and all related data. This action cannot be undone.`)) return;
+    deleteMentor({ mentorId: mentor.id }, {
+      onSuccess: () => {
+        toast({ title: "Mentor deleted", description: `${mentor.fullName} and all related data have been removed.` });
+        queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getAdminGetStatsQueryKey() });
       },
       onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
     });
@@ -240,6 +254,9 @@ function MentorRow({ mentor }: { mentor: any }) {
         )}
         <Button size="sm" variant="ghost" className={`text-xs h-7 px-2 ${mentor.status === "suspended" ? "text-green-700" : "text-muted-foreground hover:text-destructive"}`} onClick={handleSuspend} disabled={suspendPending} data-testid="suspend-mentor-btn">
           {mentor.status === "suspended" ? "Reinstate" : "Suspend"}
+        </Button>
+        <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={deletePending} data-testid="delete-mentor-btn">
+          <Trash2 className="h-3 w-3 mr-1" /> Delete
         </Button>
       </div>
       {rejectOpen && <RejectDialog mentor={mentor} onClose={() => setRejectOpen(false)} />}

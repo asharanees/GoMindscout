@@ -3814,6 +3814,90 @@ export const useAdminFeatureMentor = <
 };
 
 /**
+ * @summary Hard delete a mentor profile and all related data
+ */
+export const getAdminDeleteMentorUrl = (mentorId: number) => {
+  return `/api/admin/mentors/${mentorId}`;
+};
+
+export const adminDeleteMentor = async (
+  mentorId: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getAdminDeleteMentorUrl(mentorId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getAdminDeleteMentorMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteMentor>>,
+    TError,
+    { mentorId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof adminDeleteMentor>>,
+  TError,
+  { mentorId: number },
+  TContext
+> => {
+  const mutationKey = ["adminDeleteMentor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof adminDeleteMentor>>,
+    { mentorId: number }
+  > = (props) => {
+    const { mentorId } = props ?? {};
+
+    return adminDeleteMentor(mentorId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AdminDeleteMentorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof adminDeleteMentor>>
+>;
+
+export type AdminDeleteMentorMutationError = ErrorType<void>;
+
+/**
+ * @summary Hard delete a mentor profile and all related data
+ */
+export const useAdminDeleteMentor = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof adminDeleteMentor>>,
+    TError,
+    { mentorId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof adminDeleteMentor>>,
+  TError,
+  { mentorId: number },
+  TContext
+> => {
+  return useMutation(getAdminDeleteMentorMutationOptions(options));
+};
+
+/**
  * @summary Admin list all bookings
  */
 export const getAdminListBookingsUrl = () => {

@@ -1685,6 +1685,13 @@ export const AdminFeatureMentorResponse = zod.object({
 });
 
 /**
+ * @summary Hard delete a mentor profile and all related data
+ */
+export const AdminDeleteMentorParams = zod.object({
+  mentorId: zod.coerce.number(),
+});
+
+/**
  * @summary Admin list all bookings
  */
 export const AdminListBookingsResponseItem = zod.object({

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable } from "@workspace/db";
+import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable, packagesTable, mentorAvailabilityTable, payoutRequestsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
 
@@ -108,14 +108,19 @@ router.delete("/me", requireAuth, async (req, res) => {
     const mentorId = mentorProfile?.id;
 
     if (mentorId) {
-      // Delete reviews for this mentor
+      // Delete all data linked to this mentor profile first
       await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
-      // Delete bookings where this user is mentor
+      await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
+      await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentorId));
+      await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
+    }
+
+    // Delete all bookings this user participates in (FK to users and mentor_profiles)
+    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
+    if (mentorId) {
       await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
     }
 
-    // Delete bookings where this user is mentee
-    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
     // Delete chat messages
     await db.delete(chatMessagesTable).where(eq(chatMessagesTable.senderId, user.id));
     // Delete disputes opened by this user
@@ -123,7 +128,7 @@ router.delete("/me", requireAuth, async (req, res) => {
     // Delete notifications
     await db.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
 
-    // Delete mentor profile (cascades packages, availability via FK)
+    // Delete mentor profile
     if (mentorId) {
       await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
     }

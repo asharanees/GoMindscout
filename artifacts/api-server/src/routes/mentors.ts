@@ -235,8 +235,9 @@ router.delete("/me", requireAuth, async (req, res) => {
     const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
-    // Delete dependent records
+    // Delete dependent records in dependency order
     await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentor.id));
+    await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentor.id));
     await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentor.id));
     await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentor.id));
     await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentor.id));

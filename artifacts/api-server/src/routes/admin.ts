@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
 
@@ -151,6 +151,30 @@ router.patch("/users/:userId/suspend", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Error suspending user");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/mentors/:mentorId - hard delete a mentor and all related data
+router.delete("/mentors/:mentorId", async (req, res) => {
+  const mentorId = parseInt(req.params.mentorId);
+  try {
+    const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId)).limit(1);
+    if (!mentor) { res.status(404).json({ error: "Mentor not found" }); return; }
+
+    // Delete dependent records in dependency order
+    await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
+    await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
+    await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
+    await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentorId));
+    await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
+
+    // Delete mentor profile
+    await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
+
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Error deleting mentor (admin)");
     res.status(500).json({ error: "Internal server error" });
   }
 });

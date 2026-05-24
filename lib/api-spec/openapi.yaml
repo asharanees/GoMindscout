@@ -881,6 +881,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/MentorProfile"
 
+  /admin/mentors/{mentorId}:
+    delete:
+      operationId: adminDeleteMentor
+      tags: [admin]
+      summary: Hard delete a mentor profile and all related data
+      parameters:
+        - name: mentorId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Mentor deleted
+        "404":
+          description: Mentor not found
+
   /admin/bookings:
     get:
       operationId: adminListBookings
