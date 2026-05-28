@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable, notificationsTable } from "@workspace/db";
 import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
 
