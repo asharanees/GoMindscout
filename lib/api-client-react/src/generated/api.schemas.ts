@@ -674,6 +674,8 @@ export type AdminListMentorsParams = {
   status?: string;
 };
 
+export type AdminGetUserDetails200 = { [key: string]: unknown };
+
 export type MarkAllNotificationsRead200 = {
   success: boolean;
 };

@@ -254,7 +254,8 @@ router.get("/bookings", async (req, res) => {
           stripeSessionId: booking.stripeSessionId,
           createdAt: booking.createdAt.toISOString(),
           mentorName: mentorUser?.fullName ?? null,
-          menteeName: menteeUser?.fullName ?? null,
+          menteeName: menteeUser?.fullName || menteeUser?.email?.split("@")[0] || "-",
+          menteeEmail: menteeUser?.email || null,
           mentorAvatarUrl: mentorUser?.avatarUrl ?? null,
           menteeAvatarUrl: menteeUser?.avatarUrl ?? null,
           hasReview: false,
@@ -350,6 +351,93 @@ router.patch("/payouts/:payoutId", async (req, res) => {
     res.json(payoutToResponse(updated, mentorUser));
   } catch (err) {
     req.log.error({ err }, "Error updating payout");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/users/:userId
+router.get("/users/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [mentorProfile] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, userId)).limit(1);
+    const mentorId = mentorProfile?.id;
+
+    const userBookings = await db.select().from(bookingsTable).where(
+      or(eq(bookingsTable.menteeId, userId), mentorId ? eq(bookingsTable.mentorId, mentorId) : undefined)
+    ).orderBy(sql`${bookingsTable.createdAt} DESC`);
+
+    const enrichedBookings = await Promise.all(
+      userBookings.map(async (booking) => {
+        const [mentee] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+        const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+        const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+        return {
+          id: booking.id,
+          status: booking.status,
+          amount: Number(booking.amount),
+          platformFee: Number(booking.platformFee),
+          mentorEarning: booking.mentorEarning ? Number(booking.mentorEarning) : null,
+          createdAt: booking.createdAt.toISOString(),
+          menteeName: mentee?.fullName || mentee?.email?.split("@")[0] || "-",
+          mentorName: mentorUser?.fullName || "-",
+        };
+      })
+    );
+
+    const reviews = mentorId ? await db.select().from(reviewsTable).where(eq(reviewsTable.mentorId, mentorId)) : [];
+    const avgRating = reviews.length > 0
+      ? Math.round((reviews.reduce((s, r) => s + Number(r.rating), 0) / reviews.length) * 10) / 10
+      : null;
+
+    const totalSpent = userBookings
+      .filter(b => b.menteeId === userId && !["pending_payment", "cancelled", "refunded"].includes(b.status))
+      .reduce((sum, b) => sum + Number(b.amount), 0);
+
+    const totalEarned = mentorId
+      ? userBookings
+          .filter(b => b.mentorId === mentorId && b.status === "completed")
+          .reduce((sum, b) => sum + (b.mentorEarning ? Number(b.mentorEarning) : 0), 0)
+      : 0;
+
+    const payouts = mentorId
+      ? await db.select().from(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId)).orderBy(sql`${payoutRequestsTable.createdAt} DESC`)
+      : [];
+
+    res.json({
+      user: {
+        id: user.id,
+        fullName: user.fullName || null,
+        email: user.email,
+        role: user.role,
+        avatarUrl: user.avatarUrl ?? null,
+        createdAt: user.createdAt.toISOString(),
+      },
+      mentorProfile: mentorProfile ? {
+        id: mentorProfile.id,
+        headline: mentorProfile.headline,
+        status: mentorProfile.status,
+        hourlyRate: mentorProfile.hourlyRate ? Number(mentorProfile.hourlyRate) : null,
+        bio: mentorProfile.bio,
+        industry: mentorProfile.industry,
+        isFeatured: mentorProfile.isFeatured,
+        totalReviews: reviews.length,
+        averageRating: avgRating,
+      } : null,
+      bookings: enrichedBookings,
+      totalSpent: Math.round(totalSpent * 100) / 100,
+      totalEarned: Math.round(totalEarned * 100) / 100,
+      payouts: payouts.map(p => ({
+        id: p.id,
+        amount: Number(p.amount),
+        status: p.status,
+        createdAt: p.createdAt.toISOString(),
+      })),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error fetching user details (admin)");
     res.status(500).json({ error: "Internal server error" });
   }
 });

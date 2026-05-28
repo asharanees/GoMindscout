@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdminGetUserDetails200,
   AdminListMentorsParams,
   AdminStats,
   AvailabilitySlot,
@@ -3896,6 +3897,98 @@ export const useAdminDeleteMentor = <
 > => {
   return useMutation(getAdminDeleteMentorMutationOptions(options));
 };
+
+/**
+ * @summary Get detailed user info for admin review
+ */
+export const getAdminGetUserDetailsUrl = (userId: number) => {
+  return `/api/admin/users/${userId}`;
+};
+
+export const adminGetUserDetails = async (
+  userId: number,
+  options?: RequestInit,
+): Promise<AdminGetUserDetails200> => {
+  return customFetch<AdminGetUserDetails200>(
+    getAdminGetUserDetailsUrl(userId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getAdminGetUserDetailsQueryKey = (userId: number) => {
+  return [`/api/admin/users/${userId}`] as const;
+};
+
+export const getAdminGetUserDetailsQueryOptions = <
+  TData = Awaited<ReturnType<typeof adminGetUserDetails>>,
+  TError = ErrorType<void>,
+>(
+  userId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetUserDetails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getAdminGetUserDetailsQueryKey(userId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof adminGetUserDetails>>
+  > = ({ signal }) =>
+    adminGetUserDetails(userId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!userId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof adminGetUserDetails>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type AdminGetUserDetailsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof adminGetUserDetails>>
+>;
+export type AdminGetUserDetailsQueryError = ErrorType<void>;
+
+/**
+ * @summary Get detailed user info for admin review
+ */
+
+export function useAdminGetUserDetails<
+  TData = Awaited<ReturnType<typeof adminGetUserDetails>>,
+  TError = ErrorType<void>,
+>(
+  userId: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof adminGetUserDetails>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getAdminGetUserDetailsQueryOptions(userId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Hard delete a user account and all associated data

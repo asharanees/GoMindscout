@@ -25,14 +25,16 @@ import {
   useAdminSuspendUser,
   useAdminDeleteMentor,
   useAdminDeleteUser,
+  useAdminGetUserDetails,
   getAdminListMentorsQueryKey,
   getAdminGetStatsQueryKey,
   getAdminListDisputesQueryKey,
   getAdminListPayoutsQueryKey,
+  getAdminGetUserDetailsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet, Trash2 } from "lucide-react";
+import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet, Trash2, Eye } from "lucide-react";
 
 function useAdminSession() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -160,6 +162,7 @@ function ResolveDisputeDialog({ dispute, onClose }: { dispute: any; onClose: () 
 
 function MentorRow({ mentor }: { mentor: any }) {
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { mutate: approve, isPending: approvePending } = useAdminApproveMentor();
@@ -167,6 +170,10 @@ function MentorRow({ mentor }: { mentor: any }) {
   const { mutate: suspend, isPending: suspendPending } = useAdminSuspendUser();
   const { mutate: deleteMentor, isPending: deletePending } = useAdminDeleteMentor();
   const { mutate: deleteUser, isPending: deleteUserPending } = useAdminDeleteUser();
+  const { data: userDetails } = useAdminGetUserDetails(mentor.userId, {
+    query: { queryKey: getAdminGetUserDetailsQueryKey(mentor.userId), enabled: detailOpen }
+  });
+
 
   const initials = (mentor.fullName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -275,8 +282,21 @@ function MentorRow({ mentor }: { mentor: any }) {
         <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-red-700 hover:text-red-700 hover:bg-red-50" onClick={handleDeleteUser} disabled={deleteUserPending} data-testid="delete-user-btn">
           <Trash2 className="h-3 w-3 mr-1" /> Delete User
         </Button>
+        <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-blue-600 hover:text-blue-600 hover:bg-blue-50" onClick={() => setDetailOpen(true)} data-testid="view-user-btn">
+          <Eye className="h-3 w-3 mr-1" /> View
+        </Button>
       </div>
       {rejectOpen && <RejectDialog mentor={mentor} onClose={() => setRejectOpen(false)} />}
+      {detailOpen && (
+        <Dialog open onOpenChange={() => setDetailOpen(false)}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>User Details</DialogTitle>
+            </DialogHeader>
+            <UserDetailContent data={userDetails} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
@@ -307,6 +327,76 @@ const PAYOUT_STATUS_COLORS: Record<string, string> = {
   paid_out: "bg-green-100 text-green-800",
   rejected: "bg-red-100 text-red-800",
 };
+
+function UserDetailContent({ data }: { data: any }) {
+  if (!data) return <Skeleton className="h-40" />;
+  const { user, mentorProfile, bookings, totalSpent, totalEarned, payouts } = data;
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={user?.avatarUrl ?? undefined} />
+          <AvatarFallback className="bg-primary/10 text-primary font-semibold">{(user?.fullName || user?.email || "?").charAt(0).toUpperCase()}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-semibold text-foreground">{user?.fullName || user?.email || "Unknown"}</p>
+          <p className="text-xs text-muted-foreground">{user?.email} · {user?.role} · Joined {new Date(user?.createdAt).toLocaleDateString()}</p>
+        </div>
+      </div>
+      {mentorProfile && (
+        <div className="bg-muted rounded-lg p-3 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Mentor Profile</p>
+          <p className="text-sm text-foreground">{mentorProfile.headline}</p>
+          <div className="flex gap-3 text-xs text-muted-foreground">
+            <span>Status: {mentorProfile.status}</span>
+            <span>Rate: ${mentorProfile.hourlyRate}/hr</span>
+            <span>Rating: {mentorProfile.averageRating ?? "No reviews"} ({mentorProfile.totalReviews} reviews)</span>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="p-3">
+          <p className="text-xs text-muted-foreground">Total Spent</p>
+          <p className="text-lg font-bold text-foreground">${totalSpent?.toFixed(2) ?? "0.00"}</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-xs text-muted-foreground">Total Earned</p>
+          <p className="text-lg font-bold text-foreground">${totalEarned?.toFixed(2) ?? "0.00"}</p>
+        </Card>
+      </div>
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-2">Bookings ({bookings?.length ?? 0})</p>
+        {bookings?.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No bookings</p>
+        ) : (
+          <div className="space-y-2">
+            {bookings.map((b: any) => (
+              <div key={b.id} className="flex items-center justify-between text-sm py-1 border-b border-border/40 last:border-0">
+                <span>#{b.id} · {b.menteeName} → {b.mentorName}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${BOOKING_STATUS_COLORS[b.status] ?? "bg-gray-100 text-gray-800"}`}>{b.status}</span>
+                <span className="font-medium">${b.amount}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {payouts?.length > 0 && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Payouts ({payouts.length})</p>
+          <div className="space-y-2">
+            {payouts.map((p: any) => (
+              <div key={p.id} className="flex items-center justify-between text-sm py-1 border-b border-border/40 last:border-0">
+                <span>#{p.id} · {new Date(p.createdAt).toLocaleDateString()}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${PAYOUT_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-800"}`}>{p.status}</span>
+                <span className="font-medium">${p.amount}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AdminContent() {
   const [, setLocation] = useLocation();
@@ -365,12 +455,13 @@ function AdminContent() {
 
       <div className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {statsLoading ? (
-            Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
+            Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)
           ) : (
             [
               { icon: <Users className="h-5 w-5 text-primary" />, label: "Active Mentors", value: stats?.totalMentors ?? 0 },
+              { icon: <Users className="h-5 w-5 text-indigo-600" />, label: "Total Mentees", value: stats?.totalMentees ?? 0 },
               { icon: <Clock className="h-5 w-5 text-yellow-600" />, label: "Pending Review", value: stats?.pendingMentors ?? 0 },
               { icon: <Calendar className="h-5 w-5 text-blue-600" />, label: "Total Bookings", value: stats?.totalBookings ?? 0 },
               { icon: <DollarSign className="h-5 w-5 text-green-600" />, label: "Platform Revenue", value: `$${(stats?.totalRevenue ?? 0).toFixed(0)}` },

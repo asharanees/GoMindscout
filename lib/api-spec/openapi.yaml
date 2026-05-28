@@ -898,6 +898,24 @@ paths:
           description: Mentor not found
 
   /admin/users/{userId}:
+    get:
+      operationId: adminGetUserDetails
+      tags: [admin]
+      summary: Get detailed user info for admin review
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: User details
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: User not found
     delete:
       operationId: adminDeleteUser
       tags: [admin]
