@@ -897,6 +897,22 @@ paths:
         "404":
           description: Mentor not found
 
+  /admin/users/{userId}:
+    delete:
+      operationId: adminDeleteUser
+      tags: [admin]
+      summary: Hard delete a user account and all associated data
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: User deleted
+        "404":
+          description: User not found
+
   /admin/bookings:
     get:
       operationId: adminListBookings

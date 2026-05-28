@@ -24,6 +24,7 @@ import {
   useAdminUpdatePayout,
   useAdminSuspendUser,
   useAdminDeleteMentor,
+  useAdminDeleteUser,
   getAdminListMentorsQueryKey,
   getAdminGetStatsQueryKey,
   getAdminListDisputesQueryKey,
@@ -165,6 +166,7 @@ function MentorRow({ mentor }: { mentor: any }) {
   const { mutate: feature, isPending: featurePending } = useAdminFeatureMentor();
   const { mutate: suspend, isPending: suspendPending } = useAdminSuspendUser();
   const { mutate: deleteMentor, isPending: deletePending } = useAdminDeleteMentor();
+  const { mutate: deleteUser, isPending: deleteUserPending } = useAdminDeleteUser();
 
   const initials = (mentor.fullName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -206,6 +208,18 @@ function MentorRow({ mentor }: { mentor: any }) {
     deleteMentor({ mentorId: mentor.id }, {
       onSuccess: () => {
         toast({ title: "Mentor deleted", description: `${mentor.fullName} and all related data have been removed.` });
+        queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getAdminGetStatsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    });
+  }
+
+  function handleDeleteUser() {
+    if (!confirm(`DELETE USER ACCOUNT for ${mentor.fullName}? This will permanently remove their entire user account, mentor profile, bookings, messages, and all related data. This action cannot be undone.`)) return;
+    deleteUser({ userId: mentor.userId }, {
+      onSuccess: () => {
+        toast({ title: "User deleted", description: `${mentor.fullName} and all associated data have been removed.` });
         queryClient.invalidateQueries({ queryKey: getAdminListMentorsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getAdminGetStatsQueryKey() });
       },
@@ -256,7 +270,10 @@ function MentorRow({ mentor }: { mentor: any }) {
           {mentor.status === "suspended" ? "Reinstate" : "Suspend"}
         </Button>
         <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDelete} disabled={deletePending} data-testid="delete-mentor-btn">
-          <Trash2 className="h-3 w-3 mr-1" /> Delete
+          <Trash2 className="h-3 w-3 mr-1" /> Delete Mentor
+        </Button>
+        <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-red-700 hover:text-red-700 hover:bg-red-50" onClick={handleDeleteUser} disabled={deleteUserPending} data-testid="delete-user-btn">
+          <Trash2 className="h-3 w-3 mr-1" /> Delete User
         </Button>
       </div>
       {rejectOpen && <RejectDialog mentor={mentor} onClose={() => setRejectOpen(false)} />}

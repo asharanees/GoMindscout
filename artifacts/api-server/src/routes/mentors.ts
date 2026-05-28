@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable, packagesTable, mentorAvailabilityTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable } from "@workspace/db";
 import { eq, and, ilike, or, gte, lte, sql, desc, asc } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 
@@ -236,6 +236,12 @@ router.delete("/me", requireAuth, async (req, res) => {
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
     // Delete dependent records in dependency order
+    // Delete chat messages for bookings with this mentor first (FK constraint)
+    const mentorBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(eq(bookingsTable.mentorId, mentor.id));
+    if (mentorBookings.length > 0) {
+      const bookingIds = mentorBookings.map(b => b.id);
+      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
+    }
     await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentor.id));
     await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentor.id));
     await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentor.id));

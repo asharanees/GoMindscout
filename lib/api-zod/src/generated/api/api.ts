@@ -1692,6 +1692,13 @@ export const AdminDeleteMentorParams = zod.object({
 });
 
 /**
+ * @summary Hard delete a user account and all associated data
+ */
+export const AdminDeleteUserParams = zod.object({
+  userId: zod.coerce.number(),
+});
+
+/**
  * @summary Admin list all bookings
  */
 export const AdminListBookingsResponseItem = zod.object({

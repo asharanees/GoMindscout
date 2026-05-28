@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable, packagesTable, mentorAvailabilityTable, payoutRequestsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
 
 const router = Router();
@@ -115,14 +115,20 @@ router.delete("/me", requireAuth, async (req, res) => {
       await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
     }
 
+    // Delete chat messages for bookings this user is involved in (FK constraint)
+    const userBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(
+      or(eq(bookingsTable.menteeId, user.id), mentorId ? eq(bookingsTable.mentorId, mentorId) : undefined)
+    );
+    if (userBookings.length > 0) {
+      const bookingIds = userBookings.map(b => b.id);
+      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
+    }
+
     // Delete all bookings this user participates in (FK to users and mentor_profiles)
     await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
     if (mentorId) {
       await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
     }
-
-    // Delete chat messages
-    await db.delete(chatMessagesTable).where(eq(chatMessagesTable.senderId, user.id));
     // Delete disputes opened by this user
     await db.delete(disputesTable).where(eq(disputesTable.openedByUserId, user.id));
     // Delete notifications

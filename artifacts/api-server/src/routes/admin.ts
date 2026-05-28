@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
 
 const router = Router();
@@ -163,6 +163,12 @@ router.delete("/mentors/:mentorId", async (req, res) => {
     if (!mentor) { res.status(404).json({ error: "Mentor not found" }); return; }
 
     // Delete dependent records in dependency order
+    // Delete chat messages for bookings with this mentor first (FK constraint)
+    const mentorBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
+    if (mentorBookings.length > 0) {
+      const bookingIds = mentorBookings.map(b => b.id);
+      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
+    }
     await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
     await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
     await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
@@ -175,6 +181,51 @@ router.delete("/mentors/:mentorId", async (req, res) => {
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting mentor (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/users/:userId - hard delete a user and all associated data
+router.delete("/users/:userId", async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  try {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const [mentorProfile] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, userId)).limit(1);
+    const mentorId = mentorProfile?.id;
+
+    // Delete chat messages for bookings this user is involved in (FK constraint)
+    const userBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(
+      or(eq(bookingsTable.menteeId, userId), mentorId ? eq(bookingsTable.mentorId, mentorId) : undefined)
+    );
+    if (userBookings.length > 0) {
+      const bookingIds = userBookings.map(b => b.id);
+      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
+    }
+
+    if (mentorId) {
+      await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
+      await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
+      await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentorId));
+      await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
+    }
+
+    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, userId));
+    if (mentorId) {
+      await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
+    }
+    await db.delete(disputesTable).where(eq(disputesTable.openedByUserId, userId));
+    await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
+
+    if (mentorId) {
+      await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
+    }
+
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
+    res.status(204).send();
+  } catch (err) {
+    req.log.error({ err }, "Error deleting user (admin)");
     res.status(500).json({ error: "Internal server error" });
   }
 });
