@@ -15,16 +15,21 @@ router.get("/me", requireAuth, async (req, res) => {
     // Try to get from DB, if not exists create it
     const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId!)).limit(1);
 
+    // Build full name from Clerk claims (firstName + lastName, or name, or email fallback)
+    const firstName = (clerkUser?.sessionClaims?.firstName as string) || "";
+    const lastName = (clerkUser?.sessionClaims?.lastName as string) || "";
+    const nameClaim = (clerkUser?.sessionClaims?.name as string) || "";
+    const computedFullName = nameClaim || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null);
+    const clerkAvatar = (clerkUser?.sessionClaims?.picture as string) || null;
+
     if (existing.length > 0) {
       let u = existing[0];
       // Sync name/avatar from Clerk if they're missing in DB
-      const clerkName = (clerkUser?.sessionClaims?.name as string) || null;
-      const clerkAvatar = (clerkUser?.sessionClaims?.picture as string) || null;
-      if ((!u.fullName && clerkName) || (!u.avatarUrl && clerkAvatar)) {
+      if ((!u.fullName && computedFullName) || (!u.avatarUrl && clerkAvatar)) {
         const [updated] = await db
           .update(usersTable)
           .set({
-            ...((!u.fullName && clerkName) ? { fullName: clerkName } : {}),
+            ...((!u.fullName && computedFullName) ? { fullName: computedFullName } : {}),
             ...((!u.avatarUrl && clerkAvatar) ? { avatarUrl: clerkAvatar } : {}),
           })
           .where(eq(usersTable.clerkId, userId!))
@@ -45,10 +50,8 @@ router.get("/me", requireAuth, async (req, res) => {
 
     // Create new user - we'll get email from Clerk token claims
     const email = (clerkUser?.sessionClaims?.email as string) || `${userId}@unknown.com`;
-    const fullName = (clerkUser?.sessionClaims?.name as string) || null;
-    const avatarUrl = (clerkUser?.sessionClaims?.picture as string) || null;
 
-    const user = await getOrCreateUser(userId!, email, fullName ?? undefined, avatarUrl ?? undefined);
+    const user = await getOrCreateUser(userId!, email, computedFullName ?? undefined, clerkAvatar ?? undefined);
     res.json({
       id: user.id,
       clerkId: user.clerkId,
