@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ChatDrawer from "@/components/ChatDrawer";
+import MeetingRoom from "@/components/MeetingRoom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -245,7 +246,7 @@ function CounterProposalCard({ booking }: { booking: any }) {
   );
 }
 
-function BookingRow({ booking, onReview, onChat }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void }) {
+function BookingRow({ booking, onReview, onChat, onMeeting }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void; onMeeting?: (b: any) => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -293,16 +294,15 @@ function BookingRow({ booking, onReview, onChat }: { booking: any; onReview: (b:
             <Calendar className="h-3 w-3" /> {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
           </p>
         )}
-        {booking.meetingLink && canChat && (
-          <a
-            href={booking.meetingLink}
-            target="_blank"
-            rel="noopener noreferrer"
+        {booking.meetingLink && canChat && onMeeting && (
+          <button
+            type="button"
+            onClick={() => onMeeting(booking)}
             className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded px-2 py-1 hover:bg-primary/20 transition-colors"
-            data-testid="join-meeting-link"
+            data-testid="join-meeting-btn"
           >
             Join Meeting Room
-          </a>
+          </button>
         )}
         {booking.hasDispute && (
           <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed - under review</p>
@@ -385,6 +385,7 @@ function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
 function DashboardContent() {
   const [reviewBooking, setReviewBooking] = useState<any>(null);
   const [chatBookingId, setChatBookingId] = useState<number | null>(null);
+  const [meetingBooking, setMeetingBooking] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
@@ -450,7 +451,7 @@ function DashboardContent() {
               <a href="/mentors" className="text-primary text-sm hover:underline mt-1 block">Find a mentor to book a session</a>
             </div>
           ) : (
-            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)
+            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)
           )}
         </Card>
 
@@ -458,20 +459,28 @@ function DashboardContent() {
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Confirmation</h2>
             <p className="text-xs text-muted-foreground mb-4">Sessions completed - payout releases to mentor after 48h if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)}
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
           </Card>
         )}
 
         {past.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Past Sessions</h2>
-            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)}
+            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
           </Card>
         )}
       </div>
 
       {reviewBooking && <ReviewDialog booking={reviewBooking} onClose={() => setReviewBooking(null)} />}
       {chatBookingId && <ChatDrawer bookingId={chatBookingId} onClose={() => setChatBookingId(null)} />}
+      {meetingBooking && (
+        <MeetingRoom
+          bookingId={meetingBooking.id}
+          meetingLink={meetingBooking.meetingLink}
+          open={!!meetingBooking}
+          onClose={() => setMeetingBooking(null)}
+        />
+      )}
       {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}
 
       <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">

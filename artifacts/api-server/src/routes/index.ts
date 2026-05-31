@@ -15,6 +15,7 @@ import disputesRouter from "./disputes";
 import payoutsRouter from "./payouts";
 import availabilityRouter from "./availability";
 import notificationsRouter from "./notifications";
+import meetingsRouter from "./meetings";
 
 const router: IRouter = Router();
 
@@ -26,6 +27,7 @@ router.use("/packages", packagesRouter);
 router.use("/bookings", bookingsRouter);
 router.use("/payments", paymentsRouter);
 router.use("/reviews", reviewsRouter);
+router.use("/meetings", meetingsRouter);
 
 // Mount at /mentors so /:mentorId/packages, /:mentorId/reviews, /:mentorId/availability, /:mentorId/slots resolve correctly
 router.use("/mentors", packagesRouter);
