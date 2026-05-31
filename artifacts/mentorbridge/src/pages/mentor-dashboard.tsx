@@ -265,6 +265,7 @@ function RejectDialog({ booking, onClose }: { booking: any; onClose: () => void 
 }
 
 function ApprovalRow({ booking }: { booking: any }) {
+  const [, setLocation] = useLocation();
   const [counterOpen, setCounterOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const { toast } = useToast();
@@ -294,7 +295,9 @@ function ApprovalRow({ booking }: { booking: any }) {
           <AvatarFallback className="bg-muted text-xs font-semibold">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-foreground">{booking.menteeName || "Mentee"}</p>
+          <button type="button" onClick={() => setLocation(`/bookings/${booking.id}`)} className="font-medium text-sm text-foreground hover:text-primary hover:underline text-left">
+            {booking.menteeName || "Mentee"}
+          </button>
           <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"} · ${Number(booking.amount).toFixed(0)}</p>
           {booking.proposedAt ? (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
@@ -503,7 +506,9 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting }: { booking: any; o
           <AvatarFallback className="bg-muted text-xs font-semibold">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-sm text-foreground">{booking.menteeName || "Mentee"}</p>
+          <button type="button" onClick={() => setLocation(`/bookings/${booking.id}`)} className="font-medium text-sm text-foreground hover:text-primary hover:underline text-left">
+            {booking.menteeName || "Mentee"}
+          </button>
           <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"}</p>
           {booking.scheduledAt && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">

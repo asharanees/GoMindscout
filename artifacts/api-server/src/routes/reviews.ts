@@ -65,6 +65,30 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/reviews
+router.get("/", async (req, res) => {
+  try {
+    const { bookingId } = req.query;
+    let reviews;
+    if (bookingId) {
+      const bId = parseInt(bookingId as string);
+      reviews = await db.select().from(reviewsTable).where(eq(reviewsTable.bookingId, bId));
+    } else {
+      reviews = await db.select().from(reviewsTable);
+    }
+    const enriched = await Promise.all(
+      reviews.map(async (review) => {
+        const [user] = await db.select().from(usersTable).where(eq(usersTable.id, review.menteeId)).limit(1);
+        return reviewToResponse(review, user);
+      })
+    );
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error listing reviews");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/mentors/:mentorId/reviews
 router.get("/:mentorId/reviews", async (req, res) => {
   try {

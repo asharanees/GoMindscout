@@ -74,7 +74,7 @@ router.patch("/:packageId", requireAuth, async (req, res) => {
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    const packageId = parseInt(req.params.packageId);
+    const packageId = parseInt(Array.isArray(req.params.packageId) ? req.params.packageId[0] : req.params.packageId);
     const { title, description, price, isActive } = req.body;
 
     const [updated] = await db
@@ -94,7 +94,7 @@ router.patch("/:packageId", requireAuth, async (req, res) => {
 // DELETE /api/packages/:packageId
 router.delete("/:packageId", requireAuth, async (req, res) => {
   try {
-    const packageId = parseInt(req.params.packageId);
+    const packageId = parseInt(Array.isArray(req.params.packageId) ? req.params.packageId[0] : req.params.packageId);
     await db.update(packagesTable).set({ isActive: false }).where(eq(packagesTable.id, packageId));
     res.status(204).send();
   } catch (err) {

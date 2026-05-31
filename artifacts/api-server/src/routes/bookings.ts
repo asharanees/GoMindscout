@@ -207,7 +207,7 @@ router.post("/", requireAuth, async (req, res) => {
 // GET /api/bookings/:bookingId
 router.get("/:bookingId", requireAuth, async (req, res) => {
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
     res.json(await enrichBooking(booking));
@@ -221,7 +221,7 @@ router.get("/:bookingId", requireAuth, async (req, res) => {
 router.patch("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const { status } = req.body;
 
     const user = await getUserByClerkId(userId!);
@@ -247,7 +247,7 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
 router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const { scheduledAt } = req.body;
 
     if (!scheduledAt) {
@@ -334,7 +334,7 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
   const { note } = req.body;
 
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -382,7 +382,7 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
 router.post("/:bookingId/approve", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -444,7 +444,7 @@ router.post("/:bookingId/reject", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { note } = req.body;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -489,7 +489,7 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const { proposedAt } = req.body;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     if (!proposedAt) { res.status(400).json({ error: "proposedAt is required" }); return; }
 
     const user = await getUserByClerkId(userId!);
@@ -535,7 +535,7 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
 router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -597,7 +597,7 @@ router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
 router.post("/:bookingId/decline-counter", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 

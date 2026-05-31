@@ -1377,6 +1377,29 @@ export const RequestPayoutBody = zod.object({
 });
 
 /**
+ * @summary List reviews (optionally filter by bookingId)
+ */
+export const ListReviewsQueryParams = zod.object({
+  bookingId: zod.coerce.number().optional(),
+});
+
+export const ListReviewsResponseItem = zod.object({
+  id: zod.number(),
+  bookingId: zod.number(),
+  mentorId: zod.number(),
+  menteeId: zod.number(),
+  rating: zod.number(),
+  punctualityRating: zod.number().nullish(),
+  communicationRating: zod.number().nullish(),
+  valueRating: zod.number().nullish(),
+  comment: zod.string().nullish(),
+  menteeName: zod.string().nullish(),
+  menteeAvatarUrl: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListReviewsResponse = zod.array(ListReviewsResponseItem);
+
+/**
  * @summary Submit a review for a completed booking
  */
 export const CreateReviewBody = zod.object({

@@ -548,7 +548,9 @@ function AdminContent() {
                     <tbody>
                       {bookings.map((b: any) => (
                         <tr key={b.id} className="border-b border-border/50 last:border-0">
-                          <td className="py-3 text-muted-foreground">#{b.id}</td>
+                          <td className="py-3 text-muted-foreground">
+                            <button type="button" className="hover:text-primary hover:underline" onClick={() => setLocation(`/bookings/${b.id}`)}>#{b.id}</button>
+                          </td>
                           <td className="py-3">{b.menteeName || "-"}</td>
                           <td className="py-3">{b.mentorName || "-"}</td>
                           <td className="py-3 font-medium">${Number(b.amount).toFixed(0)}</td>
@@ -559,6 +561,11 @@ function AdminContent() {
                             </span>
                           </td>
                           <td className="py-3 text-muted-foreground text-xs">{new Date(b.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3">
+                            {b.status === "disputed" && (
+                              <button type="button" className="text-xs text-destructive hover:underline" onClick={() => setLocation(`/bookings/${b.id}/dispute`)}>View Dispute</button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>

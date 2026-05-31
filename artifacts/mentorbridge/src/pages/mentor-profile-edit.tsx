@@ -18,6 +18,7 @@ import {
   useUpdateMe,
   useListCategories,
   useListMentorPackages,
+  getListMentorPackagesQueryKey,
   useCreatePackage,
   useUpdatePackage,
   useGetMentorAvailability,
@@ -196,7 +197,7 @@ function EditContent() {
   const { data: categories } = useListCategories();
   const { mutate: updateProfile, isPending } = useUpdateMyMentorProfile();
   const { mutate: updateMe } = useUpdateMe();
-  const { data: packages } = useListMentorPackages(mentor?.id ?? 0, { query: { enabled: !!mentor?.id } });
+  const { data: packages } = useListMentorPackages(mentor?.id ?? 0, { query: { enabled: !!mentor?.id, queryKey: getListMentorPackagesQueryKey(mentor?.id ?? 0) } });
   const { mutate: createPkg } = useCreatePackage();
   const { mutate: updatePkg } = useUpdatePackage();
 

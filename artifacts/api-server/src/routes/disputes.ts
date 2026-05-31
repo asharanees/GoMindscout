@@ -80,7 +80,7 @@ router.post("/", requireAuth, async (req, res) => {
 // GET /api/disputes/:bookingId - get dispute for a booking
 router.get("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
 
   try {
     const user = await getUserByClerkId(userId!);

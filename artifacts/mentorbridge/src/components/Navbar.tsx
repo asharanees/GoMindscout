@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGetMe } from "@workspace/api-client-react";
+import { useGetMe, getGetMeQueryKey } from "@workspace/api-client-react";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -20,7 +20,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
 
-  const { data: me } = useGetMe({ query: { enabled: !!isSignedIn } });
+  const { data: me } = useGetMe({ query: { enabled: !!isSignedIn, queryKey: getGetMeQueryKey() } });
 
   const displayName = me?.fullName || user?.fullName || user?.firstName || null;
 

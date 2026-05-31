@@ -40,7 +40,7 @@ function messageToResponse(msg: any, sender: any) {
 // GET /api/chat/:bookingId
 router.get("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
 
   try {
     const user = await getUserByClerkId(userId!);
@@ -76,7 +76,7 @@ router.get("/:bookingId", requireAuth, async (req, res) => {
 // POST /api/chat/:bookingId
 router.post("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const bookingId = parseInt(req.params.bookingId);
+  const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
   const { content } = req.body;
 
   if (!content?.trim()) {

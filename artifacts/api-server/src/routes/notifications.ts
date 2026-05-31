@@ -59,7 +59,7 @@ router.post("/read-all", requireAuth, async (req, res) => {
 router.patch("/:notificationId/read", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   try {
-    const notificationId = parseInt(req.params.notificationId);
+    const notificationId = parseInt(Array.isArray(req.params.notificationId) ? req.params.notificationId[0] : req.params.notificationId);
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 

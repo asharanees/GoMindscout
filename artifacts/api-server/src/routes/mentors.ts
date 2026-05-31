@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable } from "@workspace/db";
+import { db, mentorProfilesTable, usersTable, categoriesTable, reviewsTable, bookingsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable, payoutRequestsTable } from "@workspace/db";
 import { eq, and, ilike, or, gte, lte, sql, desc, asc } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 
@@ -171,7 +171,7 @@ router.patch("/me", requireAuth, async (req, res) => {
     const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications } = req.body;
     const [updated] = await db
       .update(mentorProfilesTable)
-      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), currency, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications })
+      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), currency: req.body.currency, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications })
       .where(eq(mentorProfilesTable.id, mentor.id))
       .returning();
 

@@ -12,7 +12,7 @@ router.post("/:bookingId/token", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const clerkId = typeof userId === "string" ? userId : null;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = clerkId ? await getUserByClerkId(clerkId) : null;
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -41,7 +41,7 @@ router.post("/:bookingId/join", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const clerkId = typeof userId === "string" ? userId : null;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = clerkId ? await getUserByClerkId(clerkId) : null;
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -85,7 +85,7 @@ router.post("/:bookingId/leave", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const clerkId = typeof userId === "string" ? userId : null;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = clerkId ? await getUserByClerkId(clerkId) : null;
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
@@ -136,7 +136,7 @@ router.get("/:bookingId/attendance", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
   const clerkId = typeof userId === "string" ? userId : null;
   try {
-    const bookingId = parseInt(req.params.bookingId);
+    const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
     const user = clerkId ? await getUserByClerkId(clerkId) : null;
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 

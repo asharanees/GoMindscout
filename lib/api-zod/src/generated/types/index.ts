@@ -35,6 +35,7 @@ export * from "./listMentorsParams";
 export * from "./listMentorsSortBy";
 export * from "./listMyBookingsParams";
 export * from "./listMyBookingsRole";
+export * from "./listReviewsParams";
 export * from "./markAllNotificationsRead200";
 export * from "./meetingLinkUpdate";
 export * from "./menteeDashboardStats";

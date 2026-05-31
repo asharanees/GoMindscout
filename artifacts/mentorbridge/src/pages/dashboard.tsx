@@ -282,7 +282,9 @@ function BookingRow({ booking, onReview, onChat, onMeeting }: { booking: any; on
         <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">{initials}</AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm text-foreground">{booking.mentorName || "Mentor"}</p>
+        <button type="button" onClick={() => setLocation(`/bookings/${booking.id}`)} className="font-medium text-sm text-foreground hover:text-primary hover:underline text-left">
+          {booking.mentorName || "Mentor"}
+        </button>
         <p className="text-xs text-muted-foreground">{booking.packageTitle || booking.packageType || "Session"}</p>
         {booking.proposedAt && !booking.scheduledAt && (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">

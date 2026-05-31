@@ -9,7 +9,7 @@ const router = Router();
 // GET /api/users/me - get or create current user profile
 router.get("/me", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const clerkUser = req.auth as any;
+  const clerkUser = (req as any).auth as any;
 
   try {
     // Try to get from DB, if not exists create it

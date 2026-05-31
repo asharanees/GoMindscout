@@ -673,6 +673,10 @@ export const ListMyBookingsRole = {
   mentor: "mentor",
 } as const;
 
+export type ListReviewsParams = {
+  bookingId?: number;
+};
+
 export type AdminListMentorsParams = {
   status?: string;
 };

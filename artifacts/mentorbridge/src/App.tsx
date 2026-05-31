@@ -21,6 +21,7 @@ import AdminPage from "@/pages/admin";
 import AdminLoginPage from "@/pages/admin-login";
 import BookingChatPage from "@/pages/booking-chat";
 import BookingDisputePage from "@/pages/booking-dispute";
+import BookingDetailPage from "@/pages/booking-detail";
 import AboutPage from "@/pages/about";
 import HowItWorksPage from "@/pages/how-it-works";
 import BecomeAMentorPage from "@/pages/become-a-mentor";
@@ -117,6 +118,7 @@ function ClerkProviderWithRoutes() {
           <Route path="/mentor/profile/edit" component={MentorProfileEditPage} />
           <Route path="/bookings/:bookingId/chat" component={BookingChatPage} />
           <Route path="/bookings/:bookingId/dispute" component={BookingDisputePage} />
+          <Route path="/bookings/:bookingId" component={BookingDetailPage} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/admin-login" component={AdminLoginPage} />
           <Route path="/about" component={AboutPage} />

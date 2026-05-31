@@ -7,28 +7,30 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useListMentors, useListCategories } from "@workspace/api-client-react";
+import { useListMentors, useListCategories, getListMentorsQueryKey } from "@workspace/api-client-react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 export default function MentorsPage() {
   const rawSearch = useSearch();
-  const params = new URLSearchParams(rawSearch);
-  const [search, setSearch] = useState(params.get("search") || "");
-  const [category, setCategory] = useState(params.get("category") || "all");
+  const urlParams = new URLSearchParams(rawSearch);
+  const [search, setSearch] = useState(urlParams.get("search") || "");
+  const [category, setCategory] = useState(urlParams.get("category") || "all");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [page, setPage] = useState(1);
 
+  const listParams = {
+    search: search || undefined,
+    category: category !== "all" ? category : undefined,
+    minPrice: minPrice ? Number(minPrice) : undefined,
+    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+    page: Number(page),
+    limit: 12,
+  };
+
   const { data: categories } = useListCategories();
-  const { data, isLoading } = useListMentors({
-    params: {
-      search: search || undefined,
-      category: category !== "all" ? category : undefined,
-      minPrice: minPrice || undefined,
-      maxPrice: maxPrice || undefined,
-      page: String(page),
-      limit: "12",
-    },
+  const { data, isLoading } = useListMentors(listParams, {
+    query: { queryKey: getListMentorsQueryKey(listParams) },
   });
 
   const mentors = data?.mentors ?? [];
