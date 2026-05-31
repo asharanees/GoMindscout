@@ -23,6 +23,8 @@ export async function createMeetingRoom(bookingId: number): Promise<string> {
             start_video_off: false,
             start_audio_off: false,
             enable_knocking: false,
+            enable_prejoin_ui: false,
+            enable_network_ui: false,
           },
         }),
       });

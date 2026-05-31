@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, PhoneOff, Video } from "lucide-react";
+import DailyCall from "@daily-co/daily-js";
 import { useToast } from "@/hooks/use-toast";
 
 interface MeetingRoomProps {
@@ -13,59 +14,100 @@ interface MeetingRoomProps {
 
 export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: MeetingRoomProps) {
   const { toast } = useToast();
-  const [token, setToken] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const callRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const dailyUrl = useRef<string>("");
 
   useEffect(() => {
     if (!open || !meetingLink) return;
 
     setLoading(true);
     setError(null);
-    setToken(null);
     setJoined(false);
 
-    // Get token
-    fetch(`/api/meetings/${bookingId}/token`, { method: "POST" })
-      .then(async (res) => {
+    let cancelled = false;
+
+    async function init() {
+      try {
+        const res = await fetch(`/api/meetings/${bookingId}/token`, { method: "POST" });
         if (!res.ok) throw new Error("Failed to get meeting token");
         const data = await res.json();
-        setToken(data.token || null);
-        // Build iframe URL with token
-        if (data.token) {
-          dailyUrl.current = `${data.meetingLink}?t=${data.token}`;
-        } else {
-          dailyUrl.current = data.meetingLink;
+
+        if (cancelled) return;
+
+        const call = DailyCall.createCallObject({
+          url: data.meetingLink,
+          token: data.token || undefined,
+          showLeaveButton: false,
+          showFullscreenButton: true,
+          showLocalVideo: true,
+          showParticipantsBar: true,
+          iframeStyle: {
+            width: "100%",
+            height: "100%",
+            border: "0",
+            borderRadius: "0",
+          },
+        });
+
+        callRef.current = call;
+
+        call.on("joined-meeting", () => {
+          setJoined(true);
+          fetch(`/api/meetings/${bookingId}/join`, { method: "POST" }).catch(() => {});
+        });
+
+        call.on("error", (e: any) => {
+          console.error("Daily.co error:", e);
+          setError(e?.errorMsg || "Meeting connection failed");
+        });
+
+        call.on("left-meeting", () => {
+          setJoined(false);
+          fetch(`/api/meetings/${bookingId}/leave`, { method: "POST" }).catch(() => {});
+        });
+
+        if (containerRef.current) {
+          await call.join({
+            url: data.meetingLink,
+            token: data.token || undefined,
+          });
         }
-      })
-      .catch((err) => {
-        setError(err.message);
-        toast({ title: "Error", description: err.message, variant: "destructive" });
-      })
-      .finally(() => setLoading(false));
+      } catch (err: any) {
+        if (!cancelled) {
+          setError(err.message || "Failed to join meeting");
+          toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (callRef.current) {
+        callRef.current.leave().catch(() => {});
+        callRef.current.destroy();
+        callRef.current = null;
+      }
+    };
   }, [open, bookingId, meetingLink, toast]);
 
-  // Log join when iframe loads
-  function handleIframeLoad() {
-    if (!joined) {
-      setJoined(true);
-      fetch(`/api/meetings/${bookingId}/join`, { method: "POST" }).catch(() => {});
-    }
-  }
-
-  // Log leave on close
-  function handleClose() {
-    if (joined) {
-      fetch(`/api/meetings/${bookingId}/leave`, { method: "POST" }).catch(() => {});
+  function handleLeave() {
+    if (callRef.current) {
+      callRef.current.leave().catch(() => {});
+      callRef.current.destroy();
+      callRef.current = null;
     }
     onClose();
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleLeave()}>
       <DialogContent className="max-w-4xl w-full h-[80vh] p-0 flex flex-col gap-0 overflow-hidden">
         <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
           <DialogTitle className="text-base flex items-center gap-2">
@@ -98,16 +140,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
               </div>
             </div>
           )}
-          {dailyUrl.current && !error && (
-            <iframe
-              ref={iframeRef}
-              src={dailyUrl.current}
-              className="w-full h-full border-0"
-              allow="camera; microphone; fullscreen; display-capture"
-              onLoad={handleIframeLoad}
-              title="Meeting Room"
-            />
-          )}
+          <div ref={containerRef} className="w-full h-full" />
         </div>
 
         <div className="px-4 py-3 border-t border-border shrink-0 flex items-center justify-between bg-background">
@@ -118,7 +151,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
             size="sm"
             variant="destructive"
             className="gap-1"
-            onClick={handleClose}
+            onClick={handleLeave}
             data-testid="leave-meeting-btn"
           >
             <PhoneOff className="h-4 w-4" />
