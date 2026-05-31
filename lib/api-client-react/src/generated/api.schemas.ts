@@ -131,6 +131,8 @@ export interface MentorProfile {
   /** @nullable */
   hourlyRate?: number | null;
   /** @nullable */
+  currency?: string | null;
+  /** @nullable */
   introVideoUrl?: string | null;
   /** @nullable */
   linkedinUrl?: string | null;
@@ -162,6 +164,7 @@ export interface MentorProfileInput {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
+  currency?: string;
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;

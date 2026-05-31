@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ChatDrawer from "@/components/ChatDrawer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -465,7 +466,7 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
   );
 }
 
-function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) => void }) {
+function BookingRow({ booking, onAddLink, onChat }: { booking: any; onAddLink: (b: any) => void; onChat?: (bookingId: number) => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -535,8 +536,8 @@ function BookingRow({ booking, onAddLink }: { booking: any; onAddLink: (b: any) 
                 <CheckCircle className="h-3 w-3" /> Complete
               </Button>
             )}
-            {canChat && (
-              <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground" onClick={() => setLocation(`/bookings/${booking.id}/chat`)} data-testid="chat-btn">
+            {canChat && onChat && (
+              <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground" onClick={() => onChat(booking.id)} data-testid="chat-btn">
                 <MessageSquare className="h-3 w-3" /> Chat
               </Button>
             )}
@@ -606,6 +607,7 @@ function DeleteMentorProfileDialog({ onClose }: { onClose: () => void }) {
 
 function MentorDashboardContent() {
   const [linkBooking, setLinkBooking] = useState<any>(null);
+  const [chatBookingId, setChatBookingId] = useState<number | null>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
@@ -755,7 +757,7 @@ function MentorDashboardContent() {
               No active sessions right now
             </div>
           ) : (
-            active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} />)
+            active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} />)
           )}
         </Card>
 
@@ -764,7 +766,7 @@ function MentorDashboardContent() {
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Payout Release</h2>
             <p className="text-xs text-muted-foreground mb-4">Payout auto-releases 48h after session completion if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} />)}
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} />)}
           </Card>
         )}
 
@@ -772,12 +774,13 @@ function MentorDashboardContent() {
         {history.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Session History</h2>
-            {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} />)}
+            {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} />)}
           </Card>
         )}
       </div>
 
       {linkBooking && <ScheduleSessionDialog booking={linkBooking} onClose={() => setLinkBooking(null)} />}
+      {chatBookingId && <ChatDrawer bookingId={chatBookingId} onClose={() => setChatBookingId(null)} />}
       {payoutOpen && <PayoutRequestDialog balance={payoutInfo?.withdrawableBalance ?? 0} onClose={() => setPayoutOpen(false)} />}
       {showDeleteDialog && <DeleteMentorProfileDialog onClose={() => setShowDeleteDialog(false)} />}
 

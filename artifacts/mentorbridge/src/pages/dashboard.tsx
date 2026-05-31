@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ChatDrawer from "@/components/ChatDrawer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -244,7 +245,7 @@ function CounterProposalCard({ booking }: { booking: any }) {
   );
 }
 
-function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) => void }) {
+function BookingRow({ booking, onReview, onChat }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -317,7 +318,7 @@ function BookingRow({ booking, onReview }: { booking: any; onReview: (b: any) =>
         </div>
         <div className="flex flex-col gap-1 items-end">
           {canChat && (
-            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => setLocation(`/bookings/${booking.id}/chat`)} data-testid="chat-btn">
+            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => onChat(booking.id)} data-testid="chat-btn">
               <MessageSquare className="h-3 w-3" /> Chat
             </Button>
           )}
@@ -383,6 +384,7 @@ function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
 
 function DashboardContent() {
   const [reviewBooking, setReviewBooking] = useState<any>(null);
+  const [chatBookingId, setChatBookingId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
@@ -448,7 +450,7 @@ function DashboardContent() {
               <a href="/mentors" className="text-primary text-sm hover:underline mt-1 block">Find a mentor to book a session</a>
             </div>
           ) : (
-            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} />)
+            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)
           )}
         </Card>
 
@@ -456,19 +458,20 @@ function DashboardContent() {
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Confirmation</h2>
             <p className="text-xs text-muted-foreground mb-4">Sessions completed - payout releases to mentor after 48h if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} />)}
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)}
           </Card>
         )}
 
         {past.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Past Sessions</h2>
-            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} />)}
+            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} />)}
           </Card>
         )}
       </div>
 
       {reviewBooking && <ReviewDialog booking={reviewBooking} onClose={() => setReviewBooking(null)} />}
+      {chatBookingId && <ChatDrawer bookingId={chatBookingId} onClose={() => setChatBookingId(null)} />}
       {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}
 
       <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">

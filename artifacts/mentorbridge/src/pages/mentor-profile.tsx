@@ -330,7 +330,7 @@ export default function MentorProfilePage() {
             {mentor.hourlyRate && (
               <div className="text-center mt-4 p-4 bg-muted/40 rounded-xl">
                 <p className="text-sm text-muted-foreground">Base hourly rate</p>
-                <p className="text-xl font-bold text-foreground">${mentor.hourlyRate}/hr</p>
+                <p className="text-xl font-bold text-foreground">{mentor.currency ?? "$"}{mentor.hourlyRate}/hr</p>
               </div>
             )}
           </div>

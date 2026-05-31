@@ -57,6 +57,7 @@ function OnboardingContent() {
     yearsExperience: "",
     languages: "",
     hourlyRate: "",
+    currency: "USD",
     introVideoUrl: "",
     linkedinUrl: "",
   });
@@ -131,10 +132,6 @@ function OnboardingContent() {
       toast({ title: "Bio required", description: "Please tell potential mentees about your background.", variant: "destructive" });
       return;
     }
-    if (bioWords > 500) {
-      toast({ title: "Bio too long", description: `Your bio is ${bioWords} words. Please keep it under 500 words.`, variant: "destructive" });
-      return;
-    }
     if (!form.industry.trim()) {
       toast({ title: "Industry required", description: "Please enter your industry.", variant: "destructive" });
       return;
@@ -176,6 +173,7 @@ function OnboardingContent() {
           yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience) : undefined,
           languages: langs.length > 0 ? langs : ["English"],
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
+          currency: form.currency || "USD",
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
           experiences: experiences.length > 0 ? experiences : undefined,
@@ -271,7 +269,7 @@ function OnboardingContent() {
           <div className="space-y-2">
             <Label htmlFor="bio">Bio <span className="text-destructive">*</span></Label>
             <Textarea id="bio" placeholder="Tell potential mentees about your background, what you've built, and how you can help..." rows={5} value={form.bio} onChange={(e) => update("bio", e.target.value)} data-testid="bio-input" />
-            <p className="text-xs text-muted-foreground text-right">{form.bio.trim().split(/\s+/).filter(Boolean).length} / 500 words</p>
+            <p className="text-xs text-muted-foreground text-right">{form.bio.trim().split(/\s+/).filter(Boolean).length} words</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -305,8 +303,27 @@ function OnboardingContent() {
               <Input id="years" type="number" min="0" placeholder="e.g. 10" value={form.yearsExperience} onChange={(e) => update("yearsExperience", e.target.value)} data-testid="years-input" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="rate">Hourly Rate (USD) <span className="text-destructive">*</span></Label>
-              <Input id="rate" type="number" min="0" placeholder="e.g. 200" value={form.hourlyRate} onChange={(e) => update("hourlyRate", e.target.value)} data-testid="rate-input" />
+              <Label htmlFor="rate">Hourly Rate <span className="text-destructive">*</span></Label>
+              <div className="flex gap-2">
+                <Input id="rate" type="number" min="0" placeholder="e.g. 200" value={form.hourlyRate} onChange={(e) => update("hourlyRate", e.target.value)} data-testid="rate-input" className="flex-1" />
+                <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
+                  <SelectTrigger className="w-24" data-testid="currency-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="GBP">GBP</SelectItem>
+                    <SelectItem value="SGD">SGD</SelectItem>
+                    <SelectItem value="AED">AED</SelectItem>
+                    <SelectItem value="PKR">PKR</SelectItem>
+                    <SelectItem value="INR">INR</SelectItem>
+                    <SelectItem value="CAD">CAD</SelectItem>
+                    <SelectItem value="AUD">AUD</SelectItem>
+                    <SelectItem value="JPY">JPY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

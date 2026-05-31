@@ -1174,6 +1174,7 @@ components:
         yearsExperience: { type: ["integer", "null"] }
         languages: { type: array, items: { type: string } }
         hourlyRate: { type: ["number", "null"] }
+        currency: { type: ["string", "null"] }
         introVideoUrl: { type: ["string", "null"] }
         linkedinUrl: { type: ["string", "null"] }
         calendlyUrl: { type: ["string", "null"] }
@@ -1241,6 +1242,7 @@ components:
         yearsExperience: { type: integer }
         languages: { type: array, items: { type: string } }
         hourlyRate: { type: number }
+        currency: { type: string }
         introVideoUrl: { type: string }
         linkedinUrl: { type: string }
         calendlyUrl: { type: string }

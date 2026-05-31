@@ -13,6 +13,18 @@ async function seed() {
     { name: "Law & Compliance", slug: "law", description: "Attorneys, compliance officers, legal counsel", icon: "⚖️" },
     { name: "Education & Academia", slug: "education", description: "Professors, curriculum designers, EdTech", icon: "🎓" },
     { name: "Entrepreneurship", slug: "entrepreneurship", description: "Founders, VCs, product managers", icon: "🚀" },
+    { name: "Data Science & AI", slug: "data-science", description: "Data scientists, ML engineers, AI researchers", icon: "📊" },
+    { name: "Product Management", slug: "product", description: "Product managers, product owners, strategists", icon: "📱" },
+    { name: "UX & Design", slug: "ux-design", description: "UX researchers, UI designers, design leads", icon: "🎨" },
+    { name: "Sales & Business Development", slug: "sales", description: "Sales directors, account executives, BDRs", icon: "🤝" },
+    { name: "Operations & Supply Chain", slug: "operations", description: "Ops managers, supply chain experts, logistics", icon: "⚙️" },
+    { name: "Human Resources", slug: "hr", description: "HR directors, talent acquisition, culture leads", icon: "👥" },
+    { name: "Real Estate & Construction", slug: "real-estate", description: "Real estate agents, property managers, architects", icon: "🏗️" },
+    { name: "Media & Content", slug: "media", description: "Journalists, content creators, PR specialists", icon: "📺" },
+    { name: "Cybersecurity", slug: "cybersecurity", description: "Security analysts, CISOs, pentesters", icon: "🔒" },
+    { name: "Consulting & Strategy", slug: "consulting", description: "Management consultants, strategy advisors", icon: "📋" },
+    { name: "Energy & Sustainability", slug: "energy", description: "Renewable energy, ESG, sustainability leads", icon: "🌱" },
+    { name: "Hospitality & Tourism", slug: "hospitality", description: "Hotel managers, event planners, travel experts", icon: "🏨" },
   ];
 
   for (const cat of categories) {
