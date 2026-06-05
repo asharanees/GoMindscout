@@ -41,7 +41,7 @@ function buildDateRange(daysAhead = 14): string[] {
   today.setHours(0, 0, 0, 0);
   return Array.from({ length: daysAhead }, (_, i) => {
     const d = new Date(today);
-    d.setDate(d.getDate() + i + 1); // start tomorrow
+    d.setDate(d.getDate() + i); // start today
     return toDateString(d);
   });
 }
