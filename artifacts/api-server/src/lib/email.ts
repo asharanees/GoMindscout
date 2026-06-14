@@ -1,19 +1,36 @@
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@gomindscout.com";
+import nodemailer from "nodemailer";
+
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_SECURE = process.env.SMTP_SECURE === "true";
+const FROM_EMAIL = process.env.FROM_EMAIL || SMTP_USER || "noreply@gomindscout.com";
+
+const transporter =
+  SMTP_HOST && SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      })
+    : null;
 
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
-  if (!RESEND_API_KEY) {
-    // Email sending skipped - set RESEND_API_KEY to enable
+  if (!transporter) {
+    // Email sending skipped - set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable.
     return;
   }
   try {
-    await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({ from: FROM_EMAIL, to, subject, html }),
+    await transporter.sendMail({
+      from: FROM_EMAIL,
+      to,
+      subject,
+      html,
     });
   } catch {
     // Non-fatal - log but don't throw

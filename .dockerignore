@@ -1,0 +1,13 @@
+.git
+.agents
+node_modules
+**/node_modules
+**/dist
+Dockerfile
+docker-compose.yml
+.env
+.env.*
+!.env.example
+attached_assets
+concept document.docx
+Replit_MVP_Implementation_Brief_Mentorship_Marketplace.docx
