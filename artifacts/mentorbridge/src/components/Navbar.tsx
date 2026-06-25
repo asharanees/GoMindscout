@@ -40,17 +40,11 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" data-testid="nav-logo">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="32" height="32" rx="8" fill="hsl(var(--primary))"/>
-              <circle cx="16" cy="16" r="8" stroke="white" strokeWidth="1.5" fill="none"/>
-              <circle cx="16" cy="16" r="2.5" fill="white"/>
-              <line x1="16" y1="8" x2="16" y2="11" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="16" y1="21" x2="16" y2="24" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="8" y1="16" x2="11" y2="16" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-              <line x1="21" y1="16" x2="24" y2="16" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-              <polygon points="16,10 17.2,14.8 16,13.5 14.8,14.8" fill="hsl(var(--primary))" stroke="white" strokeWidth="0.5"/>
-            </svg>
-            <span className="font-bold text-lg text-foreground tracking-tight">GoMindscout</span>
+            <img
+              src="/go-mind-scout-logo.png"
+              alt="GoMindscout"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
 
           {/* Desktop nav */}

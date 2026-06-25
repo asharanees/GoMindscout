@@ -37,7 +37,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">6. Your Rights</h2>
-            <p className="text-muted-foreground leading-relaxed">You have the right to access, correct, or delete your personal data. You can update your account information at any time. To request data deletion, contact us at admin@gomindscout.com.</p>
+            <p className="text-muted-foreground leading-relaxed">You have the right to access, correct, or delete your personal data. You can update your account information at any time. To request data deletion, contact us at support@gomindscout.com.</p>
           </section>
 
           <section>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-foreground mb-3">8. Contact</h2>
-            <p className="text-muted-foreground leading-relaxed">Privacy questions can be directed to admin@gomindscout.com or through our contact page.</p>
+            <p className="text-muted-foreground leading-relaxed">Privacy questions can be directed to support@gomindscout.com or through our contact page.</p>
           </section>
         </div>
       </div>
