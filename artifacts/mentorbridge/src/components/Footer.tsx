@@ -8,9 +8,9 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-3">
               <img
-                src="/go-mind-scout-logo.png"
+                src="/go-mind-scout-logo-cropped.png"
                 alt="GoMindscout"
-                className="h-10 w-auto object-contain brightness-0 invert"
+                className="h-12 w-auto object-contain"
               />
             </div>
             <p className="text-sm text-background/60 leading-relaxed">

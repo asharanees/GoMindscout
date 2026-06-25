@@ -41,9 +41,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" data-testid="nav-logo">
             <img
-              src="/go-mind-scout-logo.png"
+              src="/go-mind-scout-logo-cropped.png"
               alt="GoMindscout"
-              className="h-10 w-auto object-contain"
+              className="h-12 w-auto object-contain"
             />
           </Link>
 
