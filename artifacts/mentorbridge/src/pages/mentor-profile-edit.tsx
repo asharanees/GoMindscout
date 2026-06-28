@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -442,24 +441,26 @@ function EditContent() {
             </div>
             <div className="space-y-2">
               <Label>Category <span className="text-destructive">*</span></Label>
-              <Select value={form.categoryId} onValueChange={(v) => update("categoryId", v)}>
-                <SelectTrigger data-testid="edit-category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesLoading ? (
-                    <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
-                  ) : categoriesError ? (
-                    <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
-                  ) : categories && categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__empty" disabled>No categories available</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <select
+                value={form.categoryId}
+                onChange={(e) => update("categoryId", e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={categoriesLoading || categoriesError || !categories?.length}
+                data-testid="edit-category"
+              >
+                <option value="">Select category</option>
+                {categoriesLoading ? (
+                  <option value="" disabled>Loading categories...</option>
+                ) : categoriesError ? (
+                  <option value="" disabled>Categories unavailable</option>
+                ) : categories && categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                  ))
+                ) : (
+                  <option value="" disabled>No categories available</option>
+                )}
+              </select>
             </div>
           </div>
 

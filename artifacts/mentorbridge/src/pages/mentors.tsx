@@ -5,7 +5,6 @@ import Footer from "@/components/Footer";
 import MentorCard from "@/components/MentorCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListMentors, useListCategories, getListMentorsQueryKey } from "@workspace/api-client-react";
 import { Search, SlidersHorizontal } from "lucide-react";
@@ -62,25 +61,26 @@ export default function MentorsPage() {
             />
           </div>
 
-          <Select value={category} onValueChange={(v) => { setCategory(v); setPage(1); }}>
-            <SelectTrigger className="w-full sm:w-44" data-testid="category-filter">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categoriesLoading ? (
-                <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
-              ) : categoriesError ? (
-                <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
-              ) : categories && categories.length > 0 ? (
-                categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
-                ))
-              ) : (
-                <SelectItem value="__empty" disabled>No categories available</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+          <select
+            value={category}
+            onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:w-44"
+            disabled={categoriesError}
+            data-testid="category-filter"
+          >
+            <option value="all">All Categories</option>
+            {categoriesLoading ? (
+              <option value="__loading" disabled>Loading categories...</option>
+            ) : categoriesError ? (
+              <option value="__error" disabled>Categories unavailable</option>
+            ) : categories && categories.length > 0 ? (
+              categories.map((cat) => (
+                <option key={cat.id} value={cat.slug}>{cat.name}</option>
+              ))
+            ) : (
+              <option value="__empty" disabled>No categories available</option>
+            )}
+          </select>
 
           <div className="flex gap-2">
             <Input

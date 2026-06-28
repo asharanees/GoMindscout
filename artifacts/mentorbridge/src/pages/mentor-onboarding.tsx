@@ -279,24 +279,27 @@ function OnboardingContent() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
-              <Select value={form.categoryId} onValueChange={(v) => update("categoryId", v)}>
-                <SelectTrigger id="category" data-testid="category-select">
-                  <SelectValue placeholder="Select a category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesLoading ? (
-                    <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
-                  ) : categoriesError ? (
-                    <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
-                  ) : categories && categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="__empty" disabled>No categories available</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <select
+                id="category"
+                value={form.categoryId}
+                onChange={(e) => update("categoryId", e.target.value)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm ring-offset-background focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={categoriesLoading || categoriesError || !categories?.length}
+                data-testid="category-select"
+              >
+                <option value="">Select a category</option>
+                {categoriesLoading ? (
+                  <option value="" disabled>Loading categories...</option>
+                ) : categoriesError ? (
+                  <option value="" disabled>Categories unavailable</option>
+                ) : categories && categories.length > 0 ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={String(cat.id)}>{cat.name}</option>
+                  ))
+                ) : (
+                  <option value="" disabled>No categories available</option>
+                )}
+              </select>
             </div>
           </div>
 
