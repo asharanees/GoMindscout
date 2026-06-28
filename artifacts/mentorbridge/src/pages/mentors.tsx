@@ -28,7 +28,7 @@ export default function MentorsPage() {
     limit: 12,
   };
 
-  const { data: categories } = useListCategories();
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = useListCategories();
   const { data, isLoading } = useListMentors(listParams, {
     query: { queryKey: getListMentorsQueryKey(listParams) },
   });
@@ -68,9 +68,17 @@ export default function MentorsPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              {(categories ?? []).map((cat) => (
-                <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
-              ))}
+              {categoriesLoading ? (
+                <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
+              ) : categoriesError ? (
+                <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
+              ) : categories && categories.length > 0 ? (
+                categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.slug}>{cat.name}</SelectItem>
+                ))
+              ) : (
+                <SelectItem value="__empty" disabled>No categories available</SelectItem>
+              )}
             </SelectContent>
           </Select>
 

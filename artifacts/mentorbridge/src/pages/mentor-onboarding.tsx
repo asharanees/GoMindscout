@@ -31,7 +31,7 @@ function OnboardingContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
-  const { data: categories } = useListCategories();
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = useListCategories();
   const { mutate: createProfile, isPending: profilePending } = useCreateMentorProfile();
   const { mutate: createPackage } = useCreatePackage();
   const { mutate: updateMe } = useUpdateMe();
@@ -284,9 +284,17 @@ function OnboardingContent() {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(categories ?? []).map((cat) => (
-                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                  ))}
+                  {categoriesLoading ? (
+                    <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
+                  ) : categoriesError ? (
+                    <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
+                  ) : categories && categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="__empty" disabled>No categories available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

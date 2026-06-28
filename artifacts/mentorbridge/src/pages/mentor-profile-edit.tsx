@@ -194,7 +194,7 @@ function EditContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { data: mentor, isLoading } = useGetMyMentorProfile();
-  const { data: categories } = useListCategories();
+  const { data: categories, isLoading: categoriesLoading, isError: categoriesError } = useListCategories();
   const { mutate: updateProfile, isPending } = useUpdateMyMentorProfile();
   const { mutate: updateMe } = useUpdateMe();
   const { data: packages } = useListMentorPackages(mentor?.id ?? 0, { query: { enabled: !!mentor?.id, queryKey: getListMentorPackagesQueryKey(mentor?.id ?? 0) } });
@@ -447,9 +447,17 @@ function EditContent() {
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(categories ?? []).map((cat) => (
-                    <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
-                  ))}
+                  {categoriesLoading ? (
+                    <SelectItem value="__loading" disabled>Loading categories...</SelectItem>
+                  ) : categoriesError ? (
+                    <SelectItem value="__error" disabled>Categories unavailable</SelectItem>
+                  ) : categories && categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <SelectItem key={cat.id} value={String(cat.id)}>{cat.name}</SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="__empty" disabled>No categories available</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
