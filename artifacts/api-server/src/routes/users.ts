@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable, packagesTable, mentorAvailabilityTable, payoutRequestsTable } from "@workspace/db";
-import { eq, or, sql } from "drizzle-orm";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
-import { accountDeletedEmail, sendEmail } from "../lib/email";
+import { deleteUserAccount } from "../lib/account-deletion";
 
 const router = Router();
 
@@ -107,53 +107,7 @@ router.delete("/me", requireAuth, async (req, res) => {
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    // Get mentor profile if exists
-    const [mentorProfile] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, user.id)).limit(1);
-    const mentorId = mentorProfile?.id;
-
-    if (mentorId) {
-      // Delete all data linked to this mentor profile first
-      await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
-      await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
-      await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentorId));
-      await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
-    }
-
-    // Delete chat messages for bookings this user is involved in (FK constraint)
-    const userBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(
-      or(eq(bookingsTable.menteeId, user.id), mentorId ? eq(bookingsTable.mentorId, mentorId) : undefined)
-    );
-    if (userBookings.length > 0) {
-      const bookingIds = userBookings.map(b => b.id);
-      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
-    }
-
-    // Delete all bookings this user participates in (FK to users and mentor_profiles)
-    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
-    if (mentorId) {
-      await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
-    }
-    // Delete disputes opened by this user
-    await db.delete(disputesTable).where(eq(disputesTable.openedByUserId, user.id));
-    // Delete notifications
-    await db.delete(notificationsTable).where(eq(notificationsTable.userId, user.id));
-
-    // Delete mentor profile
-    if (mentorId) {
-      await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
-    }
-
-    // Delete user
-    await db.delete(usersTable).where(eq(usersTable.id, user.id));
-
-    if (user.email) {
-      sendEmail(
-        user.email,
-        "Your GoMindscout account has been deleted",
-        accountDeletedEmail({ recipientName: user.fullName?.trim() || "there" }),
-      ).catch(() => {});
-    }
-
+    await deleteUserAccount({ user });
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting user account");

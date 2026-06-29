@@ -2,7 +2,8 @@ import { Router } from "express";
 import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable, notificationsTable } from "@workspace/db";
 import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
-import { accountDeletedEmail, sendEmail } from "../lib/email";
+import { deleteUserAccount } from "../lib/account-deletion";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 router.use(requireAdminSession);
@@ -228,46 +229,7 @@ router.delete("/users/:userId", async (req, res) => {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
 
-    const [mentorProfile] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.userId, userId)).limit(1);
-    const mentorId = mentorProfile?.id;
-
-    // Delete chat messages for bookings this user is involved in (FK constraint)
-    const userBookings = await db.select({ id: bookingsTable.id }).from(bookingsTable).where(
-      or(eq(bookingsTable.menteeId, userId), mentorId ? eq(bookingsTable.mentorId, mentorId) : undefined)
-    );
-    if (userBookings.length > 0) {
-      const bookingIds = userBookings.map(b => b.id);
-      await db.delete(chatMessagesTable).where(sql`${chatMessagesTable.bookingId} in ${bookingIds}`);
-    }
-
-    if (mentorId) {
-      await db.delete(reviewsTable).where(eq(reviewsTable.mentorId, mentorId));
-      await db.delete(payoutRequestsTable).where(eq(payoutRequestsTable.mentorId, mentorId));
-      await db.delete(packagesTable).where(eq(packagesTable.mentorId, mentorId));
-      await db.delete(mentorAvailabilityTable).where(eq(mentorAvailabilityTable.mentorId, mentorId));
-    }
-
-    await db.delete(bookingsTable).where(eq(bookingsTable.menteeId, userId));
-    if (mentorId) {
-      await db.delete(bookingsTable).where(eq(bookingsTable.mentorId, mentorId));
-    }
-    await db.delete(disputesTable).where(eq(disputesTable.openedByUserId, userId));
-    await db.delete(notificationsTable).where(eq(notificationsTable.userId, userId));
-
-    if (mentorId) {
-      await db.delete(mentorProfilesTable).where(eq(mentorProfilesTable.id, mentorId));
-    }
-
-    await db.delete(usersTable).where(eq(usersTable.id, userId));
-
-    if (user.email) {
-      sendEmail(
-        user.email,
-        "Your GoMindscout account has been deleted",
-        accountDeletedEmail({ recipientName: user.fullName?.trim() || "there" }),
-      ).catch(() => {});
-    }
-
+    await deleteUserAccount({ user });
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting user (admin)");
