@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +35,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet, Trash2, Eye } from "lucide-react";
+import { Users, Star, DollarSign, Calendar, CheckCircle, Clock, X, LogOut, ShieldCheck, ShieldAlert, Wallet, Trash2, Eye, Mail } from "lucide-react";
 
 function useAdminSession() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -398,6 +399,71 @@ function UserDetailContent({ data }: { data: any }) {
   );
 }
 
+function EmailTestCard() {
+  const { toast } = useToast();
+  const [to, setTo] = useState("");
+  const [sending, setSending] = useState(false);
+
+  async function sendTestEmail() {
+    const recipient = to.trim();
+    if (!recipient) {
+      toast({ title: "Recipient required", description: "Enter an email address for the test.", variant: "destructive" });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const res = await fetch("/api/admin/test-email", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: recipient }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Test email failed");
+      }
+
+      toast({ title: "Test email sent", description: `Sent to ${recipient}.` });
+    } catch (err: any) {
+      toast({
+        title: "Test email failed",
+        description: err.message || "Check server logs for SMTP details.",
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1.5 sm:max-w-sm">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold text-foreground">Email Test</h2>
+          </div>
+          <Label htmlFor="test-email-to" className="text-xs text-muted-foreground">Recipient</Label>
+          <Input
+            id="test-email-to"
+            type="email"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            placeholder="you@example.com"
+            data-testid="admin-test-email-input"
+          />
+        </div>
+        <Button type="button" onClick={sendTestEmail} disabled={sending} className="gap-1.5" data-testid="admin-send-test-email-btn">
+          <Mail className="h-4 w-4" />
+          {sending ? "Sending..." : "Send Test Email"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 function AdminContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -454,6 +520,8 @@ function AdminContent() {
       </div>
 
       <div className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full space-y-8">
+        <EmailTestCard />
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {statsLoading ? (

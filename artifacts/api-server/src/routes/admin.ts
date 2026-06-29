@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable, notificationsTable } from "@workspace/db";
 import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
+import { sendEmail } from "../lib/email";
 
 const router = Router();
 router.use(requireAdminSession);
@@ -68,6 +69,41 @@ function disputeToResponse(d: any, booking?: any, opener?: any, menteeUser?: any
     updatedAt: d.updatedAt.toISOString(),
   };
 }
+
+// POST /api/admin/test-email
+router.post("/test-email", async (req, res) => {
+  const to = typeof req.body?.to === "string" ? req.body.to.trim() : "";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+    res.status(400).json({ error: "A valid recipient email is required" });
+    return;
+  }
+
+  try {
+    const sent = await sendEmail(
+      to,
+      "GoMindscout SMTP test email",
+      `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Inter,Arial,sans-serif;color:#111;max-width:560px;margin:0 auto;padding:32px 16px;">
+        <div style="background:#1a7a5e;border-radius:8px;padding:24px;margin-bottom:24px;">
+          <h1 style="color:#fff;font-size:22px;margin:0;">GoMindscout - SMTP Test</h1>
+        </div>
+        <p style="font-size:16px;">This is a test email from your GoMindscout admin panel.</p>
+        <p style="font-size:14px;color:#555;line-height:1.6;">If you received this, SMTP is configured and the application can send transactional emails.</p>
+        <p style="font-size:13px;color:#888;border-top:1px solid #eee;padding-top:16px;margin-top:24px;">- The GoMindscout Team</p>
+      </body></html>`,
+    );
+
+    if (!sent) {
+      res.status(502).json({ error: "Email was not sent. Check app logs for SMTP configuration or delivery errors." });
+      return;
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    req.log.error({ err }, "Error sending admin test email");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 // GET /api/admin/mentors
 router.get("/mentors", async (req, res) => {

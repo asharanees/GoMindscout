@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { logger } from "./logger";
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT ?? 587);
@@ -20,10 +21,19 @@ const transporter =
       })
     : null;
 
-export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
+export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
   if (!transporter) {
-    // Email sending skipped - set SMTP_HOST, SMTP_USER, and SMTP_PASS to enable.
-    return;
+    logger.warn(
+      {
+        hasSmtpHost: Boolean(SMTP_HOST),
+        hasSmtpUser: Boolean(SMTP_USER),
+        hasSmtpPass: Boolean(SMTP_PASS),
+        to,
+        subject,
+      },
+      "Email sending skipped because SMTP is not fully configured",
+    );
+    return false;
   }
   try {
     await transporter.sendMail({
@@ -32,8 +42,11 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
       subject,
       html,
     });
-  } catch {
-    // Non-fatal - log but don't throw
+    logger.info({ to, subject }, "Email sent");
+    return true;
+  } catch (err) {
+    logger.error({ err, to, subject }, "Email send failed");
+    return false;
   }
 }
 
