@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { sendEmail, welcomeEmail } from "./email";
+import { logger } from "./logger";
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const { userId } = getAuth(req);
@@ -25,11 +26,18 @@ export async function getOrCreateUser(clerkId: string, email: string, fullName?:
     role: "mentee",
   }).returning();
 
-  sendEmail(
-    email,
-    "Welcome to GoMindscout",
-    welcomeEmail({ recipientName: fullName?.trim() || "there" }),
-  ).catch(() => {});
+  if (email.endsWith("@unknown.com")) {
+    logger.warn({ userId: created.id, clerkId, email }, "Welcome email skipped because user email is a placeholder");
+  } else {
+    const welcomeSent = await sendEmail(
+      email,
+      "Welcome to GoMindscout",
+      welcomeEmail({ recipientName: fullName?.trim() || "there" }),
+    );
+    if (!welcomeSent) {
+      logger.warn({ userId: created.id, clerkId, email }, "Welcome email was not sent");
+    }
+  }
 
   return created;
 }

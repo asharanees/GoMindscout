@@ -35,7 +35,18 @@ export async function createNotification(input: CreateNotificationInput): Promis
       isRead: false,
     });
     if (input.userEmail && input.emailSubject && input.emailHtml) {
-      sendEmail(input.userEmail, input.emailSubject, input.emailHtml).catch(() => {});
+      const sent = await sendEmail(input.userEmail, input.emailSubject, input.emailHtml);
+      if (!sent) {
+        logger.warn(
+          {
+            userId: input.userId,
+            type: input.type,
+            to: input.userEmail,
+            subject: input.emailSubject,
+          },
+          "Notification email was not sent",
+        );
+      }
     }
   } catch (err) {
     logger.error({ err }, "Failed to create notification");

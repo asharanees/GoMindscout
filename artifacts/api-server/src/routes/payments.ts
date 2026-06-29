@@ -53,16 +53,16 @@ router.post("/webhook", async (req: Request, res: Response) => {
           const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
           const pkgTitle = pkg?.title ?? "Mentorship Session";
 
-          createNotification({
+          await createNotification({
             userId: booking.menteeId,
             type: "payment_confirmed",
             title: "Payment confirmed",
             message: `Your payment for "${pkgTitle}" was received. Awaiting mentor approval.`,
             link: "/dashboard",
-          }).catch(() => {});
+          });
 
           if (mentor) {
-            createNotification({
+            await createNotification({
               userId: mentor.userId,
               type: "booking_created",
               title: "New paid booking",
@@ -71,7 +71,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
               userEmail: mentorUser?.email,
               emailSubject: `New paid booking awaiting your approval - ${pkgTitle}`,
               emailHtml: paymentConfirmedMentorEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: menteeUser?.fullName ?? "A mentee", packageName: pkgTitle, proposedAt: booking.proposedAt?.toISOString() ?? null }),
-            }).catch(() => {});
+            });
           }
         }
       } catch (notifErr) {

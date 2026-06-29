@@ -117,7 +117,7 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
     const otherUserId = isMentee ? (mentor?.userId ?? null) : booking.menteeId;
     if (otherUserId) {
       const [otherUser] = await db.select().from(usersTable).where(eq(usersTable.id, otherUserId)).limit(1);
-      createNotification({
+      await createNotification({
         userId: otherUserId,
         type: "chat_message",
         title: `New message from ${user.fullName ?? "someone"}`,
@@ -126,7 +126,7 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
         userEmail: otherUser?.email,
         emailSubject: `New message from ${user.fullName ?? "someone"} on GoMindscout`,
         emailHtml: chatMessageEmail({ recipientName: otherUser?.fullName ?? "there", senderName: user.fullName ?? "Someone", preview: content.trim() }),
-      }).catch(() => {});
+      });
     }
 
     res.status(201).json({

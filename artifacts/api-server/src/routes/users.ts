@@ -1,11 +1,61 @@
 import { Router } from "express";
-import { getAuth } from "@clerk/express";
+import { clerkClient, getAuth } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
 import { deleteUserAccount } from "../lib/account-deletion";
+import { logger } from "../lib/logger";
+import { sendEmail, welcomeEmail } from "../lib/email";
 
 const router = Router();
+
+function firstString(...values: unknown[]): string | null {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
+async function getClerkProfile(userId: string, sessionClaims: any) {
+  const profile = {
+    email: firstString(
+      sessionClaims?.email,
+      sessionClaims?.emailAddress,
+      sessionClaims?.email_address,
+      sessionClaims?.primaryEmailAddress,
+      sessionClaims?.primary_email_address,
+    ),
+    fullName: firstString(
+      sessionClaims?.name,
+      sessionClaims?.fullName,
+      sessionClaims?.full_name,
+      [sessionClaims?.firstName, sessionClaims?.lastName].filter(Boolean).join(" "),
+      [sessionClaims?.first_name, sessionClaims?.last_name].filter(Boolean).join(" "),
+    ),
+    avatarUrl: firstString(sessionClaims?.picture, sessionClaims?.imageUrl, sessionClaims?.image_url),
+  };
+
+  if (profile.email) return profile;
+
+  try {
+    const clientOrFactory = clerkClient as any;
+    const client = typeof clientOrFactory === "function" ? await clientOrFactory() : clientOrFactory;
+    const clerkUser = await client.users.getUser(userId);
+    const primaryEmail =
+      clerkUser.emailAddresses?.find((email: any) => email.id === clerkUser.primaryEmailAddressId)?.emailAddress ??
+      clerkUser.emailAddresses?.[0]?.emailAddress ??
+      null;
+
+    return {
+      email: primaryEmail,
+      fullName: profile.fullName || firstString(clerkUser.fullName, [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ")),
+      avatarUrl: profile.avatarUrl || firstString(clerkUser.imageUrl, clerkUser.profileImageUrl),
+    };
+  } catch (err) {
+    logger.warn({ err, clerkId: userId }, "Unable to fetch Clerk user profile for local user sync");
+    return profile;
+  }
+}
 
 // GET /api/users/me - get or create current user profile
 router.get("/me", requireAuth, async (req, res) => {
@@ -13,29 +63,38 @@ router.get("/me", requireAuth, async (req, res) => {
   const clerkUser = (req as any).auth as any;
 
   try {
+    const clerkProfile = await getClerkProfile(userId!, clerkUser?.sessionClaims);
     // Try to get from DB, if not exists create it
     const existing = await db.select().from(usersTable).where(eq(usersTable.clerkId, userId!)).limit(1);
 
-    // Build full name from Clerk claims (firstName + lastName, or name, or email fallback)
-    const firstName = (clerkUser?.sessionClaims?.firstName as string) || "";
-    const lastName = (clerkUser?.sessionClaims?.lastName as string) || "";
-    const nameClaim = (clerkUser?.sessionClaims?.name as string) || "";
-    const computedFullName = nameClaim || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || null);
-    const clerkAvatar = (clerkUser?.sessionClaims?.picture as string) || null;
+    const computedFullName = clerkProfile.fullName;
+    const clerkAvatar = clerkProfile.avatarUrl;
 
     if (existing.length > 0) {
       let u = existing[0];
-      // Sync name/avatar from Clerk if they're missing in DB
-      if ((!u.fullName && computedFullName) || (!u.avatarUrl && clerkAvatar)) {
+      const shouldUpdateEmail = Boolean(clerkProfile.email && u.email.endsWith("@unknown.com"));
+      // Sync profile data from Clerk if local values are missing or placeholder data was used.
+      if (shouldUpdateEmail || (!u.fullName && computedFullName) || (!u.avatarUrl && clerkAvatar)) {
         const [updated] = await db
           .update(usersTable)
           .set({
+            ...(shouldUpdateEmail ? { email: clerkProfile.email } : {}),
             ...((!u.fullName && computedFullName) ? { fullName: computedFullName } : {}),
             ...((!u.avatarUrl && clerkAvatar) ? { avatarUrl: clerkAvatar } : {}),
           })
           .where(eq(usersTable.clerkId, userId!))
           .returning();
         if (updated) u = updated;
+        if (shouldUpdateEmail && clerkProfile.email) {
+          const sent = await sendEmail(
+            clerkProfile.email,
+            "Welcome to GoMindscout",
+            welcomeEmail({ recipientName: computedFullName || "there" }),
+          );
+          if (!sent) {
+            logger.warn({ userId: u.id, clerkId: userId, email: clerkProfile.email }, "Welcome email was not sent after repairing placeholder email");
+          }
+        }
       }
       res.json({
         id: u.id,
@@ -50,7 +109,7 @@ router.get("/me", requireAuth, async (req, res) => {
     }
 
     // Create new user - we'll get email from Clerk token claims
-    const email = (clerkUser?.sessionClaims?.email as string) || `${userId}@unknown.com`;
+    const email = clerkProfile.email || `${userId}@unknown.com`;
 
     const user = await getOrCreateUser(userId!, email, computedFullName ?? undefined, clerkAvatar ?? undefined);
     res.json({

@@ -74,11 +74,14 @@ export async function deleteUserAccount({ user, deleteClerkUser = true }: Delete
   await db.delete(usersTable).where(eq(usersTable.id, user.id));
 
   if (user.email) {
-    sendEmail(
+    const deletionEmailSent = await sendEmail(
       user.email,
       "Your GoMindscout account has been deleted",
       accountDeletedEmail({ recipientName: user.fullName?.trim() || "there" }),
-    ).catch(() => {});
+    );
+    if (!deletionEmailSent) {
+      logger.warn({ userId: user.id, email: user.email }, "Account deletion email was not sent");
+    }
   }
 
   if (deleteClerkUser) {
