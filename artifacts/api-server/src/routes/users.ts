@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/express";
 import { db, usersTable, mentorProfilesTable, bookingsTable, reviewsTable, chatMessagesTable, disputesTable, notificationsTable, packagesTable, mentorAvailabilityTable, payoutRequestsTable } from "@workspace/db";
 import { eq, or, sql } from "drizzle-orm";
 import { requireAuth, getOrCreateUser, getUserByClerkId } from "../lib/auth";
+import { accountDeletedEmail, sendEmail } from "../lib/email";
 
 const router = Router();
 
@@ -144,6 +145,14 @@ router.delete("/me", requireAuth, async (req, res) => {
 
     // Delete user
     await db.delete(usersTable).where(eq(usersTable.id, user.id));
+
+    if (user.email) {
+      sendEmail(
+        user.email,
+        "Your GoMindscout account has been deleted",
+        accountDeletedEmail({ recipientName: user.fullName?.trim() || "there" }),
+      ).catch(() => {});
+    }
 
     res.status(204).send();
   } catch (err) {

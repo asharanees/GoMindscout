@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, disputesTable, payoutRequestsTable, packagesTable, mentorAvailabilityTable, chatMessagesTable, notificationsTable } from "@workspace/db";
 import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
-import { sendEmail } from "../lib/email";
+import { accountDeletedEmail, sendEmail } from "../lib/email";
 
 const router = Router();
 router.use(requireAdminSession);
@@ -259,6 +259,15 @@ router.delete("/users/:userId", async (req, res) => {
     }
 
     await db.delete(usersTable).where(eq(usersTable.id, userId));
+
+    if (user.email) {
+      sendEmail(
+        user.email,
+        "Your GoMindscout account has been deleted",
+        accountDeletedEmail({ recipientName: user.fullName?.trim() || "there" }),
+      ).catch(() => {});
+    }
+
     res.status(204).send();
   } catch (err) {
     req.log.error({ err }, "Error deleting user (admin)");

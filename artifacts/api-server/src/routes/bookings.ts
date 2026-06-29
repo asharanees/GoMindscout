@@ -414,12 +414,12 @@ router.post("/:bookingId/approve", requireAuth, async (req, res) => {
 
     if (menteeUser?.email) {
       await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed",
-        ({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, meetingLink, packageName })
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, meetingLink, packageName })
       );
     }
     if (mentorUser?.email) {
       await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
-        ({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, meetingLink, packageName })
       );
     }
 

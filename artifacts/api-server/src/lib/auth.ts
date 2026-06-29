@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { getAuth } from "@clerk/express";
 import { db, usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { sendEmail, welcomeEmail } from "./email";
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   const { userId } = getAuth(req);
@@ -23,6 +24,13 @@ export async function getOrCreateUser(clerkId: string, email: string, fullName?:
     avatarUrl: avatarUrl ?? null,
     role: "mentee",
   }).returning();
+
+  sendEmail(
+    email,
+    "Welcome to GoMindscout",
+    welcomeEmail({ recipientName: fullName?.trim() || "there" }),
+  ).catch(() => {});
+
   return created;
 }
 
