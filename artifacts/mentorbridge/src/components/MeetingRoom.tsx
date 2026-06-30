@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, PhoneOff, Video } from "lucide-react";
-import DailyCall from "@daily-co/daily-js";
+import DailyIframe from "@daily-co/daily-js";
 import { useToast } from "@/hooks/use-toast";
 
 interface MeetingRoomProps {
@@ -35,16 +35,17 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
         if (!res.ok) throw new Error("Failed to get meeting token");
         const data = await res.json();
 
-        if (cancelled) return;
+        if (cancelled || !containerRef.current) return;
 
-        const call = DailyCall.createCallObject({
-          url: data.meetingLink,
-          token: data.token || undefined,
+        const call = DailyIframe.createFrame(containerRef.current, {
           showLeaveButton: false,
           showFullscreenButton: true,
           showLocalVideo: true,
           showParticipantsBar: true,
           iframeStyle: {
+            position: "absolute",
+            top: "0",
+            left: "0",
             width: "100%",
             height: "100%",
             border: "0",
@@ -56,12 +57,16 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
 
         call.on("joined-meeting", () => {
           setJoined(true);
+          setLoading(false);
           fetch(`/api/meetings/${bookingId}/join`, { method: "POST" }).catch(() => {});
         });
 
         call.on("error", (e: any) => {
           console.error("Daily.co error:", e);
-          setError(e?.errorMsg || "Meeting connection failed");
+          if (!cancelled) {
+            setError(e?.errorMsg || "Meeting connection failed");
+            setLoading(false);
+          }
         });
 
         call.on("left-meeting", () => {
@@ -69,19 +74,16 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
           fetch(`/api/meetings/${bookingId}/leave`, { method: "POST" }).catch(() => {});
         });
 
-        if (containerRef.current) {
-          await call.join({
-            url: data.meetingLink,
-            token: data.token || undefined,
-          });
-        }
+        await call.join({
+          url: data.meetingLink,
+          token: data.token || undefined,
+        });
       } catch (err: any) {
         if (!cancelled) {
           setError(err.message || "Failed to join meeting");
+          setLoading(false);
           toast({ title: "Error", description: err.message, variant: "destructive" });
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     }
 
@@ -118,7 +120,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
 
         <div className="flex-1 relative bg-black min-h-0">
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black">
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
               <div className="flex flex-col items-center gap-3 text-white">
                 <Loader2 className="h-8 w-8 animate-spin" />
                 <p className="text-sm">Loading meeting room...</p>
@@ -126,7 +128,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
             </div>
           )}
           {error && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black">
+            <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
               <div className="text-center text-white px-6">
                 <p className="text-sm">{error}</p>
                 <Button
@@ -140,7 +142,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
               </div>
             </div>
           )}
-          <div ref={containerRef} className="w-full h-full" />
+          <div ref={containerRef} className="absolute inset-0 w-full h-full" />
         </div>
 
         <div className="px-4 py-3 border-t border-border shrink-0 flex items-center justify-between bg-background">
