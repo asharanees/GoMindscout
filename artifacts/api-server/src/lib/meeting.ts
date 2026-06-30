@@ -2,8 +2,17 @@ import crypto from "crypto";
 
 const DAILY_API_KEY = process.env.DAILY_API_KEY;
 
-export async function createMeetingRoom(bookingId: number): Promise<string> {
+export async function createMeetingRoom(
+  bookingId: number,
+  scheduledAt?: Date | null,
+  durationMinutes?: number | null,
+): Promise<string> {
   const roomName = `gomindscout-${bookingId}-${crypto.randomBytes(4).toString("hex")}`;
+
+  // Room expiry: scheduled end time, or 2h from now as fallback
+  const sessionDuration = (durationMinutes ?? 60) * 60; // seconds
+  const expBase = scheduledAt ? scheduledAt.getTime() / 1000 : Math.floor(Date.now() / 1000);
+  const roomExp = Math.floor(expBase) + sessionDuration + 15 * 60; // add 15min buffer after session
 
   if (DAILY_API_KEY) {
     try {
@@ -15,9 +24,10 @@ export async function createMeetingRoom(bookingId: number): Promise<string> {
         },
         body: JSON.stringify({
           name: roomName,
-          privacy: "public",
+          privacy: "private",
           properties: {
-            exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 14,
+            nbf: scheduledAt ? Math.floor(scheduledAt.getTime() / 1000) - 10 * 60 : undefined, // joinable 10min before
+            exp: roomExp,
             enable_chat: true,
             enable_screenshare: true,
             start_video_off: false,
@@ -25,6 +35,7 @@ export async function createMeetingRoom(bookingId: number): Promise<string> {
             enable_knocking: false,
             enable_prejoin_ui: false,
             enable_network_ui: false,
+            eject_at_room_exp: true, // auto-eject participants when session time is up
           },
         }),
       });
@@ -35,18 +46,43 @@ export async function createMeetingRoom(bookingId: number): Promise<string> {
       const err = await resp.text();
       console.warn("Daily.co room creation failed:", err);
     } catch (e) {
-      console.warn("Daily.co error, falling back to Jitsi:", e);
+      console.warn("Daily.co error:", e);
     }
   }
 
   return `https://meet.jit.si/${roomName}`;
 }
 
-export async function createMeetingToken(roomUrl: string, userName: string, userId: string): Promise<string | null> {
+export async function deleteMeetingRoom(roomUrl: string): Promise<void> {
+  if (!DAILY_API_KEY) return;
+  try {
+    const roomName = roomUrl.split("/").pop();
+    if (!roomName || roomUrl.includes("jit.si")) return;
+
+    await fetch(`https://api.daily.co/v1/rooms/${roomName}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${DAILY_API_KEY}` },
+    });
+  } catch (e) {
+    console.warn("Daily.co room deletion error:", e);
+  }
+}
+
+export async function createMeetingToken(
+  roomUrl: string,
+  userName: string,
+  userId: string,
+  scheduledAt?: Date | null,
+  durationMinutes?: number | null,
+): Promise<string | null> {
   if (!DAILY_API_KEY) return null;
   try {
     const roomName = roomUrl.split("/").pop();
     if (!roomName) return null;
+
+    const sessionDuration = (durationMinutes ?? 60) * 60;
+    const expBase = scheduledAt ? scheduledAt.getTime() / 1000 : Math.floor(Date.now() / 1000);
+    const tokenExp = Math.floor(expBase) + sessionDuration + 15 * 60;
 
     const resp = await fetch("https://api.daily.co/v1/meeting-tokens", {
       method: "POST",
@@ -59,8 +95,9 @@ export async function createMeetingToken(roomUrl: string, userName: string, user
           room_name: roomName,
           user_name: userName,
           user_id: userId,
-          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
+          exp: tokenExp,
           is_owner: false,
+          eject_at_token_exp: true,
         },
       }),
     });

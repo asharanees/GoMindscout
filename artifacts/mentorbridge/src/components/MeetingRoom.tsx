@@ -7,12 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface MeetingRoomProps {
   bookingId: number;
-  meetingLink: string;
   open: boolean;
   onClose: () => void;
 }
 
-export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: MeetingRoomProps) {
+export default function MeetingRoom({ bookingId, open, onClose }: MeetingRoomProps) {
   const { toast } = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
   const callRef = useRef<any>(null);
@@ -21,7 +20,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
   const [joined, setJoined] = useState(false);
 
   useEffect(() => {
-    if (!open || !meetingLink) return;
+    if (!open) return;
 
     setLoading(true);
     setError(null);
@@ -32,7 +31,10 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
     async function init() {
       try {
         const res = await fetch(`/api/meetings/${bookingId}/token`, { method: "POST" });
-        if (!res.ok) throw new Error("Failed to get meeting token");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error || "Failed to get meeting token");
+        }
         const data = await res.json();
 
         if (cancelled || !containerRef.current) return;
@@ -97,7 +99,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
         callRef.current = null;
       }
     };
-  }, [open, bookingId, meetingLink, toast]);
+  }, [open, bookingId, toast]);
 
   function handleLeave() {
     if (callRef.current) {
@@ -130,14 +132,15 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
           {error && (
             <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
               <div className="text-center text-white px-6">
-                <p className="text-sm">{error}</p>
+                <p className="text-sm font-medium mb-1">Could not join the meeting</p>
+                <p className="text-xs text-white/60">{error}</p>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="mt-3 text-white border-white/30 hover:bg-white/10"
-                  onClick={() => window.open(meetingLink, "_blank")}
+                  className="mt-4 text-white border-white/30 hover:bg-white/10"
+                  onClick={handleLeave}
                 >
-                  Open in new tab
+                  Close
                 </Button>
               </div>
             </div>
@@ -147,7 +150,7 @@ export default function MeetingRoom({ bookingId, meetingLink, open, onClose }: M
 
         <div className="px-4 py-3 border-t border-border shrink-0 flex items-center justify-between bg-background">
           <p className="text-xs text-muted-foreground">
-            {joined ? "Joined - your attendance is being tracked" : "Preparing room..."}
+            {joined ? "Joined — your attendance is being tracked" : "Preparing room..."}
           </p>
           <Button
             size="sm"

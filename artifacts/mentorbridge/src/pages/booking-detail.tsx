@@ -138,10 +138,10 @@ function BookingDetailContent() {
                 )}
                 <span className="font-semibold text-foreground">${Number(booking.amount).toFixed(2)}</span>
               </div>
-              {booking.meetingLink && (
+              {booking.hasMeetingRoom && (
                 <div className="mt-3 flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-2">
                   <Video className="h-4 w-4 text-primary shrink-0" />
-                  <span className="text-xs text-primary truncate flex-1">{booking.meetingLink}</span>
+                  <span className="text-xs text-primary flex-1">Meeting room available — join from your dashboard</span>
                 </div>
               )}
             </div>
