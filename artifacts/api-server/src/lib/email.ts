@@ -202,6 +202,29 @@ export function rescheduleProposedEmail({
 <p style="text-align:center;margin:24px 0;"><a href="${dashLink}" style="${CTA}">Accept or Cancel</a></p>`);
 }
 
+export function accountDeletedEmail({ recipientName }: { recipientName: string }): string {
+  return baseEmail("Account Deleted", `<p style="font-size:15px;">Hi ${recipientName},</p>
+<p style="font-size:15px;line-height:1.6;">Your GoMindscout account and all associated data have been permanently deleted as requested.</p>
+<p style="font-size:13px;color:#888;">If this was a mistake or you'd like to return, you're always welcome to create a new account at any time.</p>`);
+}
+
+export function chatMessageEmail({
+  recipientName,
+  senderName,
+  preview,
+}: {
+  recipientName: string;
+  senderName: string;
+  preview: string;
+}): string {
+  return baseEmail("New Message", `<p style="font-size:15px;">Hi ${recipientName},</p>
+<p style="font-size:15px;line-height:1.6;">You have a new message from <strong>${senderName}</strong>:</p>
+<div style="background:#f8f9fa;border-left:4px solid #1a7a5e;border-radius:4px;padding:12px 16px;margin:16px 0;">
+  <p style="margin:0;font-size:14px;color:#333;">${preview}</p>
+</div>
+<p style="text-align:center;margin:24px 0;"><a href="${appUrl("/dashboard")}" style="${CTA}">View Message</a></p>`);
+}
+
 export function paymentConfirmedMentorEmail({
   mentorName,
   menteeName,
