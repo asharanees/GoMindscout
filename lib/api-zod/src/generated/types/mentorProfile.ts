@@ -34,7 +34,7 @@ export interface MentorProfile {
   /** @nullable */
   hourlyRate?: number | null;
   /** @nullable */
-  currency?: string | null;
+  currency?: "USD" | null;
   /** @nullable */
   introVideoUrl?: string | null;
   /** @nullable */

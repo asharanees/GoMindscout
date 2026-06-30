@@ -49,6 +49,10 @@ function defaultDays(): DayState[] {
   }));
 }
 
+function hasCompleteExperience(experiences: Array<{ title: string; company: string; startDate: string }>) {
+  return experiences.some((exp) => exp.title.trim() && exp.company.trim() && exp.startDate.trim());
+}
+
 function AvailabilitySection({ mentorId }: { mentorId: number }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,6 +92,11 @@ function AvailabilitySection({ mentorId }: { mentorId: number }) {
 
   function save() {
     const activeDays = days.filter((d) => d.isActive);
+    if (activeDays.length === 0) {
+      toast({ title: "Availability required", description: "Please select at least one day you are available.", variant: "destructive" });
+      return;
+    }
+
     setAvailability(
       {
         data: {
@@ -115,7 +124,7 @@ function AvailabilitySection({ mentorId }: { mentorId: number }) {
   return (
     <Card className="p-6 space-y-5">
       <div>
-        <h2 className="font-semibold text-foreground">Availability</h2>
+        <h2 className="font-semibold text-foreground">Availability <span className="text-destructive">*</span></h2>
         <p className="text-xs text-muted-foreground mt-1">Set the days and times you're available for sessions. Mentees will see open slots when booking.</p>
       </div>
 
@@ -330,6 +339,10 @@ function EditContent() {
       toast({ title: "Hourly rate required", description: "Please enter your hourly rate.", variant: "destructive" });
       return;
     }
+    if (!hasCompleteExperience(experiences)) {
+      toast({ title: "Experience required", description: "Please add at least one experience with a title, company, and start date.", variant: "destructive" });
+      return;
+    }
     if (langs.length === 0) {
       toast({ title: "Languages required", description: "Please enter at least one language you speak.", variant: "destructive" });
       return;
@@ -348,9 +361,10 @@ function EditContent() {
           yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience) : undefined,
           languages: langs,
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
+          currency: "USD",
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
-          experiences: experiences.length > 0 ? experiences : undefined,
+          experiences,
           honorsAwards: honorsAwards.length > 0 ? honorsAwards : undefined,
           publications: publications.length > 0 ? publications : undefined,
           certifications: certifications.length > 0 ? certifications : undefined,
@@ -491,13 +505,13 @@ function EditContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-foreground">Experience</h2>
+              <h2 className="font-semibold text-foreground">Experience <span className="text-destructive">*</span></h2>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={addExperience} className="gap-1">
               <Plus className="h-4 w-4" /> Add
             </Button>
           </div>
-          {experiences.length === 0 && <p className="text-sm text-muted-foreground">Add your work history to build credibility.</p>}
+          {experiences.length === 0 && <p className="text-sm text-muted-foreground">Add at least one role with a title, company, and start date.</p>}
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">

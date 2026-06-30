@@ -19,11 +19,11 @@ export interface MentorProfileInput {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
-  currency?: string;
+  currency?: "USD";
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
-  experiences?: MentorExperience[];
+  experiences: MentorExperience[];
   honorsAwards?: MentorHonorAward[];
   publications?: MentorPublication[];
   certifications?: MentorCertification[];

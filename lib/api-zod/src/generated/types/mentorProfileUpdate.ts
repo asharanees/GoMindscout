@@ -19,6 +19,7 @@ export interface MentorProfileUpdate {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
+  currency?: "USD";
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;

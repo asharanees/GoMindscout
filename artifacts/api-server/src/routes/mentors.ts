@@ -21,7 +21,7 @@ function buildMentorResponse(mentor: any, user: any, category: any, avgRating: n
     yearsExperience: mentor.yearsExperience,
     languages: mentor.languages ?? [],
     hourlyRate: mentor.hourlyRate ? Number(mentor.hourlyRate) : null,
-    currency: mentor.currency ?? "USD",
+    currency: "USD",
     introVideoUrl: mentor.introVideoUrl,
     linkedinUrl: mentor.linkedinUrl,
     calendlyUrl: mentor.calendlyUrl,
@@ -57,6 +57,22 @@ async function getMentorStats(mentorId: number) {
     totalReviews: Number(ratingRow?.count ?? 0),
     totalSessions: Number(sessionRow?.count ?? 0),
   };
+}
+
+function hasCompleteExperience(experiences: unknown) {
+  return Array.isArray(experiences) && experiences.some((experience) => {
+    if (!experience || typeof experience !== "object") return false;
+    const exp = experience as Record<string, unknown>;
+    return Boolean(
+      String(exp.title ?? "").trim() &&
+      String(exp.company ?? "").trim() &&
+      String(exp.startDate ?? "").trim()
+    );
+  });
+}
+
+function isUsdCurrency(currency: unknown) {
+  return currency === undefined || currency === null || currency === "" || currency === "USD";
 }
 
 // GET /api/mentors - search + filter
@@ -169,9 +185,20 @@ router.patch("/me", requireAuth, async (req, res) => {
     if (!mentor) { res.status(404).json({ error: "No mentor profile" }); return; }
 
     const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications } = req.body;
+
+    if (!isUsdCurrency(req.body.currency)) {
+      res.status(400).json({ error: "Hourly rate currency must be USD" });
+      return;
+    }
+
+    if (!hasCompleteExperience(experiences)) {
+      res.status(400).json({ error: "At least one complete experience is required" });
+      return;
+    }
+
     const [updated] = await db
       .update(mentorProfilesTable)
-      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), currency: req.body.currency, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications })
+      .set({ headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate: hourlyRate?.toString(), currency: "USD", introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications })
       .where(eq(mentorProfilesTable.id, mentor.id))
       .returning();
 
@@ -195,6 +222,16 @@ router.post("/", requireAuth, async (req, res) => {
 
     const { headline, bio, categoryId, industry, expertiseTags, yearsExperience, languages, hourlyRate, currency, introVideoUrl, linkedinUrl, calendlyUrl, experiences, honorsAwards, publications, certifications } = req.body;
 
+    if (!isUsdCurrency(currency)) {
+      res.status(400).json({ error: "Hourly rate currency must be USD" });
+      return;
+    }
+
+    if (!hasCompleteExperience(experiences)) {
+      res.status(400).json({ error: "At least one complete experience is required" });
+      return;
+    }
+
     const [mentor] = await db.insert(mentorProfilesTable).values({
       userId: user.id,
       headline,
@@ -205,7 +242,7 @@ router.post("/", requireAuth, async (req, res) => {
       yearsExperience,
       languages: languages ?? [],
       hourlyRate: hourlyRate?.toString(),
-      currency: currency ?? "USD",
+      currency: "USD",
       introVideoUrl,
       linkedinUrl,
       calendlyUrl,

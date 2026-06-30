@@ -27,6 +27,10 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function hasCompleteExperience(experiences: Array<{ title: string; company: string; startDate: string }>) {
+  return experiences.some((exp) => exp.title.trim() && exp.company.trim() && exp.startDate.trim());
+}
+
 function OnboardingContent() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -57,7 +61,6 @@ function OnboardingContent() {
     yearsExperience: "",
     languages: "",
     hourlyRate: "",
-    currency: "USD",
     introVideoUrl: "",
     linkedinUrl: "",
   });
@@ -152,6 +155,15 @@ function OnboardingContent() {
       toast({ title: "Hourly rate required", description: "Please enter your hourly rate.", variant: "destructive" });
       return;
     }
+    if (!hasCompleteExperience(experiences)) {
+      toast({ title: "Experience required", description: "Please add at least one experience with a title, company, and start date.", variant: "destructive" });
+      return;
+    }
+    const activeDays = days.filter((d) => d.isActive);
+    if (activeDays.length === 0) {
+      toast({ title: "Availability required", description: "Please select at least one day you are available.", variant: "destructive" });
+      return;
+    }
     if (langs.length === 0) {
       toast({ title: "Languages required", description: "Please enter at least one language you speak.", variant: "destructive" });
       return;
@@ -173,10 +185,10 @@ function OnboardingContent() {
           yearsExperience: form.yearsExperience ? parseInt(form.yearsExperience) : undefined,
           languages: langs.length > 0 ? langs : ["English"],
           hourlyRate: form.hourlyRate ? parseFloat(form.hourlyRate) : undefined,
-          currency: form.currency || "USD",
+          currency: "USD",
           introVideoUrl: form.introVideoUrl || undefined,
           linkedinUrl: form.linkedinUrl || undefined,
-          experiences: experiences.length > 0 ? experiences : undefined,
+          experiences,
           honorsAwards: honorsAwards.length > 0 ? honorsAwards : undefined,
           publications: publications.length > 0 ? publications : undefined,
           certifications: certifications.length > 0 ? certifications : undefined,
@@ -194,20 +206,17 @@ function OnboardingContent() {
           });
 
           // Save availability
-          const activeDays = days.filter((d) => d.isActive);
-          if (activeDays.length > 0) {
-            setAvailability({
-              data: {
-                availability: activeDays.map((d) => ({
-                  dayOfWeek: d.dayOfWeek,
-                  startTime: d.startTime,
-                  endTime: d.endTime,
-                  isActive: true,
-                })),
-                timezone,
-              } as any,
-            });
-          }
+          setAvailability({
+            data: {
+              availability: activeDays.map((d) => ({
+                dayOfWeek: d.dayOfWeek,
+                startTime: d.startTime,
+                endTime: d.endTime,
+                isActive: true,
+              })),
+              timezone,
+            } as any,
+          });
 
           setSubmitted(true);
         },
@@ -328,23 +337,9 @@ function OnboardingContent() {
               <Label htmlFor="rate">Hourly Rate <span className="text-destructive">*</span></Label>
               <div className="flex gap-2">
                 <Input id="rate" type="number" min="0" placeholder="e.g. 200" value={form.hourlyRate} onChange={(e) => update("hourlyRate", e.target.value)} data-testid="rate-input" className="flex-1" />
-                <Select value={form.currency} onValueChange={(v) => update("currency", v)}>
-                  <SelectTrigger className="w-24" data-testid="currency-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
-                    <SelectItem value="SGD">SGD</SelectItem>
-                    <SelectItem value="AED">AED</SelectItem>
-                    <SelectItem value="PKR">PKR</SelectItem>
-                    <SelectItem value="INR">INR</SelectItem>
-                    <SelectItem value="CAD">CAD</SelectItem>
-                    <SelectItem value="AUD">AUD</SelectItem>
-                    <SelectItem value="JPY">JPY</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="h-9 w-20 rounded-md border border-input bg-muted px-3 py-2 text-sm font-medium text-muted-foreground" data-testid="currency-display">
+                  USD
+                </div>
               </div>
             </div>
           </div>
@@ -360,13 +355,13 @@ function OnboardingContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-foreground">Experience</h2>
+              <h2 className="font-semibold text-foreground">Experience <span className="text-destructive">*</span></h2>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={addExperience} className="gap-1">
               <Plus className="h-4 w-4" /> Add
             </Button>
           </div>
-          {experiences.length === 0 && <p className="text-sm text-muted-foreground">Add your work history to build credibility.</p>}
+          {experiences.length === 0 && <p className="text-sm text-muted-foreground">Add at least one role with a title, company, and start date.</p>}
           <div className="space-y-4">
             {experiences.map((exp) => (
               <div key={exp.id} className="rounded-xl border border-border p-4 space-y-3 bg-muted/30">
@@ -580,7 +575,7 @@ function OnboardingContent() {
         {/* ── AVAILABILITY ── */}
         <Card className="p-6 space-y-5">
           <div>
-            <h2 className="font-semibold text-foreground">Availability</h2>
+            <h2 className="font-semibold text-foreground">Availability <span className="text-destructive">*</span></h2>
             <p className="text-xs text-muted-foreground mt-1">Set your weekly availability so mentees can book slots. You can update this anytime from your profile.</p>
           </div>
           <div className="space-y-3">

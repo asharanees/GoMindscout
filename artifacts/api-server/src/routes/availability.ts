@@ -68,18 +68,26 @@ router.put("/me/availability", requireAuth, async (req, res) => {
       return;
     }
 
-    const { availability } = req.body as {
+    const { availability, timezone } = req.body as {
       availability: Array<{
         dayOfWeek: number;
         startTime: string;
         endTime: string;
-        timezone: string;
+        timezone?: string;
         isActive: boolean;
       }>;
+      timezone?: string;
     };
 
     if (!Array.isArray(availability)) {
       res.status(400).json({ error: "availability must be an array" });
+      return;
+    }
+
+    const activeAvailability = availability.filter((a) => a.isActive ?? true);
+
+    if (activeAvailability.length === 0) {
+      res.status(400).json({ error: "At least one availability window is required" });
       return;
     }
 
@@ -88,22 +96,19 @@ router.put("/me/availability", requireAuth, async (req, res) => {
       .delete(mentorAvailabilityTable)
       .where(eq(mentorAvailabilityTable.mentorId, mentor.id));
 
-    let rows: typeof mentorAvailabilityTable.$inferSelect[] = [];
-    if (availability.length > 0) {
-      rows = await db
-        .insert(mentorAvailabilityTable)
-        .values(
-          availability.map((a) => ({
-            mentorId: mentor.id,
-            dayOfWeek: a.dayOfWeek,
-            startTime: a.startTime,
-            endTime: a.endTime,
-            timezone: a.timezone ?? "UTC",
-            isActive: a.isActive ?? true,
-          }))
-        )
-        .returning();
-    }
+    const rows = await db
+      .insert(mentorAvailabilityTable)
+      .values(
+        availability.map((a) => ({
+          mentorId: mentor.id,
+          dayOfWeek: a.dayOfWeek,
+          startTime: a.startTime,
+          endTime: a.endTime,
+          timezone: a.timezone ?? timezone ?? "UTC",
+          isActive: a.isActive ?? true,
+        }))
+      )
+      .returning();
 
     res.json(
       rows.map((r) => ({

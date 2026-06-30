@@ -64,7 +64,7 @@ export default function MentorCard({ mentor }: MentorCardProps) {
             <span className="text-xs text-muted-foreground">New mentor</span>
           )}
           {mentor.hourlyRate != null && (
-            <span className="text-sm font-bold text-foreground">{mentor.currency ?? "$"}{mentor.hourlyRate}<span className="text-xs font-normal text-muted-foreground">/hr</span></span>
+            <span className="text-sm font-bold text-foreground">${mentor.hourlyRate}<span className="text-xs font-normal text-muted-foreground">/hr</span></span>
           )}
         </div>
         <Link href={`/mentors/${mentor.id}`}>

@@ -1192,7 +1192,7 @@ components:
         yearsExperience: { type: ["integer", "null"] }
         languages: { type: array, items: { type: string } }
         hourlyRate: { type: ["number", "null"] }
-        currency: { type: ["string", "null"] }
+        currency: { type: ["string", "null"], enum: [USD, null] }
         introVideoUrl: { type: ["string", "null"] }
         linkedinUrl: { type: ["string", "null"] }
         calendlyUrl: { type: ["string", "null"] }
@@ -1250,7 +1250,7 @@ components:
 
     MentorProfileInput:
       type: object
-      required: [headline]
+      required: [headline, experiences]
       properties:
         headline: { type: string }
         bio: { type: string }
@@ -1260,11 +1260,11 @@ components:
         yearsExperience: { type: integer }
         languages: { type: array, items: { type: string } }
         hourlyRate: { type: number }
-        currency: { type: string }
+        currency: { type: string, enum: [USD] }
         introVideoUrl: { type: string }
         linkedinUrl: { type: string }
         calendlyUrl: { type: string }
-        experiences: { type: array, items: { $ref: "#/components/schemas/MentorExperience" } }
+        experiences: { type: array, minItems: 1, items: { $ref: "#/components/schemas/MentorExperience" } }
         honorsAwards: { type: array, items: { $ref: "#/components/schemas/MentorHonorAward" } }
         publications: { type: array, items: { $ref: "#/components/schemas/MentorPublication" } }
         certifications: { type: array, items: { $ref: "#/components/schemas/MentorCertification" } }
@@ -1280,10 +1280,11 @@ components:
         yearsExperience: { type: integer }
         languages: { type: array, items: { type: string } }
         hourlyRate: { type: number }
+        currency: { type: string, enum: [USD] }
         introVideoUrl: { type: string }
         linkedinUrl: { type: string }
         calendlyUrl: { type: string }
-        experiences: { type: array, items: { $ref: "#/components/schemas/MentorExperience" } }
+        experiences: { type: array, minItems: 1, items: { $ref: "#/components/schemas/MentorExperience" } }
         honorsAwards: { type: array, items: { $ref: "#/components/schemas/MentorHonorAward" } }
         publications: { type: array, items: { $ref: "#/components/schemas/MentorPublication" } }
         certifications: { type: array, items: { $ref: "#/components/schemas/MentorCertification" } }
@@ -1349,6 +1350,7 @@ components:
         timezone: { type: string }
         availability:
           type: array
+          minItems: 1
           items:
             type: object
             required: [dayOfWeek, startTime, endTime]

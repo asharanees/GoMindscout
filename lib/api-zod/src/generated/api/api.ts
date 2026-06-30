@@ -98,7 +98,7 @@ export const ListMentorsResponse = zod.object({
       yearsExperience: zod.number().nullish(),
       languages: zod.array(zod.string()).optional(),
       hourlyRate: zod.number().nullish(),
-      currency: zod.string().nullish(),
+      currency: zod.literal("USD").nullish(),
       introVideoUrl: zod.string().nullish(),
       linkedinUrl: zod.string().nullish(),
       calendlyUrl: zod.string().nullish(),
@@ -176,7 +176,7 @@ export const CreateMentorProfileBody = zod.object({
   yearsExperience: zod.number().optional(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().optional(),
-  currency: zod.string().optional(),
+  currency: zod.literal("USD").optional(),
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
@@ -193,7 +193,7 @@ export const CreateMentorProfileBody = zod.object({
         description: zod.string().nullish(),
       }),
     )
-    .optional(),
+    .min(1),
   honorsAwards: zod
     .array(
       zod.object({
@@ -248,7 +248,7 @@ export const GetFeaturedMentorsResponseItem = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -329,7 +329,7 @@ export const GetMyMentorProfileResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -402,6 +402,7 @@ export const UpdateMyMentorProfileBody = zod.object({
   yearsExperience: zod.number().optional(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().optional(),
+  currency: zod.literal("USD").optional(),
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
@@ -418,6 +419,7 @@ export const UpdateMyMentorProfileBody = zod.object({
         description: zod.string().nullish(),
       }),
     )
+    .min(1)
     .optional(),
   honorsAwards: zod
     .array(
@@ -470,7 +472,7 @@ export const UpdateMyMentorProfileResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -555,14 +557,16 @@ export const GetMentorAvailabilityResponse = zod.array(
  */
 export const SetMyAvailabilityBody = zod.object({
   timezone: zod.string(),
-  availability: zod.array(
-    zod.object({
-      dayOfWeek: zod.number(),
-      startTime: zod.string(),
-      endTime: zod.string(),
-      isActive: zod.boolean().optional(),
-    }),
-  ),
+  availability: zod
+    .array(
+      zod.object({
+        dayOfWeek: zod.number(),
+        startTime: zod.string(),
+        endTime: zod.string(),
+        isActive: zod.boolean().optional(),
+      }),
+    )
+    .min(1),
 });
 
 export const SetMyAvailabilityResponseItem = zod.object({
@@ -617,7 +621,7 @@ export const GetMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1481,7 +1485,7 @@ export const AdminListMentorsResponseItem = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1569,7 +1573,7 @@ export const AdminApproveMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1655,7 +1659,7 @@ export const AdminFeatureMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.string().nullish(),
+  currency: zod.literal("USD").nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
