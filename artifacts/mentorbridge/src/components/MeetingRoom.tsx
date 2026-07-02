@@ -28,8 +28,26 @@ export default function MeetingRoom({ bookingId, open, onClose }: MeetingRoomPro
 
     let cancelled = false;
 
+    async function destroyExisting() {
+      // Destroy any lingering Daily.co instance (handles re-open after leave)
+      try {
+        const existing = DailyIframe.getCallInstance();
+        if (existing) {
+          await existing.leave().catch(() => {});
+          await existing.destroy();
+        }
+      } catch {}
+      // Also clear any leftover iframe children from the container
+      if (containerRef.current) {
+        containerRef.current.innerHTML = "";
+      }
+      callRef.current = null;
+    }
+
     async function init() {
       try {
+        await destroyExisting();
+
         const res = await fetch(`/api/meetings/${bookingId}/token`, { method: "POST" });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));

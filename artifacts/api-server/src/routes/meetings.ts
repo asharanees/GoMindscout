@@ -1,11 +1,21 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, bookingsTable, usersTable, meetingAttendanceTable } from "@workspace/db";
+import { db, bookingsTable, usersTable, meetingAttendanceTable, mentorProfilesTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 import { createMeetingToken } from "../lib/meeting";
 
 const router = Router();
+
+async function isAuthorizedForBooking(userId: number, booking: { menteeId: number; mentorId: number }): Promise<boolean> {
+  if (booking.menteeId === userId) return true;
+  const [mentorProfile] = await db
+    .select()
+    .from(mentorProfilesTable)
+    .where(and(eq(mentorProfilesTable.id, booking.mentorId), eq(mentorProfilesTable.userId, userId)))
+    .limit(1);
+  return !!mentorProfile;
+}
 
 // POST /api/meetings/:bookingId/token
 router.post("/:bookingId/token", requireAuth, async (req, res) => {
@@ -18,7 +28,8 @@ router.post("/:bookingId/token", requireAuth, async (req, res) => {
 
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
-    if (booking.menteeId !== user.id && booking.mentorId !== user.id) {
+
+    if (!await isAuthorizedForBooking(user.id, booking)) {
       res.status(403).json({ error: "Not your booking" });
       return;
     }
@@ -47,12 +58,12 @@ router.post("/:bookingId/join", requireAuth, async (req, res) => {
 
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
-    if (booking.menteeId !== user.id && booking.mentorId !== user.id) {
+
+    if (!await isAuthorizedForBooking(user.id, booking)) {
       res.status(403).json({ error: "Not your booking" });
       return;
     }
 
-    // Check if there's an existing open session for this user
     const [existing] = await db.select().from(meetingAttendanceTable)
       .where(and(
         eq(meetingAttendanceTable.bookingId, bookingId),
@@ -62,7 +73,6 @@ router.post("/:bookingId/join", requireAuth, async (req, res) => {
       .limit(1);
 
     if (existing && !existing.leftAt) {
-      // Already joined, return existing
       res.json({ attendanceId: existing.id, joinedAt: existing.joinedAt.toISOString() });
       return;
     }
@@ -91,7 +101,8 @@ router.post("/:bookingId/leave", requireAuth, async (req, res) => {
 
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
-    if (booking.menteeId !== user.id && booking.mentorId !== user.id) {
+
+    if (!await isAuthorizedForBooking(user.id, booking)) {
       res.status(403).json({ error: "Not your booking" });
       return;
     }
@@ -142,7 +153,8 @@ router.get("/:bookingId/attendance", requireAuth, async (req, res) => {
 
     const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, bookingId)).limit(1);
     if (!booking) { res.status(404).json({ error: "Booking not found" }); return; }
-    if (booking.menteeId !== user.id && booking.mentorId !== user.id) {
+
+    if (!await isAuthorizedForBooking(user.id, booking)) {
       res.status(403).json({ error: "Not your booking" });
       return;
     }
