@@ -202,6 +202,55 @@ export function rescheduleProposedEmail({
 <p style="text-align:center;margin:24px 0;"><a href="${dashLink}" style="${CTA}">Accept or Cancel</a></p>`);
 }
 
+export function disputeOpenedEmail({
+  recipientName,
+  openerName,
+  reason,
+  bookingId,
+  role,
+}: {
+  recipientName: string;
+  openerName: string;
+  reason: string;
+  bookingId: number;
+  role: "mentor" | "mentee" | "support";
+}): string {
+  const dashLink = appUrl(role === "mentor" ? "/mentor/dashboard" : "/dashboard");
+  return baseEmail("Dispute Opened", `<p style="font-size:15px;">Hi ${recipientName},</p>
+<p style="font-size:15px;line-height:1.6;">A dispute has been raised by <strong>${openerName}</strong> for booking #${bookingId}.</p>
+<div style="background:#fff8f0;border-left:4px solid #e07000;border-radius:4px;padding:12px 16px;margin:16px 0;">
+  <p style="margin:0;font-size:14px;color:#333;"><strong>Reason:</strong> ${reason}</p>
+</div>
+<p style="font-size:14px;color:#555;line-height:1.6;">Our support team will review the dispute and reach out if we need more information. You can track the status in your dashboard.</p>
+${role !== "support" ? `<p style="text-align:center;margin:24px 0;"><a href="${dashLink}" style="${CTA}">View Dashboard</a></p>` : ""}
+<p style="font-size:13px;color:#888;">Booking ID: #${bookingId}</p>`);
+}
+
+export function disputeResolvedEmail({
+  recipientName,
+  bookingId,
+  resolutionType,
+  adminDecision,
+  role,
+}: {
+  recipientName: string;
+  bookingId: number;
+  resolutionType: string;
+  adminDecision: string;
+  role: "mentor" | "mentee" | "support";
+}): string {
+  const dashLink = appUrl(role === "mentor" ? "/mentor/dashboard" : "/dashboard");
+  const resolutionLabel = resolutionType === "release_to_mentor" ? "Payment released to mentor" : "Refund issued to mentee";
+  return baseEmail("Dispute Resolved", `<p style="font-size:15px;">Hi ${recipientName},</p>
+<p style="font-size:15px;line-height:1.6;">The dispute for booking #${bookingId} has been resolved by our support team.</p>
+<div style="background:#f0faf5;border-left:4px solid #1a7a5e;border-radius:4px;padding:12px 16px;margin:16px 0;">
+  <p style="margin:0 0 6px;font-size:14px;color:#333;"><strong>Outcome:</strong> ${resolutionLabel}</p>
+  <p style="margin:0;font-size:14px;color:#555;">${adminDecision}</p>
+</div>
+${role !== "support" ? `<p style="text-align:center;margin:24px 0;"><a href="${dashLink}" style="${CTA}">View Dashboard</a></p>` : ""}
+<p style="font-size:13px;color:#888;">Booking ID: #${bookingId}</p>`);
+}
+
 export function accountDeletedEmail({ recipientName }: { recipientName: string }): string {
   return baseEmail("Account Deleted", `<p style="font-size:15px;">Hi ${recipientName},</p>
 <p style="font-size:15px;line-height:1.6;">Your GoMindscout account and all associated data have been permanently deleted as requested.</p>

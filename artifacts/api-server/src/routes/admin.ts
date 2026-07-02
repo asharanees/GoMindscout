@@ -3,7 +3,10 @@ import { db, mentorProfilesTable, usersTable, bookingsTable, reviewsTable, dispu
 import { eq, sql, or } from "drizzle-orm";
 import { requireAdminSession } from "../middlewares/requireAdminSession";
 import { deleteUserAccount } from "../lib/account-deletion";
-import { sendEmail } from "../lib/email";
+import { sendEmail, disputeResolvedEmail } from "../lib/email";
+import { createNotification } from "../lib/notifications";
+
+const SUPPORT_EMAIL = "support@gomindscout.com";
 
 const router = Router();
 router.use(requireAdminSession);
@@ -313,11 +316,51 @@ router.patch("/disputes/:disputeId/resolve", async (req, res) => {
     if (resolutionType === "release_to_mentor") {
       await db.update(bookingsTable).set({ status: "payout_released" }).where(eq(bookingsTable.id, updated.bookingId));
     } else {
-      // Refund paths
       await db.update(bookingsTable).set({ status: "refunded" }).where(eq(bookingsTable.id, updated.bookingId));
     }
 
+    // Fetch booking + both parties to send notifications
+    const [booking] = await db.select().from(bookingsTable).where(eq(bookingsTable.id, updated.bookingId)).limit(1);
     const [opener] = await db.select().from(usersTable).where(eq(usersTable.id, updated.openedByUserId)).limit(1);
+
+    if (booking) {
+      const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+      const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+      const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+      const decision = adminDecision ?? "Dispute resolved.";
+      const resLabel = resolutionType === "release_to_mentor" ? "Payment released to mentor" : "Refund issued to mentee";
+
+      if (menteeUser) {
+        await createNotification({
+          userId: menteeUser.id,
+          type: "dispute_resolved",
+          title: "Dispute resolved",
+          message: `Your dispute for booking #${updated.bookingId} has been resolved: ${resLabel}`,
+          link: "/dashboard",
+          userEmail: menteeUser.email,
+          emailSubject: `Dispute resolved — Booking #${updated.bookingId}`,
+          emailHtml: disputeResolvedEmail({ recipientName: menteeUser.fullName ?? "there", bookingId: updated.bookingId, resolutionType, adminDecision: decision, role: "mentee" }),
+        });
+      }
+
+      if (mentorUser) {
+        await createNotification({
+          userId: mentorUser.id,
+          type: "dispute_resolved",
+          title: "Dispute resolved",
+          message: `The dispute for booking #${updated.bookingId} has been resolved: ${resLabel}`,
+          link: "/mentor/dashboard",
+          userEmail: mentorUser.email,
+          emailSubject: `Dispute resolved — Booking #${updated.bookingId}`,
+          emailHtml: disputeResolvedEmail({ recipientName: mentorUser.fullName ?? "there", bookingId: updated.bookingId, resolutionType, adminDecision: decision, role: "mentor" }),
+        });
+      }
+
+      // Email support team
+      const supportHtml = disputeResolvedEmail({ recipientName: "Support Team", bookingId: updated.bookingId, resolutionType, adminDecision: decision, role: "support" });
+      sendEmail(SUPPORT_EMAIL, `[Dispute Resolved] Booking #${updated.bookingId} — ${resLabel}`, supportHtml).catch(() => {});
+    }
+
     res.json(disputeToResponse(updated, null, opener));
   } catch (err) {
     req.log.error({ err }, "Error resolving dispute");

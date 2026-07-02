@@ -19,6 +19,8 @@ const TYPE_ICONS: Record<string, string> = {
   counter_declined: "❌",
   session_confirmed: "📅",
   chat_message: "💬",
+  dispute_opened: "⚠️",
+  dispute_resolved: "✅",
 };
 
 export default function NotificationPanel() {

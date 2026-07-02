@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
@@ -369,7 +369,7 @@ function RescheduleProposalCard({ booking }: { booking: any }) {
   );
 }
 
-function BookingRow({ booking, onReview, onChat, onMeeting }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void; onMeeting?: (b: any) => void }) {
+function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -432,7 +432,19 @@ function BookingRow({ booking, onReview, onChat, onMeeting }: { booking: any; on
             <Video className="h-3 w-3" /> Join Meeting Room
           </button>
         )}
-        {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute filed - under review</p>}
+        {booking.hasDispute && (
+          <div className="mt-1 text-xs rounded px-2 py-1 bg-orange-50 border border-orange-200">
+            <p className="font-medium text-orange-700">
+              {booking.disputeStatus === "resolved" ? "⚖️ Dispute resolved" : "⚠️ Dispute under review"}
+            </p>
+            {booking.disputeReason && <p className="text-orange-600 mt-0.5">Reason: {booking.disputeReason}</p>}
+            {booking.disputeStatus === "resolved" && booking.disputeAdminDecision && (
+              <p className="text-orange-600 mt-0.5">
+                Outcome: {booking.disputeResolutionType === "release_to_mentor" ? "Payment released to mentor" : "Refund issued"} — {booking.disputeAdminDecision}
+              </p>
+            )}
+          </div>
+        )}
         {booking.cancellationNote && <p className="text-xs text-muted-foreground mt-0.5 italic">{booking.cancellationNote}</p>}
       </div>
       <div className="text-right shrink-0 space-y-1.5">
@@ -447,8 +459,14 @@ function BookingRow({ booking, onReview, onChat, onMeeting }: { booking: any; on
             </Button>
           )}
           {canChat && (
-            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1" onClick={() => onChat(booking.id)} data-testid="chat-btn">
-              <MessageSquare className="h-3 w-3" /> Chat
+            <Button size="sm" variant="outline" className="text-xs h-7 px-2 gap-1 relative" onClick={() => onChat(booking.id)} data-testid="chat-btn">
+              <span className="relative">
+                <MessageSquare className="h-3 w-3" />
+                {(chatUnread[booking.id] ?? 0) > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                )}
+              </span>
+              Chat
             </Button>
           )}
           {canReview && (
@@ -511,8 +529,22 @@ function DashboardContent() {
   const [chatBookingId, setChatBookingId] = useState<number | null>(null);
   const [meetingBooking, setMeetingBooking] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [chatUnread, setChatUnread] = useState<Record<number, number>>({});
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchUnread() {
+      try {
+        const res = await fetch("/api/chat/unread-counts");
+        if (res.ok && !cancelled) setChatUnread(await res.json());
+      } catch {}
+    }
+    fetchUnread();
+    const id = setInterval(fetchUnread, 30000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const counterProposed = (bookings ?? []).filter((b: any) => b.status === "counter_proposed");
   const reschedulePendingFromMentor = (bookings ?? []).filter((b: any) => b.status === "reschedule_proposed" && b.rescheduleProposedBy === "mentor");
@@ -587,7 +619,7 @@ function DashboardContent() {
               <a href="/mentors" className="text-primary text-sm hover:underline mt-1 block">Find a mentor to book a session</a>
             </div>
           ) : (
-            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)
+            upcoming.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)
           )}
         </Card>
 
@@ -595,14 +627,14 @@ function DashboardContent() {
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Confirmation</h2>
             <p className="text-xs text-muted-foreground mb-4">Sessions completed — payout releases to mentor after 48h if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
           </Card>
         )}
 
         {past.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Past Sessions</h2>
-            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+            {past.map((b: any) => <BookingRow key={b.id} booking={b} onReview={setReviewBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
           </Card>
         )}
       </div>

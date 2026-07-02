@@ -79,6 +79,10 @@ async function enrichBooking(booking: any) {
     menteeAvatarUrl: menteeUser?.avatarUrl ?? null,
     hasReview: !!review,
     hasDispute: !!dispute,
+    disputeStatus: dispute?.status ?? null,
+    disputeReason: dispute?.reason ?? null,
+    disputeAdminDecision: dispute?.adminDecision ?? null,
+    disputeResolutionType: dispute?.resolutionType ?? null,
   };
 }
 
@@ -328,20 +332,31 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
     const isMentor = mentor?.userId === user.id;
     if (!isMentee && !isMentor) { res.status(403).json({ error: "Access denied" }); return; }
 
-    const cancellableStatuses = ["pending_payment", "paid_pending_session", "paid", "scheduled", "reschedule_proposed"];
+    const cancellableStatuses = ["pending_payment", "awaiting_mentor_approval", "paid_pending_session", "paid", "scheduled", "confirmed", "reschedule_proposed"];
     if (!cancellableStatuses.includes(booking.status)) {
       res.status(400).json({ error: "This booking cannot be cancelled in its current state" }); return;
     }
 
+    // Block cancellation once the meeting has started — only disputes allowed after that
+    if (booking.scheduledAt && new Date(booking.scheduledAt) <= new Date()) {
+      res.status(400).json({ error: "The meeting has already started. Please raise a dispute if you have any issues." });
+      return;
+    }
+
+    // Compute hours until session for refund policy
+    let hoursUntil: number | null = null;
+    if (booking.scheduledAt) {
+      hoursUntil = (new Date(booking.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60);
+    }
+
     let refundNote = note ?? "";
     if (isMentor) {
-      refundNote = `Mentor cancelled. ${note ?? ""}`.trim();
-    } else if (booking.scheduledAt) {
-      const hoursUntil = (new Date(booking.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60);
+      refundNote = `Mentor cancelled. Full refund issued. ${note ?? ""}`.trim();
+    } else if (hoursUntil !== null) {
       if (hoursUntil > 24) {
-        refundNote = `Cancelled >24h before session. Full refund applies. ${note ?? ""}`.trim();
+        refundNote = `Cancelled >24h before session. Full refund issued. ${note ?? ""}`.trim();
       } else {
-        refundNote = `Cancelled <24h before session. 50% refund applies. ${note ?? ""}`.trim();
+        refundNote = `Cancelled <24h before session. 50% refund issued. ${note ?? ""}`.trim();
       }
     }
 
@@ -352,6 +367,29 @@ router.post("/:bookingId/cancel", requireAuth, async (req, res) => {
       .set({ status: "cancelled", cancellationNote: refundNote })
       .where(eq(bookingsTable.id, bookingId))
       .returning();
+
+    // Process Stripe refund for paid bookings
+    const paidStatuses = ["paid_pending_session", "paid", "scheduled", "confirmed", "reschedule_proposed"];
+    if (paidStatuses.includes(booking.status) && booking.stripeSessionId) {
+      const stripe = getStripe();
+      if (stripe) {
+        try {
+          const session = await stripe.checkout.sessions.retrieve(booking.stripeSessionId);
+          const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
+          if (paymentIntentId) {
+            const isFullRefund = isMentor || hoursUntil === null || hoursUntil > 24;
+            if (isFullRefund) {
+              await stripe.refunds.create({ payment_intent: paymentIntentId });
+            } else {
+              const amountCents = Math.round(Number(booking.amount) * 100);
+              await stripe.refunds.create({ payment_intent: paymentIntentId, amount: Math.round(amountCents / 2) });
+            }
+          }
+        } catch (stripeErr) {
+          req.log.warn({ stripeErr }, "Stripe refund attempt failed — needs manual review");
+        }
+      }
+    }
 
     res.json(await enrichBooking(updated));
   } catch (err) {

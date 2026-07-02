@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@clerk/react";
 import Navbar from "@/components/Navbar";
@@ -475,7 +475,7 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
   );
 }
 
-function BookingRow({ booking, onAddLink, onChat, onMeeting }: { booking: any; onAddLink: (b: any) => void; onChat?: (bookingId: number) => void; onMeeting?: (b: any) => void }) {
+function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: { booking: any; onAddLink: (b: any) => void; onChat?: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -550,7 +550,19 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting }: { booking: any; o
               {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </p>
           )}
-          {booking.hasDispute && <p className="text-xs text-orange-600 mt-0.5 font-medium">Dispute raised - under review</p>}
+          {booking.hasDispute && (
+            <div className="mt-1 text-xs rounded px-2 py-1 bg-orange-50 border border-orange-200">
+              <p className="font-medium text-orange-700">
+                {booking.disputeStatus === "resolved" ? "⚖️ Dispute resolved" : "⚠️ Dispute under review"}
+              </p>
+              {booking.disputeReason && <p className="text-orange-600 mt-0.5">Reason: {booking.disputeReason}</p>}
+              {booking.disputeStatus === "resolved" && booking.disputeAdminDecision && (
+                <p className="text-orange-600 mt-0.5">
+                  Outcome: {booking.disputeResolutionType === "release_to_mentor" ? "Payment released to you" : "Refund issued to mentee"} — {booking.disputeAdminDecision}
+                </p>
+              )}
+            </div>
+          )}
           {booking.mentorEarning && ["session_completed", "payout_released"].includes(booking.status) && (
             <p className="text-xs text-green-700 mt-0.5">Earning: ${Number(booking.mentorEarning).toFixed(2)}</p>
           )}
@@ -577,8 +589,14 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting }: { booking: any; o
               </Button>
             )}
             {canChat && onChat && (
-              <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground" onClick={() => onChat(booking.id)} data-testid="chat-btn">
-                <MessageSquare className="h-3 w-3" /> Chat
+              <Button size="sm" variant="ghost" className="text-xs h-7 px-2 gap-1 text-muted-foreground relative" onClick={() => onChat(booking.id)} data-testid="chat-btn">
+                <span className="relative">
+                  <MessageSquare className="h-3 w-3" />
+                  {(chatUnread[booking.id] ?? 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-destructive" />
+                  )}
+                </span>
+                Chat
               </Button>
             )}
           </div>
@@ -663,9 +681,23 @@ function MentorDashboardContent() {
   const [meetingBooking, setMeetingBooking] = useState<any>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [chatUnread, setChatUnread] = useState<Record<number, number>>({});
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
   const { data: payouts, isLoading: payoutsLoading } = useGetMentorPayouts();
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchUnread() {
+      try {
+        const res = await fetch("/api/chat/unread-counts");
+        if (res.ok && !cancelled) setChatUnread(await res.json());
+      } catch {}
+    }
+    fetchUnread();
+    const id = setInterval(fetchUnread, 30000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   const awaitingApproval = (bookings ?? []).filter((b: any) => b.status === "awaiting_mentor_approval");
   const active = (bookings ?? []).filter((b: any) => ["confirmed", "paid_pending_session", "paid", "scheduled", "reschedule_proposed"].includes(b.status));
@@ -764,7 +796,7 @@ function MentorDashboardContent() {
               No active sessions right now
             </div>
           ) : (
-            active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)
+            active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)
           )}
         </Card>
 
@@ -773,7 +805,7 @@ function MentorDashboardContent() {
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-1">Awaiting Payout Release</h2>
             <p className="text-xs text-muted-foreground mb-4">Payout auto-releases 48h after session completion if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
           </Card>
         )}
 
@@ -781,7 +813,7 @@ function MentorDashboardContent() {
         {history.length > 0 && (
           <Card className="p-6">
             <h2 className="font-semibold text-foreground mb-4">Session History</h2>
-            {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+            {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
           </Card>
         )}
       </div>

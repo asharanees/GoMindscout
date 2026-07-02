@@ -3,6 +3,10 @@ import { getAuth } from "@clerk/express";
 import { db, disputesTable, bookingsTable, usersTable, mentorProfilesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
+import { createNotification } from "../lib/notifications";
+import { sendEmail, disputeOpenedEmail } from "../lib/email";
+
+const SUPPORT_EMAIL = "support@gomindscout.com";
 
 const router = Router();
 
@@ -46,7 +50,7 @@ router.post("/", requireAuth, async (req, res) => {
     if (!isMentee && !isMentor) { res.status(403).json({ error: "Access denied" }); return; }
 
     // Can only dispute paid sessions
-    const disputeableStatuses = ["paid_pending_session", "session_completed", "paid", "scheduled", "completed"];
+    const disputeableStatuses = ["paid_pending_session", "session_completed", "paid", "scheduled", "completed", "confirmed"];
     if (!disputeableStatuses.includes(booking.status)) {
       res.status(400).json({ error: "This booking cannot be disputed in its current status" });
       return;
@@ -69,6 +73,49 @@ router.post("/", requireAuth, async (req, res) => {
 
     // Update booking status to under_review
     await db.update(bookingsTable).set({ status: "under_review" }).where(eq(bookingsTable.id, bookingId));
+
+    // Fetch both parties for notifications
+    const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+    const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+    const openerName = user.fullName ?? "A user";
+
+    // Notify the other party (whoever didn't open the dispute)
+    if (isMentee && mentorUser) {
+      await createNotification({
+        userId: mentorUser.id,
+        type: "dispute_opened",
+        title: "Dispute raised on your session",
+        message: `${openerName} has raised a dispute for booking #${bookingId}: ${reason}`,
+        link: "/mentor/dashboard",
+        userEmail: mentorUser.email,
+        emailSubject: `Dispute raised for booking #${bookingId}`,
+        emailHtml: disputeOpenedEmail({ recipientName: mentorUser.fullName ?? "there", openerName, reason, bookingId, role: "mentor" }),
+      });
+    } else if (isMentor && menteeUser) {
+      await createNotification({
+        userId: menteeUser.id,
+        type: "dispute_opened",
+        title: "Dispute raised on your session",
+        message: `${openerName} has raised a dispute for booking #${bookingId}: ${reason}`,
+        link: "/dashboard",
+        userEmail: menteeUser.email,
+        emailSubject: `Dispute raised for booking #${bookingId}`,
+        emailHtml: disputeOpenedEmail({ recipientName: menteeUser.fullName ?? "there", openerName, reason, bookingId, role: "mentee" }),
+      });
+    }
+
+    // Also notify the opener themselves
+    await createNotification({
+      userId: user.id,
+      type: "dispute_opened",
+      title: "Dispute submitted",
+      message: `Your dispute for booking #${bookingId} has been received and is under review.`,
+      link: isMentor ? "/mentor/dashboard" : "/dashboard",
+    });
+
+    // Email support@gomindscout.com
+    const supportHtml = disputeOpenedEmail({ recipientName: "Support Team", openerName, reason, bookingId, role: "support" });
+    sendEmail(SUPPORT_EMAIL, `[Dispute Opened] Booking #${bookingId} — ${reason}`, supportHtml).catch(() => {});
 
     res.status(201).json(disputeToResponse(dispute, user));
   } catch (err) {

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, chatMessagesTable, bookingsTable, usersTable, mentorProfilesTable } from "@workspace/db";
-import { eq, asc } from "drizzle-orm";
+import { db, chatMessagesTable, bookingsTable, usersTable, mentorProfilesTable, notificationsTable } from "@workspace/db";
+import { eq, asc, and } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 import { createNotification } from "../lib/notifications";
 import { chatMessageEmail } from "../lib/email";
@@ -37,6 +37,42 @@ function messageToResponse(msg: any, sender: any) {
   };
 }
 
+// GET /api/chat/unread-counts — returns { [bookingId]: unreadCount } for current user
+router.get("/unread-counts", requireAuth, async (req, res) => {
+  const { userId } = getAuth(req);
+  try {
+    const user = await getUserByClerkId(userId!);
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
+
+    const unreadNotifs = await db
+      .select()
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.userId, user.id),
+          eq(notificationsTable.type, "chat_message" as any),
+          eq(notificationsTable.isRead, false),
+        )
+      );
+
+    const counts: Record<number, number> = {};
+    for (const notif of unreadNotifs) {
+      if (notif.link) {
+        const match = notif.link.match(/\/bookings\/(\d+)/);
+        if (match) {
+          const bookingId = parseInt(match[1]);
+          counts[bookingId] = (counts[bookingId] ?? 0) + 1;
+        }
+      }
+    }
+
+    res.json(counts);
+  } catch (err) {
+    req.log.error({ err }, "Error fetching chat unread counts");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // GET /api/chat/:bookingId
 router.get("/:bookingId", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
@@ -59,14 +95,13 @@ router.get("/:bookingId", requireAuth, async (req, res) => {
       .where(eq(chatMessagesTable.bookingId, bookingId))
       .orderBy(asc(chatMessagesTable.createdAt));
 
-    const enriched = await Promise.all(
-      messages.map(async (msg) => {
-        const [sender] = await db.select().from(usersTable).where(eq(usersTable.id, msg.senderId)).limit(1);
-        return messageToResponse(msg, sender);
-      })
+    const senderIds = [...new Set(messages.map((m) => m.senderId))];
+    const senders = await Promise.all(
+      senderIds.map((id) => db.select().from(usersTable).where(eq(usersTable.id, id)).limit(1).then(([u]) => u))
     );
+    const senderMap = Object.fromEntries(senders.filter(Boolean).map((u) => [u!.id, u]));
 
-    res.json(enriched);
+    res.json(messages.map((m) => messageToResponse(m, senderMap[m.senderId])));
   } catch (err) {
     req.log.error({ err }, "Error fetching chat messages");
     res.status(500).json({ error: "Internal server error" });
@@ -79,8 +114,8 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
   const bookingId = parseInt(Array.isArray(req.params.bookingId) ? req.params.bookingId[0] : req.params.bookingId);
   const { content } = req.body;
 
-  if (!content?.trim()) {
-    res.status(400).json({ error: "Message content required" });
+  if (!content || typeof content !== "string" || !content.trim()) {
+    res.status(400).json({ error: "Message content is required" });
     return;
   }
 
@@ -96,7 +131,6 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
     const isMentor = mentor?.userId === user.id;
     if (!isMentee && !isMentor) { res.status(403).json({ error: "Access denied" }); return; }
 
-    // Block chat on pending_payment bookings
     if (booking.status === "pending_payment") {
       res.status(400).json({ error: "Chat is not available until payment is confirmed." });
       return;
@@ -122,7 +156,7 @@ router.post("/:bookingId", requireAuth, async (req, res) => {
         type: "chat_message",
         title: `New message from ${user.fullName ?? "someone"}`,
         message: content.trim().length > 80 ? content.trim().slice(0, 80) + "…" : content.trim(),
-        link: "/dashboard",
+        link: `/bookings/${bookingId}`,
         userEmail: otherUser?.email,
         emailSubject: `New message from ${user.fullName ?? "someone"} on GoMindscout`,
         emailHtml: chatMessageEmail({ recipientName: otherUser?.fullName ?? "there", senderName: user.fullName ?? "Someone", preview: content.trim() }),

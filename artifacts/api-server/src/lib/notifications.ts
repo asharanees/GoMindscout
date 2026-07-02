@@ -11,7 +11,9 @@ export type NotificationType =
   | "counter_accepted"
   | "counter_declined"
   | "session_confirmed"
-  | "chat_message";
+  | "chat_message"
+  | "dispute_opened"
+  | "dispute_resolved";
 
 interface CreateNotificationInput {
   userId: number;
