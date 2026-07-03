@@ -1,10 +1,13 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
 import { db, bookingsTable, mentorProfilesTable, reviewsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 
 const router = Router();
+
+const COMPLETED_STATUSES = ["session_completed", "payout_released", "completed"];
+const UPCOMING_STATUSES = ["awaiting_mentor_approval", "confirmed", "counter_proposed", "reschedule_proposed", "paid_pending_session", "paid", "scheduled"];
 
 // GET /api/dashboard/mentee-stats
 router.get("/mentee-stats", requireAuth, async (req, res) => {
@@ -15,16 +18,15 @@ router.get("/mentee-stats", requireAuth, async (req, res) => {
 
     const bookings = await db.select().from(bookingsTable).where(eq(bookingsTable.menteeId, user.id));
     const totalBookings = bookings.length;
-    const completedSessions = bookings.filter(b => b.status === "completed").length;
-    const upcomingSessions = bookings.filter(b => b.status === "scheduled" || b.status === "paid").length;
+    const completedSessions = bookings.filter(b => COMPLETED_STATUSES.includes(b.status)).length;
+    const upcomingSessions = bookings.filter(b => UPCOMING_STATUSES.includes(b.status)).length;
     const totalSpent = bookings
       .filter(b => b.status !== "pending_payment" && b.status !== "cancelled" && b.status !== "refunded")
       .reduce((sum, b) => sum + Number(b.amount), 0);
 
-    // Count bookings that are completed but have no review
-    const completedBookingIds = bookings.filter(b => b.status === "completed").map(b => b.id);
+    const reviewableBookingIds = bookings.filter(b => COMPLETED_STATUSES.includes(b.status)).map(b => b.id);
     let pendingReviews = 0;
-    for (const bid of completedBookingIds) {
+    for (const bid of reviewableBookingIds) {
       const [review] = await db.select().from(reviewsTable).where(eq(reviewsTable.bookingId, bid)).limit(1);
       if (!review) pendingReviews++;
     }
@@ -50,11 +52,11 @@ router.get("/mentor-stats", requireAuth, async (req, res) => {
     }
 
     const bookings = await db.select().from(bookingsTable).where(eq(bookingsTable.mentorId, mentor.id));
-    const completedSessions = bookings.filter(b => b.status === "completed").length;
-    const upcomingSessions = bookings.filter(b => b.status === "scheduled" || b.status === "paid").length;
+    const completedSessions = bookings.filter(b => COMPLETED_STATUSES.includes(b.status)).length;
+    const upcomingSessions = bookings.filter(b => UPCOMING_STATUSES.includes(b.status)).length;
     const totalEarnings = bookings
-      .filter(b => b.status === "completed")
-      .reduce((sum, b) => sum + (Number(b.amount) - Number(b.platformFee)), 0);
+      .filter(b => COMPLETED_STATUSES.includes(b.status))
+      .reduce((sum, b) => sum + (b.mentorEarning ? Number(b.mentorEarning) : Number(b.amount) - Number(b.platformFee)), 0);
 
     const reviews = await db.select().from(reviewsTable).where(eq(reviewsTable.mentorId, mentor.id));
     const avgRating = reviews.length > 0

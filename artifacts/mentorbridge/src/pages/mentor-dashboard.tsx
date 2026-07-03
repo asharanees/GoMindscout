@@ -486,8 +486,9 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: 
   const statusLabel = STATUS_LABELS[booking.status] ?? booking.status.replace(/_/g, " ");
   const initials = (booking.menteeName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const meetingStarted = booking.hasMeetingRoom && booking.scheduledAt && new Date(booking.scheduledAt) <= new Date();
   const canSchedule = ["paid", "scheduled", "paid_pending_session"].includes(booking.status) && !booking.hasMeetingRoom;
-  const canReschedule = ["confirmed", "paid_pending_session", "paid", "scheduled"].includes(booking.status) && booking.hasMeetingRoom;
+  const canReschedule = ["confirmed", "paid_pending_session", "paid", "scheduled"].includes(booking.status) && booking.hasMeetingRoom && !meetingStarted;
   const canComplete = ["confirmed", "paid_pending_session", "scheduled", "paid"].includes(booking.status) && booking.hasMeetingRoom;
   const canChat = !["pending_payment", "awaiting_mentor_approval", "cancelled", "refunded"].includes(booking.status);
   const isReschedulePendingFromMentee = booking.status === "reschedule_proposed" && booking.rescheduleProposedBy === "mentee";

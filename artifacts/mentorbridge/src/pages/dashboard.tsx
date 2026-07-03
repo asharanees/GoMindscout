@@ -379,12 +379,13 @@ function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: {
   const statusLabel = STATUS_LABELS[booking.status] ?? booking.status.replace(/_/g, " ");
   const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
+  const meetingStarted = booking.hasMeetingRoom && booking.scheduledAt && new Date(booking.scheduledAt) <= new Date();
   const canReview = REVIEWABLE_STATUSES.includes(booking.status) && !booking.hasReview;
   const canChat = !["pending_payment", "awaiting_mentor_approval", "counter_proposed", "cancelled", "refunded"].includes(booking.status);
   const canDispute = ["confirmed", "paid_pending_session", "session_completed", "paid", "scheduled", "completed"].includes(booking.status) && !booking.hasDispute;
-  const canCancel = ["awaiting_mentor_approval", "confirmed", "paid_pending_session", "pending_payment", "paid", "scheduled"].includes(booking.status);
+  const canCancel = ["awaiting_mentor_approval", "confirmed", "paid_pending_session", "pending_payment", "paid", "scheduled"].includes(booking.status) && !meetingStarted;
   const canJoin = booking.hasMeetingRoom && canChat && onMeeting;
-  const canProposeReschedule = ["confirmed", "paid_pending_session", "paid", "scheduled"].includes(booking.status) && booking.hasMeetingRoom;
+  const canProposeReschedule = ["confirmed", "paid_pending_session", "paid", "scheduled"].includes(booking.status) && booking.hasMeetingRoom && !meetingStarted;
 
   function handleCancel() {
     if (!confirm("Are you sure you want to cancel this booking? Refund policy applies.")) return;
