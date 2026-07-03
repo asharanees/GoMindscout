@@ -86,6 +86,58 @@ async function enrichBooking(booking: any) {
   };
 }
 
+async function checkAndAutoCompleteSessions() {
+  const active = await db.select().from(bookingsTable)
+    .where(and(
+      sql`${bookingsTable.status} IN ('confirmed','paid_pending_session','paid','scheduled')`,
+      sql`${bookingsTable.meetingLink} IS NOT NULL`,
+      sql`${bookingsTable.scheduledAt} IS NOT NULL`
+    ));
+
+  for (const booking of active) {
+    const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
+    const durationMs = (pkg?.durationMinutes ?? 60) * 60 * 1000;
+    const endTime = new Date(booking.scheduledAt!).getTime() + durationMs;
+    if (Date.now() < endTime) continue;
+
+    const completedAt = new Date();
+    await db.update(bookingsTable)
+      .set({ status: "session_completed", sessionCompletedAt: completedAt })
+      .where(eq(bookingsTable.id, booking.id));
+
+    if (booking.meetingLink) deleteMeetingRoom(booking.meetingLink).catch(() => {});
+
+    try {
+      const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
+      const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
+      const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+
+      const summaryArgs = {
+        menteeName: menteeUser?.fullName ?? "Mentee",
+        mentorName: mentorUser?.fullName ?? "Mentor",
+        packageName: pkg?.title ?? "Mentorship Session",
+        durationMinutes: pkg?.durationMinutes ?? null,
+        scheduledAt: booking.scheduledAt?.toISOString() ?? null,
+        amount: Number(booking.amount),
+        mentorEarning: booking.mentorEarning ? Number(booking.mentorEarning) : null,
+        bookingId: booking.id,
+      };
+
+      const emails: Promise<void>[] = [];
+      if (menteeUser?.email) emails.push(sendEmail(menteeUser.email,
+        `Your GoMindscout session with ${summaryArgs.mentorName} is complete`,
+        sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee" })));
+      if (mentorUser?.email) emails.push(sendEmail(mentorUser.email,
+        `Session completed - ${summaryArgs.menteeName} | GoMindscout`,
+        sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor" })));
+      emails.push(sendEmail("support@gomindscout.com",
+        `Session #${booking.id} auto-completed - ${summaryArgs.mentorName} & ${summaryArgs.menteeName}`,
+        sessionSummaryEmail({ ...summaryArgs, recipientName: "Support", role: "support" })));
+      await Promise.all(emails);
+    } catch (_) {}
+  }
+}
+
 // GET /api/bookings
 router.get("/", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
@@ -93,6 +145,7 @@ router.get("/", requireAuth, async (req, res) => {
 
   try {
     checkAndAutoReleasePayouts().catch(() => {});
+    checkAndAutoCompleteSessions().catch(() => {});
 
     const user = await getUserByClerkId(userId!);
     if (!user) { res.status(404).json({ error: "User not found" }); return; }
