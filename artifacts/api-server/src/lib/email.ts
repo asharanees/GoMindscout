@@ -274,6 +274,78 @@ export function chatMessageEmail({
 <p style="text-align:center;margin:24px 0;"><a href="${appUrl("/dashboard")}" style="${CTA}">View Message</a></p>`);
 }
 
+export function sessionSummaryEmail({
+  recipientName,
+  role,
+  menteeName,
+  mentorName,
+  packageName,
+  durationMinutes,
+  scheduledAt,
+  amount,
+  mentorEarning,
+  bookingId,
+}: {
+  recipientName: string;
+  role: "mentee" | "mentor" | "support";
+  menteeName: string;
+  mentorName: string;
+  packageName: string;
+  durationMinutes: number | null;
+  scheduledAt: string | null;
+  amount: number;
+  mentorEarning: number | null;
+  bookingId: number;
+}): string {
+  const sessionDate = scheduledAt
+    ? new Date(scheduledAt).toLocaleString("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" }) + " UTC"
+    : "—";
+  const duration = durationMinutes ? `${durationMinutes} min` : "—";
+
+  let intro = "";
+  if (role === "mentee") {
+    intro = `<p style="font-size:15px;">Hi ${recipientName},</p><p style="font-size:15px;line-height:1.6;">Your session with <strong>${mentorName}</strong> has been marked as completed. Here's a summary:</p>`;
+  } else if (role === "mentor") {
+    intro = `<p style="font-size:15px;">Hi ${recipientName},</p><p style="font-size:15px;line-height:1.6;">Your session with <strong>${menteeName}</strong> has been completed. Here's a summary:</p>`;
+  } else {
+    intro = `<p style="font-size:15px;">Session #${bookingId} has been marked completed. Summary below:</p>`;
+  }
+
+  const rows = [
+    ["Mentee", menteeName],
+    ["Mentor", mentorName],
+    ["Package", packageName],
+    ["Duration", duration],
+    ["Session Date", sessionDate],
+    ["Amount Paid", `$${Number(amount).toFixed(2)}`],
+    ...(role !== "mentee" && mentorEarning != null ? [["Mentor Earnings (80%)", `$${Number(mentorEarning).toFixed(2)}`]] : [] as [string, string][]),
+  ];
+
+  const tableRows = rows.map(([label, val]) =>
+    `<tr><td style="padding:10px 16px;font-size:13px;color:#666;width:45%;border-bottom:1px solid #eee;">${label}</td><td style="padding:10px 16px;font-size:14px;font-weight:600;border-bottom:1px solid #eee;">${val}</td></tr>`
+  ).join("");
+
+  const dashLink = role === "mentor"
+    ? appUrl("/mentor/dashboard")
+    : appUrl("/dashboard");
+
+  const ctaLabel = role === "mentee"
+    ? "Leave a Review"
+    : role === "mentor"
+    ? "View Dashboard"
+    : appUrl(`/admin`);
+
+  return baseEmail("Session Completed", `
+${intro}
+<table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f8f9fa;border-radius:8px;overflow:hidden;">
+  ${tableRows}
+</table>
+${role !== "support" ? `<p style="text-align:center;margin:24px 0;"><a href="${dashLink}" style="${CTA}">${ctaLabel}</a></p>` : ""}
+${role === "mentee" ? `<p style="font-size:13px;color:#555;line-height:1.6;">If you have any issues with this session, you can raise a dispute from your dashboard within 48 hours of completion.</p>` : ""}
+${role === "mentor" ? `<p style="font-size:13px;color:#555;line-height:1.6;">Your earnings will be released automatically 48 hours after session completion, provided no dispute is raised.</p>` : ""}
+`);
+}
+
 export function paymentConfirmedMentorEmail({
   mentorName,
   menteeName,

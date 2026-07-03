@@ -7,7 +7,7 @@ import { createMeetingRoom, deleteMeetingRoom } from "../lib/meeting";
 import {
   sendEmail, meetingConfirmedEmail, bookingRequestEmail, bookingRejectedEmail,
   counterProposedEmail, counterDeclinedEmail, paymentConfirmedMentorEmail,
-  rescheduleProposedEmail,
+  rescheduleProposedEmail, sessionSummaryEmail,
 } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 
@@ -237,7 +237,6 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
 
     if (status === "session_completed") {
       updateData.sessionCompletedAt = new Date();
-      // Expire/delete the meeting room since session is done
       if (existing.meetingLink) {
         deleteMeetingRoom(existing.meetingLink).catch(() => {});
       }
@@ -245,6 +244,53 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
 
     const [updated] = await db.update(bookingsTable).set(updateData).where(eq(bookingsTable.id, bookingId)).returning();
     if (!updated) { res.status(404).json({ error: "Booking not found" }); return; }
+
+    if (status === "session_completed") {
+      try {
+        const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, existing.menteeId)).limit(1);
+        const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, existing.mentorId)).limit(1);
+        const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+        const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, existing.packageId)).limit(1);
+
+        const summaryArgs = {
+          menteeName: menteeUser?.fullName ?? "Mentee",
+          mentorName: mentorUser?.fullName ?? "Mentor",
+          packageName: pkg?.title ?? "Mentorship Session",
+          durationMinutes: pkg?.durationMinutes ?? null,
+          scheduledAt: existing.scheduledAt?.toISOString() ?? null,
+          amount: Number(existing.amount),
+          mentorEarning: existing.mentorEarning ? Number(existing.mentorEarning) : null,
+          bookingId,
+        };
+
+        const emails: Promise<void>[] = [];
+
+        if (menteeUser?.email) {
+          emails.push(sendEmail(
+            menteeUser.email,
+            `Your GoMindscout session with ${summaryArgs.mentorName} is complete`,
+            sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee" })
+          ));
+        }
+        if (mentorUser?.email) {
+          emails.push(sendEmail(
+            mentorUser.email,
+            `Session completed - ${summaryArgs.menteeName} | GoMindscout`,
+            sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor" })
+          ));
+        }
+        emails.push(sendEmail(
+          "support@gomindscout.com",
+          `Session #${bookingId} completed - ${summaryArgs.mentorName} & ${summaryArgs.menteeName}`,
+          sessionSummaryEmail({ ...summaryArgs, recipientName: "Support", role: "support" })
+        ));
+
+        await Promise.all(emails);
+      } catch (emailErr) {
+        req.log.warn({ emailErr }, "Failed to send session summary emails");
+      }
+    }
+
     res.json(await enrichBooking(updated));
   } catch (err) {
     req.log.error({ err }, "Error updating booking status");
