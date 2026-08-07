@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { db, bookingsTable, usersTable, mentorProfilesTable, packagesTable } from "@workspace/db";
+import { db, bookingsTable, usersTable, mentorProfilesTable, packagesTable, enrollmentsTable, groupSessionsTable, coursesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { createNotification } from "../lib/notifications";
@@ -35,6 +35,40 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
+
+    // Handle enrollment payments (group sessions and courses)
+    const enrollmentId = session.metadata?.enrollmentId;
+    if (enrollmentId) {
+      const eid = parseInt(enrollmentId);
+      const [enrollment] = await db.select().from(enrollmentsTable).where(eq(enrollmentsTable.id, eid)).limit(1);
+      if (enrollment) {
+        await db.update(enrollmentsTable).set({ status: "enrolled", stripeSessionId: session.id }).where(eq(enrollmentsTable.id, eid));
+        logger.info({ enrollmentId }, "Enrollment confirmed via webhook");
+
+        // Increment enrolled count
+        if (enrollment.groupSessionId) {
+          const [gs] = await db.select().from(groupSessionsTable).where(eq(groupSessionsTable.id, enrollment.groupSessionId)).limit(1);
+          if (gs) {
+            await db.update(groupSessionsTable).set({ enrolledCount: gs.enrolledCount + 1 }).where(eq(groupSessionsTable.id, gs.id));
+          }
+        }
+        if (enrollment.courseId) {
+          const [course] = await db.select().from(coursesTable).where(eq(coursesTable.id, enrollment.courseId)).limit(1);
+          if (course) {
+            await db.update(coursesTable).set({ enrolledCount: course.enrolledCount + 1 }).where(eq(coursesTable.id, course.id));
+          }
+        }
+
+        createNotification({
+          userId: enrollment.userId,
+          type: "payment_confirmed",
+          title: "Enrollment confirmed",
+          message: "Your enrollment was confirmed. Check your dashboard.",
+          link: "/dashboard",
+        }).catch(() => {});
+      }
+    }
+
     const bookingId = session.metadata?.bookingId;
     if (bookingId) {
       const bid = parseInt(bookingId);

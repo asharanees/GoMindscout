@@ -16,6 +16,9 @@ import payoutsRouter from "./payouts";
 import availabilityRouter from "./availability";
 import notificationsRouter from "./notifications";
 import meetingsRouter from "./meetings";
+import groupSessionsRouter from "./group-sessions";
+import coursesRouter from "./courses";
+import enrollmentsRouter from "./enrollments";
 
 const router: IRouter = Router();
 
@@ -39,6 +42,10 @@ router.use("/chat", chatRouter);
 router.use("/disputes", disputesRouter);
 router.use("/payouts", payoutsRouter);
 router.use("/notifications", notificationsRouter);
+
+router.use("/group-sessions", groupSessionsRouter);
+router.use("/courses", coursesRouter);
+router.use("/enrollments", enrollmentsRouter);
 
 // Admin auth (login/logout/me) - no session required
 router.use("/admin", adminAuthRouter);

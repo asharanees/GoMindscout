@@ -28,6 +28,9 @@ import BecomeAMentorPage from "@/pages/become-a-mentor";
 import TermsPage from "@/pages/terms";
 import PrivacyPage from "@/pages/privacy";
 import ContactPage from "@/pages/contact";
+import LearnPage from "@/pages/learn";
+import LearnSessionPage from "@/pages/learn-session";
+import LearnCoursePage from "@/pages/learn-course";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,6 +127,9 @@ function ClerkProviderWithRoutes() {
           <Route path="/about" component={AboutPage} />
           <Route path="/how-it-works" component={HowItWorksPage} />
           <Route path="/become-a-mentor" component={BecomeAMentorPage} />
+          <Route path="/learn" component={LearnPage} />
+          <Route path="/learn/sessions/:id" component={LearnSessionPage} />
+          <Route path="/learn/courses/:id" component={LearnCoursePage} />
           <Route path="/terms" component={TermsPage} />
           <Route path="/privacy" component={PrivacyPage} />
           <Route path="/contact" component={ContactPage} />

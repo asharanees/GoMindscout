@@ -629,6 +629,194 @@ export interface AdminStats {
   recentBookings?: number;
 }
 
+export type GroupSessionStatus =
+  (typeof GroupSessionStatus)[keyof typeof GroupSessionStatus];
+
+export const GroupSessionStatus = {
+  scheduled: "scheduled",
+  live: "live",
+  completed: "completed",
+  cancelled: "cancelled",
+} as const;
+
+export interface GroupSession {
+  id: number;
+  mentorId: number;
+  /** @nullable */
+  courseId?: number | null;
+  /** @nullable */
+  categoryId?: number | null;
+  /** @nullable */
+  categoryName?: string | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  price: number;
+  maxSeats: number;
+  enrolledCount: number;
+  /** @nullable */
+  scheduledAt?: string | null;
+  durationMinutes: number;
+  /** @nullable */
+  meetingLink?: string | null;
+  status: GroupSessionStatus;
+  /** @nullable */
+  thumbnailUrl?: string | null;
+  /** @nullable */
+  level?: string | null;
+  /** @nullable */
+  sessionOrder?: number | null;
+  isMasterclass: boolean;
+  /** @nullable */
+  mentorName?: string | null;
+  /** @nullable */
+  mentorAvatarUrl?: string | null;
+  /** @nullable */
+  mentorHeadline?: string | null;
+  isEnrolled: boolean;
+  createdAt: string;
+}
+
+export interface GroupSessionInput {
+  courseId?: number;
+  categoryId?: number;
+  title: string;
+  description?: string;
+  price?: number;
+  maxSeats?: number;
+  scheduledAt?: string;
+  durationMinutes: number;
+  thumbnailUrl?: string;
+  level?: string;
+  sessionOrder?: number;
+}
+
+export interface GroupSessionUpdate {
+  title?: string;
+  description?: string;
+  price?: number;
+  maxSeats?: number;
+  scheduledAt?: string;
+  durationMinutes?: number;
+  thumbnailUrl?: string;
+  level?: string;
+  status?: string;
+}
+
+export interface GroupSessionListResponse {
+  sessions: GroupSession[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CourseStatus = (typeof CourseStatus)[keyof typeof CourseStatus];
+
+export const CourseStatus = {
+  draft: "draft",
+  published: "published",
+  archived: "archived",
+} as const;
+
+export interface Course {
+  id: number;
+  mentorId: number;
+  /** @nullable */
+  categoryId?: number | null;
+  /** @nullable */
+  categoryName?: string | null;
+  title: string;
+  /** @nullable */
+  description?: string | null;
+  price: number;
+  maxSeats: number;
+  enrolledCount: number;
+  status: CourseStatus;
+  /** @nullable */
+  thumbnailUrl?: string | null;
+  /** @nullable */
+  level?: string | null;
+  totalSessions: number;
+  sessions?: GroupSession[];
+  /** @nullable */
+  mentorName?: string | null;
+  /** @nullable */
+  mentorAvatarUrl?: string | null;
+  /** @nullable */
+  mentorHeadline?: string | null;
+  isEnrolled: boolean;
+  createdAt: string;
+}
+
+export interface CourseInput {
+  categoryId?: number;
+  title: string;
+  description?: string;
+  price: number;
+  maxSeats?: number;
+  thumbnailUrl?: string;
+  level?: string;
+}
+
+export interface CourseUpdate {
+  title?: string;
+  description?: string;
+  price?: number;
+  maxSeats?: number;
+  thumbnailUrl?: string;
+  level?: string;
+  status?: string;
+}
+
+export interface CourseListResponse {
+  courses: Course[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type EnrollmentStatus =
+  (typeof EnrollmentStatus)[keyof typeof EnrollmentStatus];
+
+export const EnrollmentStatus = {
+  pending_payment: "pending_payment",
+  enrolled: "enrolled",
+  cancelled: "cancelled",
+  completed: "completed",
+} as const;
+
+export interface Enrollment {
+  id: number;
+  userId: number;
+  /** @nullable */
+  groupSessionId?: number | null;
+  /** @nullable */
+  courseId?: number | null;
+  status: EnrollmentStatus;
+  amount: number;
+  platformFee: number;
+  /** @nullable */
+  mentorEarning?: number | null;
+  /** @nullable */
+  stripeSessionId?: string | null;
+  /** @nullable */
+  userName?: string | null;
+  /** @nullable */
+  userAvatarUrl?: string | null;
+  /** @nullable */
+  sessionTitle?: string | null;
+  /** @nullable */
+  courseTitle?: string | null;
+  /** @nullable */
+  scheduledAt?: string | null;
+  createdAt: string;
+}
+
+export interface EnrollWithCheckout {
+  enrollment: Enrollment;
+  checkoutUrl: string;
+}
+
 export type ListMentorsParams = {
   search?: string;
   category?: string;
@@ -686,4 +874,31 @@ export type AdminGetUserDetails200 = { [key: string]: unknown };
 
 export type MarkAllNotificationsRead200 = {
   success: boolean;
+};
+
+export type ListGroupSessionsParams = {
+  mentorId?: number;
+  categoryId?: number;
+  isMasterclass?: boolean;
+  status?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type StartGroupSession200 = {
+  meetingLink: string;
+};
+
+export type GetGroupSessionToken200 = {
+  /** @nullable */
+  token?: string | null;
+  meetingLink: string;
+  isOwner: boolean;
+};
+
+export type ListCoursesParams = {
+  mentorId?: number;
+  categoryId?: number;
+  page?: number;
+  limit?: number;
 };

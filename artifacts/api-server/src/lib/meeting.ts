@@ -68,21 +68,13 @@ export async function deleteMeetingRoom(roomUrl: string): Promise<void> {
   }
 }
 
-export async function createMeetingToken(
-  roomUrl: string,
-  userName: string,
-  userId: string,
-  scheduledAt?: Date | null,
-  durationMinutes?: number | null,
-): Promise<string | null> {
+export async function createMeetingToken(roomUrl: string, userName: string, userId: string, isOwner = false): Promise<string | null> {
   if (!DAILY_API_KEY) return null;
   try {
     const roomName = roomUrl.split("/").pop();
     if (!roomName) return null;
 
-    const sessionDuration = (durationMinutes ?? 60) * 60;
-    const expBase = scheduledAt ? scheduledAt.getTime() / 1000 : Math.floor(Date.now() / 1000);
-    const tokenExp = Math.floor(expBase) + sessionDuration + 15 * 60;
+    const tokenExp = Math.floor(Date.now() / 1000) + 60 * 60 + 15 * 60; // 1h15m from now
 
     const resp = await fetch("https://api.daily.co/v1/meeting-tokens", {
       method: "POST",
@@ -96,7 +88,7 @@ export async function createMeetingToken(
           user_name: userName,
           user_id: userId,
           exp: tokenExp,
-          is_owner: false,
+          is_owner: isOwner,
           eject_at_token_exp: true,
         },
       }),

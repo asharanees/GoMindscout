@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useGetMentorDashboardStats,
   useListMyBookings,
@@ -27,16 +28,26 @@ import {
   useRejectBooking,
   useCounterProposeBooking,
   useDeleteMyMentorProfile,
+  useListMyGroupSessions,
+  useListMyCourses,
+  useCreateGroupSession,
+  useCreateCourse,
+  useStartGroupSession,
+  useCompleteGroupSession,
   getListMyBookingsQueryKey,
   getGetMentorDashboardStatsQueryKey,
   getGetMentorPayoutsQueryKey,
+  getListMyGroupSessionsQueryKey,
+  getListMyCoursesQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare,
-  Wallet, ArrowDownToLine, Video, ThumbsUp, ThumbsDown, RotateCcw, Trash2,
+  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw, Trash2, BookOpen, PlusCircle,
 } from "lucide-react";
+
+import GroupMeetingRoom from "@/components/GroupMeetingRoom";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
@@ -676,16 +687,201 @@ function DeleteMentorProfileDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CreateMasterclassDialog({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [maxSeats, setMaxSeats] = useState("");
+  const [duration, setDuration] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [level, setLevel] = useState("All Levels");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: createGroupSession, isPending } = useCreateGroupSession();
+
+  function submit() {
+    if (!title || !duration || !scheduledAt) {
+      toast({ title: "Please fill all required fields", variant: "destructive" }); return;
+    }
+    createGroupSession(
+      { data: {
+        title,
+        description,
+        price: Number(price) || 0,
+        maxSeats: Number(maxSeats) || 50,
+        durationMinutes: Number(duration),
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        level
+      }},
+      {
+        onSuccess: () => {
+          toast({ title: "Masterclass created!" });
+          queryClient.invalidateQueries({ queryKey: getListMyGroupSessionsQueryKey() });
+          onClose();
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+      }
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>New Masterclass</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Title *</Label>
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Advanced Product Strategy" />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="What will they learn?" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Price ($)</Label>
+              <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 50" />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Seats</Label>
+              <Input type="number" min="1" value={maxSeats} onChange={e => setMaxSeats(e.target.value)} placeholder="e.g. 30" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Duration (mins) *</Label>
+              <Input type="number" min="15" value={duration} onChange={e => setDuration(e.target.value)} placeholder="e.g. 60" />
+            </div>
+            <div className="space-y-2">
+              <Label>Level</Label>
+              <Select value={level} onValueChange={setLevel}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All Levels">All Levels</SelectItem>
+                  <SelectItem value="Beginner">Beginner</SelectItem>
+                  <SelectItem value="Intermediate">Intermediate</SelectItem>
+                  <SelectItem value="Advanced">Advanced</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Schedule Date & Time *</Label>
+            <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={isPending}>{isPending ? "Creating..." : "Create Masterclass"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CreateCourseDialog({ onClose }: { onClose: () => void }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [maxSeats, setMaxSeats] = useState("");
+  const [level, setLevel] = useState("All Levels");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { mutate: createCourse, isPending } = useCreateCourse();
+
+  function submit() {
+    if (!title) {
+      toast({ title: "Title is required", variant: "destructive" }); return;
+    }
+    createCourse(
+      { data: {
+        title,
+        description,
+        price: Number(price) || 0,
+        maxSeats: Number(maxSeats) || 50,
+        level
+      }},
+      {
+        onSuccess: () => {
+          toast({ title: "Course created!" });
+          queryClient.invalidateQueries({ queryKey: getListMyCoursesQueryKey() });
+          onClose();
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+      }
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>New Course</DialogTitle></DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Title *</Label>
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. 4-Week UX Research Bootcamp" />
+          </div>
+          <div className="space-y-2">
+            <Label>Description</Label>
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Course details..." />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Total Price ($)</Label>
+              <Input type="number" min="0" value={price} onChange={e => setPrice(e.target.value)} placeholder="e.g. 299" />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Seats</Label>
+              <Input type="number" min="1" value={maxSeats} onChange={e => setMaxSeats(e.target.value)} placeholder="e.g. 20" />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Level</Label>
+            <Select value={level} onValueChange={setLevel}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Levels">All Levels</SelectItem>
+                <SelectItem value="Beginner">Beginner</SelectItem>
+                <SelectItem value="Intermediate">Intermediate</SelectItem>
+                <SelectItem value="Advanced">Advanced</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={isPending}>{isPending ? "Creating..." : "Create Course"}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MentorDashboardContent() {
+  const [activeTab, setActiveTab] = useState("1on1");
   const [linkBooking, setLinkBooking] = useState<any>(null);
   const [chatBookingId, setChatBookingId] = useState<number | null>(null);
   const [meetingBooking, setMeetingBooking] = useState<any>(null);
+  const [activeGroupSessionId, setActiveGroupSessionId] = useState<number | null>(null);
   const [payoutOpen, setPayoutOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [chatUnread, setChatUnread] = useState<Record<number, number>>({});
+  const [createMasterclassOpen, setCreateMasterclassOpen] = useState(false);
+  const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
-  const { data: payouts, isLoading: payoutsLoading } = useGetMentorPayouts();
+  const { data: payoutInfo, isLoading: payoutsLoading } = useGetMentorPayouts();
+
+  const { data: myGroupSessionsData, isLoading: groupSessionsLoading } = useListMyGroupSessions();
+  const { data: myCoursesData, isLoading: coursesLoading } = useListMyCourses();
+
+  const myGroupSessions = myGroupSessionsData ?? [];
+  const myCourses = myCoursesData ?? [];
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { mutate: startGroupSession, isPending: startingGroupSession } = useStartGroupSession();
+  const { mutate: completeGroupSession, isPending: completingGroupSession } = useCompleteGroupSession();
 
   useEffect(() => {
     let cancelled = false;
@@ -700,12 +896,31 @@ function MentorDashboardContent() {
     return () => { cancelled = true; clearInterval(id); };
   }, []);
 
+  function handleStartGroupSession(sessionId: number) {
+    startGroupSession({ sessionId }, {
+      onSuccess: () => {
+        toast({ title: "Session started!" });
+        queryClient.invalidateQueries({ queryKey: getListMyGroupSessionsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+    });
+  }
+
+  function handleCompleteGroupSession(sessionId: number) {
+    completeGroupSession({ sessionId }, {
+      onSuccess: () => {
+        toast({ title: "Session marked complete" });
+        queryClient.invalidateQueries({ queryKey: getListMyGroupSessionsQueryKey() });
+      },
+      onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" })
+    });
+  }
+
   const awaitingApproval = (bookings ?? []).filter((b: any) => b.status === "awaiting_mentor_approval");
   const active = (bookings ?? []).filter((b: any) => ["confirmed", "paid_pending_session", "paid", "scheduled", "reschedule_proposed"].includes(b.status));
   const inProgress = (bookings ?? []).filter((b: any) => b.status === "session_completed");
   const history = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded", "under_review", "disputed"].includes(b.status));
 
-  const payoutInfo = stats as any;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -750,73 +965,216 @@ function MentorDashboardContent() {
           )}
         </div>
 
-        {/* Payouts */}
-        {(payoutsLoading || (payouts && (payouts as any[]).length > 0)) && (
-          <Card className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Wallet className="h-5 w-5 text-primary" />
-              <h2 className="font-semibold text-foreground">Payout History</h2>
-            </div>
-            {payoutsLoading ? <Skeleton className="h-16" /> : (
-              <div className="space-y-2">
-                {(payouts as any[]).map((p: any) => (
-                  <div key={p.id} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                    <div>
-                      <p className="text-sm font-medium">${Number(p.amount).toFixed(2)} via {p.method?.replace("_", " ")}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    <Badge className={`text-xs ${PAYOUT_STATUS_COLORS[p.status] ?? "bg-gray-100 text-gray-800"}`}>{p.status?.replace("_", " ")}</Badge>
-                  </div>
-                ))}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex justify-between items-center mb-6">
+            <TabsList className="grid w-[400px] grid-cols-2">
+              <TabsTrigger value="1on1" data-testid="tab-1on1">1-on-1 Bookings</TabsTrigger>
+              <TabsTrigger value="group" data-testid="tab-group">Group Classes</TabsTrigger>
+            </TabsList>
+            
+            {activeTab === "group" && (
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setCreateMasterclassOpen(true)} data-testid="create-masterclass-btn">
+                  <PlusCircle className="h-4 w-4" /> New Masterclass
+                </Button>
+                <Button size="sm" className="gap-1.5" onClick={() => setCreateCourseOpen(true)} data-testid="create-course-btn">
+                  <PlusCircle className="h-4 w-4" /> New Course
+                </Button>
               </div>
             )}
-          </Card>
-        )}
+          </div>
 
-        {/* Awaiting Approval */}
-        {(bookingsLoading || awaitingApproval.length > 0) && (
-          <Card className="p-6 border-orange-200 bg-orange-50/30">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-5 w-5 text-orange-600" />
-              <h2 className="font-semibold text-foreground">Awaiting Your Approval</h2>
-              {awaitingApproval.length > 0 && (
-                <span className="ml-auto text-xs font-semibold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">{awaitingApproval.length}</span>
+          <TabsContent value="1on1" className="space-y-8 mt-0 focus-visible:outline-none focus-visible:ring-0">
+            {/* Earnings & Payout */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Wallet className="h-5 w-5 text-primary" />
+                  <h2 className="font-semibold text-foreground">Earnings & Payouts</h2>
+                </div>
+                <Button
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => setPayoutOpen(true)}
+                  disabled={!payoutInfo || payoutInfo.withdrawableBalance <= 0}
+                  data-testid="request-payout-btn"
+                >
+                  <ArrowDownToLine className="h-3.5 w-3.5" /> Request Payout
+                </Button>
+              </div>
+
+              {payoutsLoading ? <Skeleton className="h-16" /> : (
+                <>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <p className="text-xs text-green-700 font-medium">Available to withdraw</p>
+                      <p className="text-2xl font-bold text-green-800">${(payoutInfo?.withdrawableBalance ?? 0).toFixed(2)}</p>
+                    </div>
+                    <div className="bg-muted rounded-lg p-4">
+                      <p className="text-xs text-muted-foreground font-medium">Pending payout</p>
+                      <p className="text-2xl font-bold text-foreground">${(payoutInfo?.pendingBalance ?? 0).toFixed(2)}</p>
+                    </div>
+                  </div>
+
+                  {payoutInfo?.requests && payoutInfo.requests.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-foreground mb-2">Payout History</h3>
+                      <div className="space-y-2">
+                        {payoutInfo.requests.slice(0, 5).map((req: any) => (
+                          <div key={req.id} className="flex items-center justify-between text-sm border rounded-lg px-3 py-2">
+                            <div>
+                              <span className="font-medium">${Number(req.amount).toFixed(2)}</span>
+                              <span className="text-muted-foreground ml-2 text-xs capitalize">{req.method.replace("_", " ")}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {req.adminNote && <span className="text-xs text-muted-foreground">{req.adminNote}</span>}
+                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PAYOUT_STATUS_COLORS[req.status] ?? "bg-gray-100 text-gray-800"}`}>
+                                {req.status.replace("_", " ")}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{new Date(req.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
-            </div>
-            <p className="text-xs text-muted-foreground mb-4">Review and approve, counter-propose, or reject new booking requests.</p>
-            {bookingsLoading ? <Skeleton className="h-20" /> : awaitingApproval.map((b: any) => <ApprovalRow key={b.id} booking={b} />)}
-          </Card>
-        )}
+            </Card>
 
-        {/* Active sessions */}
-        <Card className="p-6">
-          <h2 className="font-semibold text-foreground mb-4">Active Sessions</h2>
-          {bookingsLoading ? <Skeleton className="h-20" /> : active.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
-              No active sessions right now
-            </div>
-          ) : (
-            active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)
-          )}
-        </Card>
+            {/* Awaiting Approval */}
+            {(bookingsLoading || awaitingApproval.length > 0) && (
+              <Card className="p-6 border-orange-200 bg-orange-50/30">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-5 w-5 text-orange-600" />
+                  <h2 className="font-semibold text-foreground">Awaiting Your Approval</h2>
+                  {awaitingApproval.length > 0 && (
+                    <span className="ml-auto text-xs font-semibold bg-orange-100 text-orange-800 px-2 py-0.5 rounded-full">
+                      {awaitingApproval.length}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mb-4">Review and approve, counter-propose, or reject new booking requests.</p>
+                {bookingsLoading ? <Skeleton className="h-20" /> : (
+                  awaitingApproval.map((b: any) => <ApprovalRow key={b.id} booking={b} />)
+                )}
+              </Card>
+            )}
 
-        {/* Awaiting 48h window */}
-        {inProgress.length > 0 && (
-          <Card className="p-6">
-            <h2 className="font-semibold text-foreground mb-1">Awaiting Payout Release</h2>
-            <p className="text-xs text-muted-foreground mb-4">Payout auto-releases 48h after session completion if no dispute is raised.</p>
-            {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
-          </Card>
-        )}
+            {/* Active sessions */}
+            <Card className="p-6">
+              <h2 className="font-semibold text-foreground mb-4">Active Sessions</h2>
+              {bookingsLoading ? <Skeleton className="h-20" /> : active.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <Clock className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                  No active sessions right now
+                </div>
+              ) : (
+                active.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)
+              )}
+            </Card>
 
-        {/* History */}
-        {history.length > 0 && (
-          <Card className="p-6">
-            <h2 className="font-semibold text-foreground mb-4">Session History</h2>
-            {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} chatUnread={chatUnread} />)}
-          </Card>
-        )}
+            {/* Awaiting 48h window */}
+            {inProgress.length > 0 && (
+              <Card className="p-6">
+                <h2 className="font-semibold text-foreground mb-1">Awaiting Payout Release</h2>
+                <p className="text-xs text-muted-foreground mb-4">Payout auto-releases 48h after session completion if no dispute is raised.</p>
+                {inProgress.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+              </Card>
+            )}
+
+            {/* History */}
+            {history.length > 0 && (
+              <Card className="p-6">
+                <h2 className="font-semibold text-foreground mb-4">Session History</h2>
+                {history.map((b: any) => <BookingRow key={b.id} booking={b} onAddLink={setLinkBooking} onChat={setChatBookingId} onMeeting={setMeetingBooking} />)}
+              </Card>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="group" className="space-y-8 mt-0 focus-visible:outline-none focus-visible:ring-0">
+            <Card className="p-6">
+              <h2 className="font-semibold text-foreground mb-4">My Group Sessions</h2>
+              {groupSessionsLoading ? <Skeleton className="h-20" /> : myGroupSessions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <Video className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                  No group sessions created
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {myGroupSessions.map((session: any) => (
+                    <div key={session.id} className="py-4 border-b border-border last:border-0 flex items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <Link href={`/learn/sessions/${session.id}`} className="font-medium text-sm text-foreground hover:text-primary hover:underline block truncate">
+                          {session.title}
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
+                          <span className="capitalize text-primary/80 font-medium px-2 py-0.5 bg-primary/10 rounded">{session.status}</span>
+                          <span>{session.enrolledCount} / {session.maxSeats} enrolled</span>
+                          {session.scheduledAt && (
+                            <span>{new Date(session.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-end shrink-0">
+                        {session.status === "scheduled" && (
+                          <Button size="sm" onClick={() => handleStartGroupSession(session.id)} disabled={startingGroupSession} className="text-xs h-7 gap-1">
+                            <Video className="h-3 w-3" /> Start Live
+                          </Button>
+                        )}
+                        {session.status === "live" && (
+                          <>
+                            <Button size="sm" variant="destructive" onClick={() => setActiveGroupSessionId(session.id)} className="text-xs h-7 gap-1">
+                              <Video className="h-3 w-3" /> Join Room
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => handleCompleteGroupSession(session.id)} disabled={completingGroupSession} className="text-xs h-7 gap-1">
+                              <CheckCircle className="h-3 w-3" /> Complete
+                            </Button>
+                          </>
+                        )}
+                        {session.status === "completed" && (
+                          <span className="text-xs text-green-600 font-medium">Completed</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="p-6">
+              <h2 className="font-semibold text-foreground mb-4">My Courses</h2>
+              {coursesLoading ? <Skeleton className="h-20" /> : myCourses.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  <BookOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+                  No courses created
+                </div>
+              ) : (
+                <div className="space-y-0">
+                  {myCourses.map((course: any) => (
+                    <div key={course.id} className="py-4 border-b border-border last:border-0 flex items-start gap-4">
+                      <div className="flex-1 min-w-0">
+                        <Link href={`/learn/courses/${course.id}`} className="font-medium text-sm text-foreground hover:text-primary hover:underline block truncate">
+                          {course.title}
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
+                          <span className="capitalize font-medium">{course.status}</span>
+                          <span>{course.enrolledCount} / {course.maxSeats} enrolled</span>
+                          <span>{course.totalSessions} Sessions</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 items-end shrink-0">
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => alert("Edit course dialog here")}>
+                          <Edit className="h-3 w-3" /> Edit
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {linkBooking && <ScheduleSessionDialog booking={linkBooking} onClose={() => setLinkBooking(null)} />}
@@ -830,6 +1188,16 @@ function MentorDashboardContent() {
       )}
       {payoutOpen && <PayoutRequestDialog balance={payoutInfo?.withdrawableBalance ?? 0} onClose={() => setPayoutOpen(false)} />}
       {showDeleteDialog && <DeleteMentorProfileDialog onClose={() => setShowDeleteDialog(false)} />}
+      {activeGroupSessionId && (
+        <GroupMeetingRoom
+          sessionId={activeGroupSessionId}
+          meetingLink=""
+          open={!!activeGroupSessionId}
+          onClose={() => setActiveGroupSessionId(null)}
+        />
+      )}
+      {createMasterclassOpen && <CreateMasterclassDialog onClose={() => setCreateMasterclassOpen(false)} />}
+      {createCourseOpen && <CreateCourseDialog onClose={() => setCreateCourseOpen(false)} />}
 
       <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">
         <Card className="p-6 border-destructive/20">

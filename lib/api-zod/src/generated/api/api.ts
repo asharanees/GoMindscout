@@ -1959,3 +1959,598 @@ export const MarkNotificationReadResponse = zod.object({
   isRead: zod.boolean(),
   createdAt: zod.string(),
 });
+
+/**
+ * @summary List published group sessions and masterclasses
+ */
+export const ListGroupSessionsQueryParams = zod.object({
+  mentorId: zod.coerce.number().optional(),
+  categoryId: zod.coerce.number().optional(),
+  isMasterclass: zod.coerce.boolean().optional(),
+  status: zod.coerce.string().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListGroupSessionsResponse = zod.object({
+  sessions: zod.array(
+    zod.object({
+      id: zod.number(),
+      mentorId: zod.number(),
+      courseId: zod.number().nullish(),
+      categoryId: zod.number().nullish(),
+      categoryName: zod.string().nullish(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      price: zod.number(),
+      maxSeats: zod.number(),
+      enrolledCount: zod.number(),
+      scheduledAt: zod.string().nullish(),
+      durationMinutes: zod.number(),
+      meetingLink: zod.string().nullish(),
+      status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+      thumbnailUrl: zod.string().nullish(),
+      level: zod.string().nullish(),
+      sessionOrder: zod.number().nullish(),
+      isMasterclass: zod.boolean(),
+      mentorName: zod.string().nullish(),
+      mentorAvatarUrl: zod.string().nullish(),
+      mentorHeadline: zod.string().nullish(),
+      isEnrolled: zod.boolean(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create a group session or masterclass (mentor only)
+ */
+export const CreateGroupSessionBody = zod.object({
+  courseId: zod.number().optional(),
+  categoryId: zod.number().optional(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  price: zod.number().optional(),
+  maxSeats: zod.number().optional(),
+  scheduledAt: zod.string().optional(),
+  durationMinutes: zod.number(),
+  thumbnailUrl: zod.string().optional(),
+  level: zod.string().optional(),
+  sessionOrder: zod.number().optional(),
+});
+
+/**
+ * @summary Mentor lists their own group sessions
+ */
+export const ListMyGroupSessionsResponseItem = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  courseId: zod.number().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  scheduledAt: zod.string().nullish(),
+  durationMinutes: zod.number(),
+  meetingLink: zod.string().nullish(),
+  status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  sessionOrder: zod.number().nullish(),
+  isMasterclass: zod.boolean(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListMyGroupSessionsResponse = zod.array(
+  ListMyGroupSessionsResponseItem,
+);
+
+/**
+ * @summary Get a group session by ID
+ */
+export const GetGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const GetGroupSessionResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  courseId: zod.number().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  scheduledAt: zod.string().nullish(),
+  durationMinutes: zod.number(),
+  meetingLink: zod.string().nullish(),
+  status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  sessionOrder: zod.number().nullish(),
+  isMasterclass: zod.boolean(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update a group session (mentor only)
+ */
+export const UpdateGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const UpdateGroupSessionBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  price: zod.number().optional(),
+  maxSeats: zod.number().optional(),
+  scheduledAt: zod.string().optional(),
+  durationMinutes: zod.number().optional(),
+  thumbnailUrl: zod.string().optional(),
+  level: zod.string().optional(),
+  status: zod.string().optional(),
+});
+
+export const UpdateGroupSessionResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  courseId: zod.number().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  scheduledAt: zod.string().nullish(),
+  durationMinutes: zod.number(),
+  meetingLink: zod.string().nullish(),
+  status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  sessionOrder: zod.number().nullish(),
+  isMasterclass: zod.boolean(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a group session (mentor only)
+ */
+export const DeleteGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+/**
+ * @summary Enroll in a group session (creates Stripe checkout)
+ */
+export const EnrollInGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+/**
+ * @summary List enrollees for a group session (mentor only)
+ */
+export const ListGroupSessionEnrollmentsParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const ListGroupSessionEnrollmentsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  groupSessionId: zod.number().nullish(),
+  courseId: zod.number().nullish(),
+  status: zod.enum(["pending_payment", "enrolled", "cancelled", "completed"]),
+  amount: zod.number(),
+  platformFee: zod.number(),
+  mentorEarning: zod.number().nullish(),
+  stripeSessionId: zod.string().nullish(),
+  userName: zod.string().nullish(),
+  userAvatarUrl: zod.string().nullish(),
+  sessionTitle: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  scheduledAt: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListGroupSessionEnrollmentsResponse = zod.array(
+  ListGroupSessionEnrollmentsResponseItem,
+);
+
+/**
+ * @summary Mentor starts the live session (creates Daily.co room)
+ */
+export const StartGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const StartGroupSessionResponse = zod.object({
+  meetingLink: zod.string(),
+});
+
+/**
+ * @summary Get meeting token for a group session (enrolled user or mentor)
+ */
+export const GetGroupSessionTokenParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const GetGroupSessionTokenResponse = zod.object({
+  token: zod.string().nullish(),
+  meetingLink: zod.string(),
+  isOwner: zod.boolean(),
+});
+
+/**
+ * @summary Mentor marks a group session as completed
+ */
+export const CompleteGroupSessionParams = zod.object({
+  sessionId: zod.coerce.number(),
+});
+
+export const CompleteGroupSessionResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  courseId: zod.number().nullish(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  scheduledAt: zod.string().nullish(),
+  durationMinutes: zod.number(),
+  meetingLink: zod.string().nullish(),
+  status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  sessionOrder: zod.number().nullish(),
+  isMasterclass: zod.boolean(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary List published courses
+ */
+export const ListCoursesQueryParams = zod.object({
+  mentorId: zod.coerce.number().optional(),
+  categoryId: zod.coerce.number().optional(),
+  page: zod.coerce.number().optional(),
+  limit: zod.coerce.number().optional(),
+});
+
+export const ListCoursesResponse = zod.object({
+  courses: zod.array(
+    zod.object({
+      id: zod.number(),
+      mentorId: zod.number(),
+      categoryId: zod.number().nullish(),
+      categoryName: zod.string().nullish(),
+      title: zod.string(),
+      description: zod.string().nullish(),
+      price: zod.number(),
+      maxSeats: zod.number(),
+      enrolledCount: zod.number(),
+      status: zod.enum(["draft", "published", "archived"]),
+      thumbnailUrl: zod.string().nullish(),
+      level: zod.string().nullish(),
+      totalSessions: zod.number(),
+      sessions: zod
+        .array(
+          zod.object({
+            id: zod.number(),
+            mentorId: zod.number(),
+            courseId: zod.number().nullish(),
+            categoryId: zod.number().nullish(),
+            categoryName: zod.string().nullish(),
+            title: zod.string(),
+            description: zod.string().nullish(),
+            price: zod.number(),
+            maxSeats: zod.number(),
+            enrolledCount: zod.number(),
+            scheduledAt: zod.string().nullish(),
+            durationMinutes: zod.number(),
+            meetingLink: zod.string().nullish(),
+            status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+            thumbnailUrl: zod.string().nullish(),
+            level: zod.string().nullish(),
+            sessionOrder: zod.number().nullish(),
+            isMasterclass: zod.boolean(),
+            mentorName: zod.string().nullish(),
+            mentorAvatarUrl: zod.string().nullish(),
+            mentorHeadline: zod.string().nullish(),
+            isEnrolled: zod.boolean(),
+            createdAt: zod.string(),
+          }),
+        )
+        .optional(),
+      mentorName: zod.string().nullish(),
+      mentorAvatarUrl: zod.string().nullish(),
+      mentorHeadline: zod.string().nullish(),
+      isEnrolled: zod.boolean(),
+      createdAt: zod.string(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+});
+
+/**
+ * @summary Create a course (mentor only)
+ */
+export const CreateCourseBody = zod.object({
+  categoryId: zod.number().optional(),
+  title: zod.string(),
+  description: zod.string().optional(),
+  price: zod.number(),
+  maxSeats: zod.number().optional(),
+  thumbnailUrl: zod.string().optional(),
+  level: zod.string().optional(),
+});
+
+/**
+ * @summary Mentor lists their own courses with sessions
+ */
+export const ListMyCoursesResponseItem = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  status: zod.enum(["draft", "published", "archived"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  totalSessions: zod.number(),
+  sessions: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        mentorId: zod.number(),
+        courseId: zod.number().nullish(),
+        categoryId: zod.number().nullish(),
+        categoryName: zod.string().nullish(),
+        title: zod.string(),
+        description: zod.string().nullish(),
+        price: zod.number(),
+        maxSeats: zod.number(),
+        enrolledCount: zod.number(),
+        scheduledAt: zod.string().nullish(),
+        durationMinutes: zod.number(),
+        meetingLink: zod.string().nullish(),
+        status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+        thumbnailUrl: zod.string().nullish(),
+        level: zod.string().nullish(),
+        sessionOrder: zod.number().nullish(),
+        isMasterclass: zod.boolean(),
+        mentorName: zod.string().nullish(),
+        mentorAvatarUrl: zod.string().nullish(),
+        mentorHeadline: zod.string().nullish(),
+        isEnrolled: zod.boolean(),
+        createdAt: zod.string(),
+      }),
+    )
+    .optional(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+export const ListMyCoursesResponse = zod.array(ListMyCoursesResponseItem);
+
+/**
+ * @summary Get a course by ID (includes sessions)
+ */
+export const GetCourseParams = zod.object({
+  courseId: zod.coerce.number(),
+});
+
+export const GetCourseResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  status: zod.enum(["draft", "published", "archived"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  totalSessions: zod.number(),
+  sessions: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        mentorId: zod.number(),
+        courseId: zod.number().nullish(),
+        categoryId: zod.number().nullish(),
+        categoryName: zod.string().nullish(),
+        title: zod.string(),
+        description: zod.string().nullish(),
+        price: zod.number(),
+        maxSeats: zod.number(),
+        enrolledCount: zod.number(),
+        scheduledAt: zod.string().nullish(),
+        durationMinutes: zod.number(),
+        meetingLink: zod.string().nullish(),
+        status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+        thumbnailUrl: zod.string().nullish(),
+        level: zod.string().nullish(),
+        sessionOrder: zod.number().nullish(),
+        isMasterclass: zod.boolean(),
+        mentorName: zod.string().nullish(),
+        mentorAvatarUrl: zod.string().nullish(),
+        mentorHeadline: zod.string().nullish(),
+        isEnrolled: zod.boolean(),
+        createdAt: zod.string(),
+      }),
+    )
+    .optional(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Update a course (mentor only)
+ */
+export const UpdateCourseParams = zod.object({
+  courseId: zod.coerce.number(),
+});
+
+export const UpdateCourseBody = zod.object({
+  title: zod.string().optional(),
+  description: zod.string().optional(),
+  price: zod.number().optional(),
+  maxSeats: zod.number().optional(),
+  thumbnailUrl: zod.string().optional(),
+  level: zod.string().optional(),
+  status: zod.string().optional(),
+});
+
+export const UpdateCourseResponse = zod.object({
+  id: zod.number(),
+  mentorId: zod.number(),
+  categoryId: zod.number().nullish(),
+  categoryName: zod.string().nullish(),
+  title: zod.string(),
+  description: zod.string().nullish(),
+  price: zod.number(),
+  maxSeats: zod.number(),
+  enrolledCount: zod.number(),
+  status: zod.enum(["draft", "published", "archived"]),
+  thumbnailUrl: zod.string().nullish(),
+  level: zod.string().nullish(),
+  totalSessions: zod.number(),
+  sessions: zod
+    .array(
+      zod.object({
+        id: zod.number(),
+        mentorId: zod.number(),
+        courseId: zod.number().nullish(),
+        categoryId: zod.number().nullish(),
+        categoryName: zod.string().nullish(),
+        title: zod.string(),
+        description: zod.string().nullish(),
+        price: zod.number(),
+        maxSeats: zod.number(),
+        enrolledCount: zod.number(),
+        scheduledAt: zod.string().nullish(),
+        durationMinutes: zod.number(),
+        meetingLink: zod.string().nullish(),
+        status: zod.enum(["scheduled", "live", "completed", "cancelled"]),
+        thumbnailUrl: zod.string().nullish(),
+        level: zod.string().nullish(),
+        sessionOrder: zod.number().nullish(),
+        isMasterclass: zod.boolean(),
+        mentorName: zod.string().nullish(),
+        mentorAvatarUrl: zod.string().nullish(),
+        mentorHeadline: zod.string().nullish(),
+        isEnrolled: zod.boolean(),
+        createdAt: zod.string(),
+      }),
+    )
+    .optional(),
+  mentorName: zod.string().nullish(),
+  mentorAvatarUrl: zod.string().nullish(),
+  mentorHeadline: zod.string().nullish(),
+  isEnrolled: zod.boolean(),
+  createdAt: zod.string(),
+});
+
+/**
+ * @summary Delete a course (mentor only)
+ */
+export const DeleteCourseParams = zod.object({
+  courseId: zod.coerce.number(),
+});
+
+/**
+ * @summary Enroll in a course (creates Stripe checkout)
+ */
+export const EnrollInCourseParams = zod.object({
+  courseId: zod.coerce.number(),
+});
+
+/**
+ * @summary List enrollees for a course (mentor only)
+ */
+export const ListCourseEnrollmentsParams = zod.object({
+  courseId: zod.coerce.number(),
+});
+
+export const ListCourseEnrollmentsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  groupSessionId: zod.number().nullish(),
+  courseId: zod.number().nullish(),
+  status: zod.enum(["pending_payment", "enrolled", "cancelled", "completed"]),
+  amount: zod.number(),
+  platformFee: zod.number(),
+  mentorEarning: zod.number().nullish(),
+  stripeSessionId: zod.string().nullish(),
+  userName: zod.string().nullish(),
+  userAvatarUrl: zod.string().nullish(),
+  sessionTitle: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  scheduledAt: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListCourseEnrollmentsResponse = zod.array(
+  ListCourseEnrollmentsResponseItem,
+);
+
+/**
+ * @summary List current user's enrollments (courses and sessions)
+ */
+export const ListMyEnrollmentsResponseItem = zod.object({
+  id: zod.number(),
+  userId: zod.number(),
+  groupSessionId: zod.number().nullish(),
+  courseId: zod.number().nullish(),
+  status: zod.enum(["pending_payment", "enrolled", "cancelled", "completed"]),
+  amount: zod.number(),
+  platformFee: zod.number(),
+  mentorEarning: zod.number().nullish(),
+  stripeSessionId: zod.string().nullish(),
+  userName: zod.string().nullish(),
+  userAvatarUrl: zod.string().nullish(),
+  sessionTitle: zod.string().nullish(),
+  courseTitle: zod.string().nullish(),
+  scheduledAt: zod.string().nullish(),
+  createdAt: zod.string(),
+});
+export const ListMyEnrollmentsResponse = zod.array(
+  ListMyEnrollmentsResponseItem,
+);

@@ -10,3 +10,6 @@ export * from "./chat-messages";
 export * from "./payout-requests";
 export * from "./notifications";
 export * from "./meeting-attendance";
+export * from "./courses";
+export * from "./group-sessions";
+export * from "./enrollments";

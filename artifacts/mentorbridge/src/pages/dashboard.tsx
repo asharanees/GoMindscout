@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useGetMenteeDashboardStats,
   useListMyBookings,
+  useListMyEnrollments,
   useCreateReview,
   useCancelBooking,
   useAcceptCounterProposal,
@@ -27,7 +28,8 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle, ThumbsUp, ThumbsDown, Trash2, Video, RotateCcw } from "lucide-react";
+import { Calendar, Clock, CheckCircle, DollarSign, Star, MessageSquare, ShieldAlert, XCircle, ThumbsUp, ThumbsDown, Trash2, Video, RotateCcw, BookOpen } from "lucide-react";
+import GroupMeetingRoom from "@/components/GroupMeetingRoom";
 
 const STATUS_COLORS: Record<string, string> = {
   pending_payment: "bg-yellow-100 text-yellow-800",
@@ -526,13 +528,16 @@ function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
 }
 
 function DashboardContent() {
+  const [, setLocation] = useLocation();
   const [reviewBooking, setReviewBooking] = useState<any>(null);
   const [chatBookingId, setChatBookingId] = useState<number | null>(null);
   const [meetingBooking, setMeetingBooking] = useState<any>(null);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [chatUnread, setChatUnread] = useState<Record<number, number>>({});
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
+  const { data: enrollmentsData, isLoading: enrollmentsLoading } = useListMyEnrollments();
 
   useEffect(() => {
     let cancelled = false;
@@ -552,6 +557,8 @@ function DashboardContent() {
   const upcoming = (bookings ?? []).filter((b: any) => ACTIVE_STATUSES.includes(b.status) && b.status !== "counter_proposed" && !(b.status === "reschedule_proposed" && b.rescheduleProposedBy === "mentor"));
   const inProgress = (bookings ?? []).filter((b: any) => ["session_completed", "under_review", "disputed"].includes(b.status));
   const past = (bookings ?? []).filter((b: any) => ["payout_released", "completed", "cancelled", "refunded"].includes(b.status));
+  
+  const enrollments = enrollmentsData ?? [];
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -612,6 +619,48 @@ function DashboardContent() {
         )}
 
         <Card className="p-6">
+          <h2 className="font-semibold text-foreground mb-4">My Enrollments (Masterclasses & Courses)</h2>
+          {enrollmentsLoading ? <Skeleton className="h-20" /> : enrollments.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-10 w-10 mx-auto mb-3 text-muted-foreground/50" />
+              <p className="text-sm">No enrollments yet</p>
+              <a href="/learn" className="text-primary text-sm hover:underline mt-1 block">Discover Masterclasses & Courses</a>
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {enrollments.map((e: any) => (
+                <div key={e.id} className="flex items-start gap-4 py-4 border-b border-border last:border-0">
+                  <div className="flex-1 min-w-0">
+                    <button type="button" onClick={() => setLocation(e.courseId ? `/learn/courses/${e.courseId}` : `/learn/sessions/${e.groupSessionId}`)} className="font-medium text-sm text-foreground hover:text-primary hover:underline text-left">
+                      {e.courseTitle || e.sessionTitle || "Class"}
+                    </button>
+                    <p className="text-xs text-muted-foreground">{e.courseId ? "Course Enrollment" : "Masterclass Entry"}</p>
+                    {e.scheduledAt && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <Calendar className="h-3 w-3" /> {new Date(e.scheduledAt).toLocaleDateString()} at {new Date(e.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0 space-y-1.5 flex flex-col items-end">
+                    <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary capitalize">{e.status}</span>
+                    {e.groupSessionId && e.status === "enrolled" && (
+                      <Button size="sm" variant="outline" className="text-xs h-7 px-2 mt-2 gap-1 text-primary border-primary/30 hover:bg-primary hover:text-white" onClick={() => setActiveSessionId(e.groupSessionId)}>
+                        <Video className="h-3 w-3" /> Enter Room
+                      </Button>
+                    )}
+                    {e.courseId && e.status === "enrolled" && (
+                      <Button size="sm" variant="outline" className="text-xs h-7 px-2 mt-2 gap-1" onClick={() => setLocation(`/learn/courses/${e.courseId}`)}>
+                        <BookOpen className="h-3 w-3" /> Go to Course
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card className="p-6">
           <h2 className="font-semibold text-foreground mb-4">Upcoming Sessions</h2>
           {bookingsLoading ? <Skeleton className="h-20" /> : upcoming.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
@@ -647,6 +696,14 @@ function DashboardContent() {
           bookingId={meetingBooking.id}
           open={!!meetingBooking}
           onClose={() => setMeetingBooking(null)}
+        />
+      )}
+      {activeSessionId && (
+        <GroupMeetingRoom
+          sessionId={activeSessionId}
+          meetingLink=""
+          open={!!activeSessionId}
+          onClose={() => setActiveSessionId(null)}
         />
       )}
       {showDeleteDialog && <DeleteAccountDialog onClose={() => setShowDeleteDialog(false)} />}

@@ -36,6 +36,12 @@ tags:
     description: Mentor payout management
   - name: notifications
     description: User notifications
+  - name: courses
+    description: Group courses (multi-session programs)
+  - name: group-sessions
+    description: Group sessions and masterclasses
+  - name: enrollments
+    description: Course and session enrollments
 
 paths:
   /healthz:
@@ -1138,6 +1144,394 @@ paths:
         "404":
           description: Not found
 
+  # ── Group Sessions ──────────────────────────────────────────────────────────
+  /group-sessions:
+    get:
+      operationId: listGroupSessions
+      tags: [group-sessions]
+      summary: List published group sessions and masterclasses
+      parameters:
+        - name: mentorId
+          in: query
+          schema: { type: integer }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: isMasterclass
+          in: query
+          schema: { type: boolean }
+        - name: status
+          in: query
+          schema: { type: string }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Group sessions list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSessionListResponse"
+    post:
+      operationId: createGroupSession
+      tags: [group-sessions]
+      summary: Create a group session or masterclass (mentor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupSessionInput"
+      responses:
+        "201":
+          description: Created group session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSession"
+
+  /group-sessions/my:
+    get:
+      operationId: listMyGroupSessions
+      tags: [group-sessions]
+      summary: Mentor lists their own group sessions
+      responses:
+        "200":
+          description: Own group sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GroupSession"
+
+  /group-sessions/{sessionId}:
+    get:
+      operationId: getGroupSession
+      tags: [group-sessions]
+      summary: Get a group session by ID
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Group session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSession"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateGroupSession
+      tags: [group-sessions]
+      summary: Update a group session (mentor only)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GroupSessionUpdate"
+      responses:
+        "200":
+          description: Updated group session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSession"
+    delete:
+      operationId: deleteGroupSession
+      tags: [group-sessions]
+      summary: Delete a group session (mentor only)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /group-sessions/{sessionId}/enroll:
+    post:
+      operationId: enrollInGroupSession
+      tags: [enrollments]
+      summary: Enroll in a group session (creates Stripe checkout)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Enrollment with checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollWithCheckout"
+
+  /group-sessions/{sessionId}/enrollments:
+    get:
+      operationId: listGroupSessionEnrollments
+      tags: [enrollments]
+      summary: List enrollees for a group session (mentor only)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Enrollments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+
+  /group-sessions/{sessionId}/start:
+    post:
+      operationId: startGroupSession
+      tags: [group-sessions]
+      summary: Mentor starts the live session (creates Daily.co room)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Session started with meeting link
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meetingLink]
+                properties:
+                  meetingLink: { type: string }
+
+  /group-sessions/{sessionId}/token:
+    get:
+      operationId: getGroupSessionToken
+      tags: [group-sessions]
+      summary: Get meeting token for a group session (enrolled user or mentor)
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Meeting token
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [meetingLink, isOwner]
+                properties:
+                  token: { type: ["string", "null"] }
+                  meetingLink: { type: string }
+                  isOwner: { type: boolean }
+        "403":
+          description: Not enrolled
+
+  /group-sessions/{sessionId}/complete:
+    post:
+      operationId: completeGroupSession
+      tags: [group-sessions]
+      summary: Mentor marks a group session as completed
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Completed group session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GroupSession"
+
+  # ── Courses ──────────────────────────────────────────────────────────────────
+  /courses:
+    get:
+      operationId: listCourses
+      tags: [courses]
+      summary: List published courses
+      parameters:
+        - name: mentorId
+          in: query
+          schema: { type: integer }
+        - name: categoryId
+          in: query
+          schema: { type: integer }
+        - name: page
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Courses list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseListResponse"
+    post:
+      operationId: createCourse
+      tags: [courses]
+      summary: Create a course (mentor only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseInput"
+      responses:
+        "201":
+          description: Created course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+
+  /courses/my:
+    get:
+      operationId: listMyCourses
+      tags: [courses]
+      summary: Mentor lists their own courses with sessions
+      responses:
+        "200":
+          description: Own courses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Course"
+
+  /courses/{courseId}:
+    get:
+      operationId: getCourse
+      tags: [courses]
+      summary: Get a course by ID (includes sessions)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Course with sessions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateCourse
+      tags: [courses]
+      summary: Update a course (mentor only)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CourseUpdate"
+      responses:
+        "200":
+          description: Updated course
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Course"
+    delete:
+      operationId: deleteCourse
+      tags: [courses]
+      summary: Delete a course (mentor only)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Deleted
+
+  /courses/{courseId}/enroll:
+    post:
+      operationId: enrollInCourse
+      tags: [enrollments]
+      summary: Enroll in a course (creates Stripe checkout)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "201":
+          description: Enrollment with checkout URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrollWithCheckout"
+
+  /courses/{courseId}/enrollments:
+    get:
+      operationId: listCourseEnrollments
+      tags: [enrollments]
+      summary: List enrollees for a course (mentor only)
+      parameters:
+        - name: courseId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Enrollments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+
+  # ── My Enrollments ───────────────────────────────────────────────────────────
+  /enrollments/my:
+    get:
+      operationId: listMyEnrollments
+      tags: [enrollments]
+      summary: List current user's enrollments (courses and sessions)
+      responses:
+        "200":
+          description: User's enrollments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enrollment"
+
 components:
   schemas:
     HealthStatus:
@@ -1649,3 +2043,162 @@ components:
         totalRevenue: { type: number }
         completedSessions: { type: integer }
         recentBookings: { type: integer }
+
+    GroupSession:
+      type: object
+      required: [id, mentorId, title, price, maxSeats, enrolledCount, durationMinutes, status, isMasterclass, isEnrolled, createdAt]
+      properties:
+        id: { type: integer }
+        mentorId: { type: integer }
+        courseId: { type: ["integer", "null"] }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        price: { type: number }
+        maxSeats: { type: integer }
+        enrolledCount: { type: integer }
+        scheduledAt: { type: ["string", "null"] }
+        durationMinutes: { type: integer }
+        meetingLink: { type: ["string", "null"] }
+        status: { type: string, enum: [scheduled, live, completed, cancelled] }
+        thumbnailUrl: { type: ["string", "null"] }
+        level: { type: ["string", "null"] }
+        sessionOrder: { type: ["integer", "null"] }
+        isMasterclass: { type: boolean }
+        mentorName: { type: ["string", "null"] }
+        mentorAvatarUrl: { type: ["string", "null"] }
+        mentorHeadline: { type: ["string", "null"] }
+        isEnrolled: { type: boolean }
+        createdAt: { type: string }
+
+    GroupSessionInput:
+      type: object
+      required: [title, durationMinutes]
+      properties:
+        courseId: { type: integer }
+        categoryId: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        maxSeats: { type: integer }
+        scheduledAt: { type: string }
+        durationMinutes: { type: integer }
+        thumbnailUrl: { type: string }
+        level: { type: string }
+        sessionOrder: { type: integer }
+
+    GroupSessionUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        maxSeats: { type: integer }
+        scheduledAt: { type: string }
+        durationMinutes: { type: integer }
+        thumbnailUrl: { type: string }
+        level: { type: string }
+        status: { type: string }
+
+    GroupSessionListResponse:
+      type: object
+      required: [sessions, total, page, limit]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupSession"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    Course:
+      type: object
+      required: [id, mentorId, title, price, maxSeats, enrolledCount, status, totalSessions, isEnrolled, createdAt]
+      properties:
+        id: { type: integer }
+        mentorId: { type: integer }
+        categoryId: { type: ["integer", "null"] }
+        categoryName: { type: ["string", "null"] }
+        title: { type: string }
+        description: { type: ["string", "null"] }
+        price: { type: number }
+        maxSeats: { type: integer }
+        enrolledCount: { type: integer }
+        status: { type: string, enum: [draft, published, archived] }
+        thumbnailUrl: { type: ["string", "null"] }
+        level: { type: ["string", "null"] }
+        totalSessions: { type: integer }
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/GroupSession"
+        mentorName: { type: ["string", "null"] }
+        mentorAvatarUrl: { type: ["string", "null"] }
+        mentorHeadline: { type: ["string", "null"] }
+        isEnrolled: { type: boolean }
+        createdAt: { type: string }
+
+    CourseInput:
+      type: object
+      required: [title, price]
+      properties:
+        categoryId: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        maxSeats: { type: integer }
+        thumbnailUrl: { type: string }
+        level: { type: string }
+
+    CourseUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        maxSeats: { type: integer }
+        thumbnailUrl: { type: string }
+        level: { type: string }
+        status: { type: string }
+
+    CourseListResponse:
+      type: object
+      required: [courses, total, page, limit]
+      properties:
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Course"
+        total: { type: integer }
+        page: { type: integer }
+        limit: { type: integer }
+
+    Enrollment:
+      type: object
+      required: [id, userId, status, amount, platformFee, createdAt]
+      properties:
+        id: { type: integer }
+        userId: { type: integer }
+        groupSessionId: { type: ["integer", "null"] }
+        courseId: { type: ["integer", "null"] }
+        status: { type: string, enum: [pending_payment, enrolled, cancelled, completed] }
+        amount: { type: number }
+        platformFee: { type: number }
+        mentorEarning: { type: ["number", "null"] }
+        stripeSessionId: { type: ["string", "null"] }
+        userName: { type: ["string", "null"] }
+        userAvatarUrl: { type: ["string", "null"] }
+        sessionTitle: { type: ["string", "null"] }
+        courseTitle: { type: ["string", "null"] }
+        scheduledAt: { type: ["string", "null"] }
+        createdAt: { type: string }
+
+    EnrollWithCheckout:
+      type: object
+      required: [enrollment, checkoutUrl]
+      properties:
+        enrollment:
+          $ref: "#/components/schemas/Enrollment"
+        checkoutUrl: { type: string }

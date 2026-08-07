@@ -52,6 +52,9 @@ export default function Navbar() {
             <Link href="/mentors" className={`text-sm font-medium transition-colors hover:text-primary ${location === "/mentors" ? "text-primary" : "text-muted-foreground"}`} data-testid="nav-mentors">
               Find Mentors
             </Link>
+            <Link href="/learn" className={`text-sm font-medium transition-colors hover:text-primary ${location === "/learn" ? "text-primary" : "text-muted-foreground"}`} data-testid="nav-learn">
+              Learn
+            </Link>
             <Link href="/how-it-works" className={`text-sm font-medium transition-colors hover:text-primary ${location === "/how-it-works" ? "text-primary" : "text-muted-foreground"}`} data-testid="nav-how-it-works">
               How It Works
             </Link>
@@ -119,6 +122,7 @@ export default function Navbar() {
         {mobileOpen && (
           <div className="md:hidden border-t border-border py-3 space-y-1">
             <Link href="/mentors" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-md" onClick={() => setMobileOpen(false)}>Find Mentors</Link>
+            <Link href="/learn" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-md" onClick={() => setMobileOpen(false)}>Learn</Link>
             <Link href="/how-it-works" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-md" onClick={() => setMobileOpen(false)}>How It Works</Link>
             <Link href="/become-a-mentor" className="block px-3 py-2 text-sm font-medium hover:bg-muted rounded-md" onClick={() => setMobileOpen(false)}>Become a Mentor</Link>
             {isSignedIn ? (
