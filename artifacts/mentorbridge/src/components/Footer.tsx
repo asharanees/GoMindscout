@@ -10,7 +10,7 @@ export default function Footer() {
               <img
                 src="/go-mind-scout-logo-cropped.png"
                 alt="GoMindscout"
-                className="h-12 w-auto object-contain"
+                className="h-12 w-auto object-contain bg-white rounded-lg p-1"
               />
             </div>
             <p className="text-sm text-background/60 leading-relaxed">
