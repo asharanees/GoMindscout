@@ -26,8 +26,14 @@ export default function LearnPage() {
   const sessions = sessionData?.sessions ?? [];
   const courses = courseData?.courses ?? [];
 
-  const filteredSessions = sessions.filter(s => levelFilter === "all" || s.level === levelFilter);
-  const filteredCourses = courses.filter(c => levelFilter === "all" || c.level === levelFilter);
+  const filteredSessions = sessions.filter(s =>
+    s.status !== "completed" &&
+    (levelFilter === "all" || s.level === levelFilter)
+  );
+  const filteredCourses = courses.filter(c =>
+    c.status !== "archived" &&
+    (levelFilter === "all" || c.level === levelFilter)
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
