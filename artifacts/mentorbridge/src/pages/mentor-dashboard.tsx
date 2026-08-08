@@ -34,6 +34,7 @@ import {
   useCreateCourse,
   useStartGroupSession,
   useCompleteGroupSession,
+  useUpdateCourse,
   getListMyBookingsQueryKey,
   getGetMentorDashboardStatsQueryKey,
   getGetMentorPayoutsQueryKey,
@@ -44,7 +45,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Calendar, DollarSign, CheckCircle, Star, Clock, Edit, MessageSquare,
-  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw, Trash2, BookOpen, PlusCircle,
+  Wallet, ArrowDownToLine, Video, Copy, ExternalLink, ThumbsUp, ThumbsDown, RotateCcw, Trash2, BookOpen, PlusCircle, ListVideo,
 } from "lucide-react";
 
 import GroupMeetingRoom from "@/components/GroupMeetingRoom";
@@ -857,6 +858,159 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+function ManageCourseSessionsDialog({ course, onClose }: { course: any; onClose: () => void }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { data: allSessions } = useListMyGroupSessions();
+  const courseSessions = (allSessions ?? []).filter((s: any) => s.courseId === course.id);
+
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [duration, setDuration] = useState("60");
+  const [description, setDescription] = useState("");
+
+  const { mutate: createSession, isPending } = useCreateGroupSession();
+  const { mutate: updateCourse } = useUpdateCourse();
+
+  function handleAdd() {
+    if (!title || !scheduledAt || !duration) {
+      toast({ title: "Title, date/time and duration are required", variant: "destructive" });
+      return;
+    }
+    createSession(
+      {
+        data: {
+          courseId: course.id,
+          title,
+          description,
+          scheduledAt: new Date(scheduledAt).toISOString(),
+          durationMinutes: Number(duration),
+          price: 0,
+          maxSeats: course.maxSeats ?? 20,
+        },
+      },
+      {
+        onSuccess: () => {
+          const newTotal = courseSessions.length + 1;
+          updateCourse(
+            { courseId: course.id, data: { totalSessions: newTotal } },
+            {
+              onSuccess: () => {
+                queryClient.invalidateQueries({ queryKey: getListMyGroupSessionsQueryKey() });
+                queryClient.invalidateQueries({ queryKey: getListMyCoursesQueryKey() });
+              },
+            }
+          );
+          toast({ title: "Session added!" });
+          setTitle("");
+          setScheduledAt("");
+          setDuration("60");
+          setDescription("");
+          setShowForm(false);
+        },
+        onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  const STATUS_BADGE: Record<string, string> = {
+    scheduled: "bg-blue-100 text-blue-700",
+    live: "bg-green-100 text-green-700",
+    completed: "bg-gray-100 text-gray-600",
+    cancelled: "bg-red-100 text-red-700",
+  };
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="truncate">Sessions — {course.title}</DialogTitle>
+        </DialogHeader>
+
+        {/* Existing sessions */}
+        <div className="space-y-2">
+          {courseSessions.length === 0 && !showForm && (
+            <p className="text-sm text-muted-foreground text-center py-4">No sessions yet. Add your first one below.</p>
+          )}
+          {courseSessions
+            .slice()
+            .sort((a: any, b: any) => new Date(a.scheduledAt ?? 0).getTime() - new Date(b.scheduledAt ?? 0).getTime())
+            .map((s: any, idx: number) => (
+              <div key={s.id} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center mt-0.5">
+                  {idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                    {s.scheduledAt && (
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(s.scheduledAt).toLocaleString(undefined, {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                    )}
+                    {s.durationMinutes && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {s.durationMinutes} min
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize shrink-0 ${STATUS_BADGE[s.status] ?? "bg-gray-100 text-gray-600"}`}>
+                  {s.status}
+                </span>
+              </div>
+            ))}
+        </div>
+
+        {/* Add session form */}
+        {showForm ? (
+          <div className="border border-border rounded-lg p-4 space-y-3 bg-muted/20">
+            <p className="text-sm font-semibold text-foreground">New Session</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Title *</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Week 1 — Foundations" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Description</Label>
+              <Textarea rows={2} value={description} onChange={e => setDescription(e.target.value)} placeholder="What will be covered?" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Date & Time *</Label>
+                <Input type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Duration (mins) *</Label>
+                <Input type="number" min="15" value={duration} onChange={e => setDuration(e.target.value)} placeholder="60" />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleAdd} disabled={isPending} className="flex-1">
+                {isPending ? "Adding…" : "Add Session"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setShowForm(false)}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <Button variant="outline" className="w-full gap-2" onClick={() => setShowForm(true)}>
+            <PlusCircle className="h-4 w-4" /> Add Session
+          </Button>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Done</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MentorDashboardContent() {
   const [activeTab, setActiveTab] = useState("1on1");
   const [linkBooking, setLinkBooking] = useState<any>(null);
@@ -868,6 +1022,7 @@ function MentorDashboardContent() {
   const [chatUnread, setChatUnread] = useState<Record<number, number>>({});
   const [createMasterclassOpen, setCreateMasterclassOpen] = useState(false);
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
+  const [managingCourse, setManagingCourse] = useState<any>(null);
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
   const { data: payoutInfo, isLoading: payoutsLoading } = useGetMentorPayouts();
@@ -1164,8 +1319,8 @@ function MentorDashboardContent() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5 items-end shrink-0">
-                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => alert("Edit course dialog here")}>
-                          <Edit className="h-3 w-3" /> Edit
+                        <Button size="sm" variant="outline" className="text-xs h-7 gap-1" onClick={() => setManagingCourse(course)}>
+                          <ListVideo className="h-3 w-3" /> Sessions
                         </Button>
                       </div>
                     </div>
@@ -1198,6 +1353,12 @@ function MentorDashboardContent() {
       )}
       {createMasterclassOpen && <CreateMasterclassDialog onClose={() => setCreateMasterclassOpen(false)} />}
       {createCourseOpen && <CreateCourseDialog onClose={() => setCreateCourseOpen(false)} />}
+      {managingCourse && (
+        <ManageCourseSessionsDialog
+          course={managingCourse}
+          onClose={() => setManagingCourse(null)}
+        />
+      )}
 
       <div className="flex-1 max-w-5xl mx-auto px-4 pb-8 w-full">
         <Card className="p-6 border-destructive/20">
