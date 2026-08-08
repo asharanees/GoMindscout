@@ -181,9 +181,9 @@ router.post("/", requireAuth, async (req, res) => {
       .returning();
 
     res.status(201).json(await enrichSession(session));
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error creating group session");
-    res.status(500).json({ error: "Internal server error", detail: process.env.NODE_ENV !== "production" ? String(err?.message ?? err) : undefined });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

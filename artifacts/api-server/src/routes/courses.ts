@@ -180,9 +180,9 @@ router.post("/", requireAuth, async (req, res) => {
       .returning();
 
     res.status(201).json(await enrichCourse(course, user.id));
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error creating course");
-    res.status(500).json({ error: "Internal server error", detail: process.env.NODE_ENV !== "production" ? String(err?.message ?? err) : undefined });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
