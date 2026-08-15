@@ -5,6 +5,7 @@ import {
   mentorAvailabilityTable,
   mentorProfilesTable,
   bookingsTable,
+  usersTable,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
@@ -109,6 +110,16 @@ router.put("/me/availability", requireAuth, async (req, res) => {
         }))
       )
       .returning();
+
+    // Sync the mentor's user timezone to match their availability timezone.
+    // Use the last row's timezone (most recently inserted slot).
+    const latestTimezone = rows[rows.length - 1]?.timezone;
+    if (latestTimezone) {
+      await db
+        .update(usersTable)
+        .set({ timezone: latestTimezone })
+        .where(eq(usersTable.id, user.id));
+    }
 
     res.json(
       rows.map((r) => ({
