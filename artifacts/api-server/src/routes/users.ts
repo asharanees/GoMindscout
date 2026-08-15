@@ -103,6 +103,7 @@ router.get("/me", requireAuth, async (req, res) => {
         fullName: u.fullName,
         avatarUrl: u.avatarUrl,
         role: u.role,
+        timezone: u.timezone,
         createdAt: u.createdAt.toISOString(),
       });
       return;
@@ -119,6 +120,7 @@ router.get("/me", requireAuth, async (req, res) => {
       fullName: user.fullName,
       avatarUrl: user.avatarUrl,
       role: user.role,
+      timezone: user.timezone,
       createdAt: user.createdAt.toISOString(),
     });
   } catch (err) {
@@ -130,12 +132,12 @@ router.get("/me", requireAuth, async (req, res) => {
 // PATCH /api/users/me
 router.patch("/me", requireAuth, async (req, res) => {
   const { userId } = getAuth(req);
-  const { fullName, avatarUrl } = req.body;
+  const { fullName, avatarUrl, timezone } = req.body;
 
   try {
     const [updated] = await db
       .update(usersTable)
-      .set({ fullName, avatarUrl })
+      .set({ fullName, avatarUrl, ...(timezone ? { timezone } : {}) })
       .where(eq(usersTable.clerkId, userId!))
       .returning();
 
@@ -151,6 +153,7 @@ router.patch("/me", requireAuth, async (req, res) => {
       fullName: updated.fullName,
       avatarUrl: updated.avatarUrl,
       role: updated.role,
+      timezone: updated.timezone,
       createdAt: updated.createdAt.toISOString(),
     });
   } catch (err) {

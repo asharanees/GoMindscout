@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getAuth } from "@clerk/express";
-import { db, bookingsTable, packagesTable, mentorProfilesTable, usersTable, reviewsTable, disputesTable } from "@workspace/db";
+import { db, bookingsTable, packagesTable, mentorProfilesTable, usersTable, reviewsTable, disputesTable, mentorAvailabilityTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, getUserByClerkId } from "../lib/auth";
 import { createMeetingRoom, deleteMeetingRoom } from "../lib/meeting";
@@ -12,6 +12,18 @@ import {
 import { createNotification } from "../lib/notifications";
 
 const router = Router();
+
+async function getMentorTimezone(mentorProfileId: number): Promise<string> {
+  try {
+    const [avail] = await db.select({ timezone: mentorAvailabilityTable.timezone })
+      .from(mentorAvailabilityTable)
+      .where(eq(mentorAvailabilityTable.mentorId, mentorProfileId))
+      .limit(1);
+    return avail?.timezone ?? "UTC";
+  } catch {
+    return "UTC";
+  }
+}
 
 const PLATFORM_FEE_PERCENT = 0.20;
 const MENTOR_EARNING_PERCENT = 0.80;
@@ -111,6 +123,8 @@ async function checkAndAutoCompleteSessions() {
       const [menteeUser] = await db.select().from(usersTable).where(eq(usersTable.id, booking.menteeId)).limit(1);
       const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, booking.mentorId)).limit(1);
       const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+      const mentorTz = await getMentorTimezone(booking.mentorId);
+      const menteeTz = menteeUser?.timezone ?? "UTC";
 
       const summaryArgs = {
         menteeName: menteeUser?.fullName ?? "Mentee",
@@ -126,10 +140,10 @@ async function checkAndAutoCompleteSessions() {
       const emails: Promise<void>[] = [];
       if (menteeUser?.email) emails.push(sendEmail(menteeUser.email,
         `Your GoMindscout session with ${summaryArgs.mentorName} is complete`,
-        sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee" })));
+        sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee", recipientTimezone: menteeTz })));
       if (mentorUser?.email) emails.push(sendEmail(mentorUser.email,
         `Session completed - ${summaryArgs.menteeName} | GoMindscout`,
-        sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor" })));
+        sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor", recipientTimezone: mentorTz })));
       emails.push(sendEmail("support@gomindscout.com",
         `Session #${booking.id} auto-completed - ${summaryArgs.mentorName} & ${summaryArgs.menteeName}`,
         sessionSummaryEmail({ ...summaryArgs, recipientName: "Support", role: "support" })));
@@ -233,6 +247,7 @@ router.post("/", requireAuth, async (req, res) => {
       booking.status = "awaiting_mentor_approval";
 
       const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
+      const mentorTzReq = await getMentorTimezone(mentor.id);
       await createNotification({
         userId: mentor.userId,
         type: "booking_created",
@@ -241,7 +256,7 @@ router.post("/", requireAuth, async (req, res) => {
         link: "/mentor/dashboard",
         userEmail: mentorUser?.email,
         emailSubject: `New booking request - ${pkg.title}`,
-        emailHtml: bookingRequestEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: user.fullName ?? "A mentee", packageName: pkg.title, proposedAt: proposedAt ?? null }),
+        emailHtml: bookingRequestEmail({ mentorName: mentorUser?.fullName ?? "there", menteeName: user.fullName ?? "A mentee", packageName: pkg.title, proposedAt: proposedAt ?? null, mentorTimezone: mentorTzReq }),
       });
       await createNotification({
         userId: user.id,
@@ -304,6 +319,8 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
         const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, existing.mentorId)).limit(1);
         const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
         const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, existing.packageId)).limit(1);
+        const mentorTzCmp = mentor ? await getMentorTimezone(mentor.id) : "UTC";
+        const menteeTzCmp = menteeUser?.timezone ?? "UTC";
 
         const summaryArgs = {
           menteeName: menteeUser?.fullName ?? "Mentee",
@@ -322,14 +339,14 @@ router.patch("/:bookingId", requireAuth, async (req, res) => {
           emails.push(sendEmail(
             menteeUser.email,
             `Your GoMindscout session with ${summaryArgs.mentorName} is complete`,
-            sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee" })
+            sessionSummaryEmail({ ...summaryArgs, recipientName: menteeUser.fullName ?? "there", role: "mentee", recipientTimezone: menteeTzCmp })
           ));
         }
         if (mentorUser?.email) {
           emails.push(sendEmail(
             mentorUser.email,
             `Session completed - ${summaryArgs.menteeName} | GoMindscout`,
-            sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor" })
+            sessionSummaryEmail({ ...summaryArgs, recipientName: mentorUser.fullName ?? "there", role: "mentor", recipientTimezone: mentorTzCmp })
           ));
         }
         emails.push(sendEmail(
@@ -386,15 +403,17 @@ router.patch("/:bookingId/meeting-link", requireAuth, async (req, res) => {
     const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
     const packageName = pkg?.title ?? "Mentorship Session";
     const scheduledAtIso = scheduledDate.toISOString();
+    const mentorTzSched = await getMentorTimezone(mentor.id);
+    const menteeTzSched = menteeUser?.timezone ?? "UTC";
 
     if (menteeUser?.email) {
       await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed - join via dashboard",
-        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName, timezone: menteeTzSched })
       );
     }
     if (mentorUser?.email) {
       await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
-        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName, timezone: mentorTzSched })
       );
     }
 
@@ -528,15 +547,17 @@ router.post("/:bookingId/approve", requireAuth, async (req, res) => {
     const [mentorUser] = await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1);
     const packageName = pkg?.title ?? "Mentorship Session";
     const scheduledAtIso = scheduledAt?.toISOString() ?? new Date().toISOString();
+    const mentorTzApprv = await getMentorTimezone(mentor.id);
+    const menteeTzApprv = menteeUser?.timezone ?? "UTC";
 
     if (menteeUser?.email) {
       await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed",
-        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName, timezone: menteeTzApprv })
       );
     }
     if (mentorUser?.email) {
       await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
-        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName, timezone: mentorTzApprv })
       );
     }
 
@@ -637,7 +658,7 @@ router.post("/:bookingId/counter-propose", requireAuth, async (req, res) => {
       link: "/dashboard",
       userEmail: menteeUserCP?.email,
       emailSubject: "Your mentor proposed a new session time - GoMindscout",
-      emailHtml: counterProposedEmail({ menteeName: menteeUserCP?.fullName ?? "there", mentorName: mentorUserCP?.fullName ?? "Your mentor", packageName: pkgCP?.title ?? "the session", proposedAt }),
+      emailHtml: counterProposedEmail({ menteeName: menteeUserCP?.fullName ?? "there", mentorName: mentorUserCP?.fullName ?? "Your mentor", packageName: pkgCP?.title ?? "the session", proposedAt, menteeTimezone: menteeUserCP?.timezone ?? "UTC" }),
     });
 
     res.json(await enrichBooking(updated));
@@ -675,15 +696,17 @@ router.post("/:bookingId/accept-counter", requireAuth, async (req, res) => {
     const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
     const packageName = pkg?.title ?? "Mentorship Session";
     const scheduledAtIso = (scheduledAt ?? new Date()).toISOString();
+    const mentorTzAcc = mentor ? await getMentorTimezone(mentor.id) : "UTC";
+    const menteeTzAcc = menteeUser?.timezone ?? "UTC";
 
     if (menteeUser?.email) {
       await sendEmail(menteeUser.email, "Your GoMindscout session is confirmed",
-        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName, timezone: menteeTzAcc })
       );
     }
     if (mentorUser?.email) {
       await sendEmail(mentorUser.email, "Session confirmed - GoMindscout",
-        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName, timezone: mentorTzAcc })
       );
     }
 
@@ -789,6 +812,7 @@ router.post("/:bookingId/propose-reschedule", requireAuth, async (req, res) => {
     const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
     const [pkg] = await db.select().from(packagesTable).where(eq(packagesTable.id, booking.packageId)).limit(1);
     const packageName = pkg?.title ?? "the session";
+    const mentorTzResc = mentor ? await getMentorTimezone(mentor.id) : "UTC";
 
     if (isMentor && menteeUser) {
       await createNotification({
@@ -799,7 +823,7 @@ router.post("/:bookingId/propose-reschedule", requireAuth, async (req, res) => {
         link: "/dashboard",
         userEmail: menteeUser.email,
         emailSubject: "Reschedule request - GoMindscout",
-        emailHtml: rescheduleProposedEmail({ recipientName: menteeUser.fullName ?? "there", proposerName: mentorUser?.fullName ?? "Your mentor", packageName, proposedAt, recipientRole: "mentee" }),
+        emailHtml: rescheduleProposedEmail({ recipientName: menteeUser.fullName ?? "there", proposerName: mentorUser?.fullName ?? "Your mentor", packageName, proposedAt, recipientRole: "mentee", recipientTimezone: menteeUser.timezone ?? "UTC" }),
       });
     } else if (isMentee && mentor) {
       await createNotification({
@@ -810,7 +834,7 @@ router.post("/:bookingId/propose-reschedule", requireAuth, async (req, res) => {
         link: "/mentor/dashboard",
         userEmail: mentorUser?.email,
         emailSubject: "Reschedule request - GoMindscout",
-        emailHtml: rescheduleProposedEmail({ recipientName: mentorUser?.fullName ?? "there", proposerName: menteeUser?.fullName ?? "Your mentee", packageName, proposedAt, recipientRole: "mentor" }),
+        emailHtml: rescheduleProposedEmail({ recipientName: mentorUser?.fullName ?? "there", proposerName: menteeUser?.fullName ?? "Your mentee", packageName, proposedAt, recipientRole: "mentor", recipientTimezone: mentorTzResc }),
       });
     }
 
@@ -871,15 +895,17 @@ router.post("/:bookingId/accept-reschedule", requireAuth, async (req, res) => {
     const [mentorUser] = mentor ? await db.select().from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
     const packageName = pkg?.title ?? "Mentorship Session";
     const scheduledAtIso = newScheduledAt.toISOString();
+    const mentorTzRescAcc = mentor ? await getMentorTimezone(mentor.id) : "UTC";
+    const menteeTzRescAcc = menteeUser?.timezone ?? "UTC";
 
     if (menteeUser?.email) {
       await sendEmail(menteeUser.email, "Session rescheduled and confirmed - GoMindscout",
-        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: menteeUser?.fullName ?? "there", otherPartyName: mentorUser?.fullName ?? "Your mentor", role: "mentee", scheduledAt: scheduledAtIso, packageName, timezone: menteeTzRescAcc })
       );
     }
     if (mentorUser?.email) {
       await sendEmail(mentorUser.email, "Session rescheduled and confirmed - GoMindscout",
-        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName })
+        meetingConfirmedEmail({ recipientName: mentorUser?.fullName ?? "there", otherPartyName: menteeUser?.fullName ?? "Your mentee", role: "mentor", scheduledAt: scheduledAtIso, packageName, timezone: mentorTzRescAcc })
       );
     }
 

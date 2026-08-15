@@ -27,6 +27,19 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
+function formatInTz(isoStr: string, timeZone = "UTC"): string {
+  return new Date(isoStr).toLocaleString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone,
+  });
+}
+
 function appUrl(path = "/"): string {
   const base = (process.env.APP_URL || "https://gomindscout.com").replace(/\/+$/, "");
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -51,22 +64,16 @@ export function meetingConfirmedEmail({
   role,
   scheduledAt,
   packageName,
+  timezone = "UTC",
 }: {
   recipientName: string;
   otherPartyName: string;
   role: "mentor" | "mentee";
   scheduledAt: string;
   packageName: string;
+  timezone?: string;
 }): string {
-  const dateStr = new Date(scheduledAt).toLocaleString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  const dateStr = formatInTz(scheduledAt, timezone);
 
   const intro =
     role === "mentor"
@@ -115,15 +122,15 @@ export function bookingRequestEmail({
   menteeName,
   packageName,
   proposedAt,
+  mentorTimezone = "UTC",
 }: {
   mentorName: string;
   menteeName: string;
   packageName: string;
   proposedAt: string | null;
+  mentorTimezone?: string;
 }): string {
-  const timeStr = proposedAt
-    ? new Date(proposedAt).toLocaleString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" })
-    : "TBD";
+  const timeStr = proposedAt ? formatInTz(proposedAt, mentorTimezone) : "TBD";
   return baseEmail("New Booking Request", `<p style="font-size:15px;">Hi ${mentorName},</p>
 <p style="font-size:15px;line-height:1.6;"><strong>${menteeName}</strong> has requested a session with you.</p>
 <table style="width:100%;border-collapse:collapse;margin:20px 0;background:#f8f9fa;border-radius:8px;overflow:hidden;">
@@ -154,13 +161,15 @@ export function counterProposedEmail({
   mentorName,
   packageName,
   proposedAt,
+  menteeTimezone = "UTC",
 }: {
   menteeName: string;
   mentorName: string;
   packageName: string;
   proposedAt: string;
+  menteeTimezone?: string;
 }): string {
-  const timeStr = new Date(proposedAt).toLocaleString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+  const timeStr = formatInTz(proposedAt, menteeTimezone);
   return baseEmail("Mentor Proposed a New Time", `<p style="font-size:15px;">Hi ${menteeName},</p>
 <p style="font-size:15px;line-height:1.6;"><strong>${mentorName}</strong> has suggested a different time for your <strong>${packageName}</strong> session:</p>
 <p style="font-size:18px;font-weight:700;text-align:center;margin:20px 0;color:#1a7a5e;">${timeStr}</p>
@@ -187,14 +196,16 @@ export function rescheduleProposedEmail({
   packageName,
   proposedAt,
   recipientRole,
+  recipientTimezone = "UTC",
 }: {
   recipientName: string;
   proposerName: string;
   packageName: string;
   proposedAt: string;
   recipientRole: "mentor" | "mentee";
+  recipientTimezone?: string;
 }): string {
-  const timeStr = new Date(proposedAt).toLocaleString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit", timeZoneName: "short" });
+  const timeStr = formatInTz(proposedAt, recipientTimezone);
   const dashLink = appUrl(recipientRole === "mentor" ? "/mentor/dashboard" : "/dashboard");
   return baseEmail("Reschedule Requested", `<p style="font-size:15px;">Hi ${recipientName},</p>
 <p style="font-size:15px;line-height:1.6;"><strong>${proposerName}</strong> has requested to reschedule your <strong>${packageName}</strong> session to:</p>
@@ -296,10 +307,9 @@ export function sessionSummaryEmail({
   amount: number;
   mentorEarning: number | null;
   bookingId: number;
+  recipientTimezone?: string;
 }): string {
-  const sessionDate = scheduledAt
-    ? new Date(scheduledAt).toLocaleString("en-US", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" }) + " UTC"
-    : "—";
+  const sessionDate = scheduledAt ? formatInTz(scheduledAt, recipientTimezone) : "—";
   const duration = durationMinutes ? `${durationMinutes} min` : "—";
 
   let intro = "";
