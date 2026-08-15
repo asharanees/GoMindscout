@@ -256,6 +256,8 @@ router.get("/bookings", async (req, res) => {
           packageId: booking.packageId,
           status: booking.status,
           scheduledAt: booking.scheduledAt?.toISOString() ?? null,
+          proposedAt: booking.proposedAt?.toISOString() ?? null,
+          mentorProposedAt: booking.mentorProposedAt?.toISOString() ?? null,
           sessionCompletedAt: booking.sessionCompletedAt?.toISOString() ?? null,
           meetingLink: booking.meetingLink,
           amount: Number(booking.amount),
@@ -488,6 +490,60 @@ router.get("/users/:userId", async (req, res) => {
     });
   } catch (err) {
     req.log.error({ err }, "Error fetching user details (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/mentees
+router.get("/mentees", async (req, res) => {
+  try {
+    const mentees = await db.select().from(usersTable).where(eq(usersTable.role, "mentee")).orderBy(sql`${usersTable.createdAt} DESC`);
+    const enriched = await Promise.all(
+      mentees.map(async (u) => {
+        const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(bookingsTable).where(eq(bookingsTable.menteeId, u.id));
+        return {
+          id: u.id,
+          fullName: u.fullName,
+          email: u.email,
+          avatarUrl: u.avatarUrl,
+          timezone: u.timezone,
+          isSuspended: u.isSuspended ?? false,
+          createdAt: u.createdAt.toISOString(),
+          bookingCount: Number(count ?? 0),
+        };
+      })
+    );
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error listing mentees (admin)");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// GET /api/admin/availability
+router.get("/availability", async (req, res) => {
+  try {
+    const slots = await db.select().from(mentorAvailabilityTable).orderBy(sql`${mentorAvailabilityTable.mentorId} ASC, ${mentorAvailabilityTable.dayOfWeek} ASC`);
+    const enriched = await Promise.all(
+      slots.map(async (slot) => {
+        const [mentor] = await db.select().from(mentorProfilesTable).where(eq(mentorProfilesTable.id, slot.mentorId)).limit(1);
+        const [mentorUser] = mentor ? await db.select({ fullName: usersTable.fullName, email: usersTable.email }).from(usersTable).where(eq(usersTable.id, mentor.userId)).limit(1) : [null];
+        return {
+          id: slot.id,
+          mentorId: slot.mentorId,
+          mentorName: mentorUser?.fullName ?? mentorUser?.email ?? `Mentor #${slot.mentorId}`,
+          dayOfWeek: slot.dayOfWeek,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          timezone: slot.timezone,
+          isActive: slot.isActive,
+          createdAt: slot.createdAt?.toISOString() ?? null,
+        };
+      })
+    );
+    res.json(enriched);
+  } catch (err) {
+    req.log.error({ err }, "Error listing availability (admin)");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -477,6 +477,24 @@ function AdminContent() {
   const { data: disputes } = useAdminListDisputes();
   const { data: payouts } = useAdminListPayouts();
 
+  const [mentees, setMentees] = useState<any[]>([]);
+  const [menteesLoading, setMenteesLoading] = useState(false);
+  const [availability, setAvailability] = useState<any[]>([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+
+  useEffect(() => {
+    setMenteesLoading(true);
+    fetch("/api/admin/mentees", { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setMentees(data))
+      .finally(() => setMenteesLoading(false));
+    setAvailabilityLoading(true);
+    fetch("/api/admin/availability", { credentials: "include" })
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setAvailability(data))
+      .finally(() => setAvailabilityLoading(false));
+  }, []);
+
   const { mutate: updatePayout } = useAdminUpdatePayout();
 
   async function handleLogout() {
@@ -567,6 +585,8 @@ function AdminContent() {
                 <span className="ml-1.5 bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 leading-none">{pendingPayoutCount}</span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="mentees">Mentees</TabsTrigger>
+            <TabsTrigger value="availability">Availability</TabsTrigger>
           </TabsList>
 
           <TabsContent value="pending" className="mt-4">
@@ -610,7 +630,9 @@ function AdminContent() {
                         <th className="pb-2 font-medium text-muted-foreground">Amount</th>
                         <th className="pb-2 font-medium text-muted-foreground">Fee</th>
                         <th className="pb-2 font-medium text-muted-foreground">Status</th>
-                        <th className="pb-2 font-medium text-muted-foreground">Date</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Scheduled</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Proposed</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Created</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -628,7 +650,15 @@ function AdminContent() {
                               {b.status.replace(/_/g, " ")}
                             </span>
                           </td>
-                          <td className="py-3 text-muted-foreground text-xs">{new Date(b.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3 text-muted-foreground text-xs whitespace-nowrap">
+                            {b.scheduledAt ? new Date(b.scheduledAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : <span className="text-muted-foreground/50">—</span>}
+                          </td>
+                          <td className="py-3 text-muted-foreground text-xs whitespace-nowrap">
+                            {(b.mentorProposedAt || b.proposedAt)
+                              ? new Date(b.mentorProposedAt ?? b.proposedAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })
+                              : <span className="text-muted-foreground/50">—</span>}
+                          </td>
+                          <td className="py-3 text-muted-foreground text-xs whitespace-nowrap">{new Date(b.createdAt).toLocaleDateString()}</td>
                           <td className="py-3">
                             {b.status === "disputed" && (
                               <button type="button" className="text-xs text-destructive hover:underline" onClick={() => setLocation(`/bookings/${b.id}/dispute`)}>View Dispute</button>
@@ -755,6 +785,103 @@ function AdminContent() {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* Mentees Tab */}
+          <TabsContent value="mentees" className="mt-4">
+            <Card className="p-6">
+              <h2 className="font-semibold text-foreground mb-4">All Mentees ({mentees.length})</h2>
+              {menteesLoading ? <Skeleton className="h-40" /> : mentees.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">No mentees yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="pb-2 font-medium text-muted-foreground">Name</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Email</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Timezone</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Bookings</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Joined</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {mentees.map((u: any) => (
+                        <tr key={u.id} className="border-b border-border/50 last:border-0">
+                          <td className="py-3">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-7 w-7">
+                                <AvatarImage src={u.avatarUrl} />
+                                <AvatarFallback className="text-xs">{(u.fullName ?? u.email ?? "?")[0].toUpperCase()}</AvatarFallback>
+                              </Avatar>
+                              <span>{u.fullName || <span className="text-muted-foreground italic">No name</span>}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 text-muted-foreground">{u.email}</td>
+                          <td className="py-3 text-muted-foreground text-xs">{u.timezone || "UTC"}</td>
+                          <td className="py-3">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">
+                              <Calendar className="h-3 w-3" />{u.bookingCount}
+                            </span>
+                          </td>
+                          <td className="py-3 text-muted-foreground text-xs">{new Date(u.createdAt).toLocaleDateString()}</td>
+                          <td className="py-3">
+                            {u.isSuspended
+                              ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 text-red-700">Suspended</span>
+                              : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Active</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          {/* Availability Tab */}
+          <TabsContent value="availability" className="mt-4">
+            <Card className="p-6">
+              <h2 className="font-semibold text-foreground mb-4">Mentor Availability Slots ({availability.length})</h2>
+              {availabilityLoading ? <Skeleton className="h-40" /> : availability.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8">No availability slots configured yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border text-left">
+                        <th className="pb-2 font-medium text-muted-foreground">Mentor</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Day</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Start</th>
+                        <th className="pb-2 font-medium text-muted-foreground">End</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Timezone</th>
+                        <th className="pb-2 font-medium text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {availability.map((slot: any) => {
+                        const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                        return (
+                          <tr key={slot.id} className="border-b border-border/50 last:border-0">
+                            <td className="py-3 font-medium">{slot.mentorName}</td>
+                            <td className="py-3">{DAYS[slot.dayOfWeek] ?? `Day ${slot.dayOfWeek}`}</td>
+                            <td className="py-3 font-mono text-xs">{slot.startTime}</td>
+                            <td className="py-3 font-mono text-xs">{slot.endTime}</td>
+                            <td className="py-3 text-muted-foreground text-xs">{slot.timezone}</td>
+                            <td className="py-3">
+                              {slot.isActive
+                                ? <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">Active</span>
+                                : <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600">Inactive</span>}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
