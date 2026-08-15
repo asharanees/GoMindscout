@@ -375,10 +375,19 @@ function RescheduleProposalCard({ booking }: { booking: any }) {
   );
 }
 
+function formatInTimezone(dateStr: string, timezone?: string | null) {
+  const d = new Date(dateStr);
+  const opts: Intl.DateTimeFormatOptions = { timeZone: timezone ?? undefined };
+  const date = new Intl.DateTimeFormat(undefined, { ...opts, year: "numeric", month: "numeric", day: "numeric" }).format(d);
+  const time = new Intl.DateTimeFormat(undefined, { ...opts, hour: "2-digit", minute: "2-digit" }).format(d);
+  return { date, time };
+}
+
 function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { mutate: cancelBooking, isPending: cancelling } = useCancelBooking();
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const statusClass = STATUS_COLORS[booking.status] ?? "bg-gray-100 text-gray-800";
@@ -421,12 +430,12 @@ function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: {
         <p className="text-xs text-muted-foreground">{booking.packageTitle || booking.packageType || "Session"}</p>
         {booking.proposedAt && !booking.scheduledAt && (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <Clock className="h-3 w-3" /> Proposed: {new Date(booking.proposedAt).toLocaleDateString()} at {new Date(booking.proposedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            <Clock className="h-3 w-3" /> Proposed: {formatInTimezone(booking.proposedAt, me?.timezone).date} at {formatInTimezone(booking.proposedAt, me?.timezone).time}
           </p>
         )}
         {booking.scheduledAt && (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <Calendar className="h-3 w-3" /> {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+            <Calendar className="h-3 w-3" /> {formatInTimezone(booking.scheduledAt, me?.timezone).date} at {formatInTimezone(booking.scheduledAt, me?.timezone).time}
           </p>
         )}
         {canJoin && (

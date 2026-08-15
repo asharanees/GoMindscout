@@ -490,10 +490,19 @@ function PayoutRequestDialog({ balance, onClose }: { balance: number; onClose: (
   );
 }
 
+function formatInTimezone(dateStr: string, timezone?: string | null) {
+  const d = new Date(dateStr);
+  const opts: Intl.DateTimeFormatOptions = { timeZone: timezone ?? undefined };
+  const date = new Intl.DateTimeFormat(undefined, { ...opts, year: "numeric", month: "numeric", day: "numeric" }).format(d);
+  const time = new Intl.DateTimeFormat(undefined, { ...opts, hour: "2-digit", minute: "2-digit" }).format(d);
+  return { date, time };
+}
+
 function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: { booking: any; onAddLink: (b: any) => void; onChat?: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { mutate: updateStatus, isPending } = useUpdateBookingStatus();
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [acceptingReschedule, setAcceptingReschedule] = useState(false);
@@ -563,7 +572,7 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: 
           {booking.scheduledAt && (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
               <Calendar className="h-3 w-3" />
-              {new Date(booking.scheduledAt).toLocaleDateString()} at {new Date(booking.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              {formatInTimezone(booking.scheduledAt, me?.timezone).date} at {formatInTimezone(booking.scheduledAt, me?.timezone).time}
             </p>
           )}
           {booking.hasDispute && (
