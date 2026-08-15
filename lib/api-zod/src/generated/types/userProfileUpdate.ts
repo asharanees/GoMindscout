@@ -9,4 +9,5 @@
 export interface UserProfileUpdate {
   fullName?: string;
   avatarUrl?: string;
+  timezone?: string;
 }

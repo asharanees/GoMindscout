@@ -27,12 +27,15 @@ export interface UserProfile {
   /** @nullable */
   avatarUrl?: string | null;
   role: UserProfileRole;
+  /** @nullable */
+  timezone?: string | null;
   createdAt: string;
 }
 
 export interface UserProfileUpdate {
   fullName?: string;
   avatarUrl?: string;
+  timezone?: string;
 }
 
 export interface Category {
@@ -45,6 +48,17 @@ export interface Category {
   icon?: string | null;
   mentorCount: number;
 }
+
+/**
+ * @nullable
+ */
+export type MentorProfileCurrency =
+  | (typeof MentorProfileCurrency)[keyof typeof MentorProfileCurrency]
+  | null;
+
+export const MentorProfileCurrency = {
+  USD: "USD",
+} as const;
 
 export type MentorProfileStatus =
   (typeof MentorProfileStatus)[keyof typeof MentorProfileStatus];
@@ -131,7 +145,7 @@ export interface MentorProfile {
   /** @nullable */
   hourlyRate?: number | null;
   /** @nullable */
-  currency?: "USD" | null;
+  currency?: MentorProfileCurrency;
   /** @nullable */
   introVideoUrl?: string | null;
   /** @nullable */
@@ -155,6 +169,13 @@ export interface MentorProfile {
   createdAt: string;
 }
 
+export type MentorProfileInputCurrency =
+  (typeof MentorProfileInputCurrency)[keyof typeof MentorProfileInputCurrency];
+
+export const MentorProfileInputCurrency = {
+  USD: "USD",
+} as const;
+
 export interface MentorProfileInput {
   headline: string;
   bio?: string;
@@ -164,15 +185,23 @@ export interface MentorProfileInput {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
-  currency?: "USD";
+  currency?: MentorProfileInputCurrency;
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  /** @minItems 1 */
   experiences: MentorExperience[];
   honorsAwards?: MentorHonorAward[];
   publications?: MentorPublication[];
   certifications?: MentorCertification[];
 }
+
+export type MentorProfileUpdateCurrency =
+  (typeof MentorProfileUpdateCurrency)[keyof typeof MentorProfileUpdateCurrency];
+
+export const MentorProfileUpdateCurrency = {
+  USD: "USD",
+} as const;
 
 export interface MentorProfileUpdate {
   headline?: string;
@@ -183,10 +212,11 @@ export interface MentorProfileUpdate {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
-  currency?: "USD";
+  currency?: MentorProfileUpdateCurrency;
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  /** @minItems 1 */
   experiences?: MentorExperience[];
   honorsAwards?: MentorHonorAward[];
   publications?: MentorPublication[];
@@ -264,6 +294,7 @@ export type SetAvailabilityInputAvailabilityItem = {
 
 export interface SetAvailabilityInput {
   timezone: string;
+  /** @minItems 1 */
   availability: SetAvailabilityInputAvailabilityItem[];
 }
 

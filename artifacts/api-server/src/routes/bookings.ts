@@ -15,6 +15,19 @@ const router = Router();
 
 async function getMentorTimezone(mentorProfileId: number): Promise<string> {
   try {
+    // Prefer the mentor's saved user timezone (set via profile settings).
+    // Fall back to their availability schedule timezone, then UTC.
+    const [profile] = await db.select({ userId: mentorProfilesTable.userId })
+      .from(mentorProfilesTable)
+      .where(eq(mentorProfilesTable.id, mentorProfileId))
+      .limit(1);
+    if (profile?.userId) {
+      const [user] = await db.select({ timezone: usersTable.timezone })
+        .from(usersTable)
+        .where(eq(usersTable.id, profile.userId))
+        .limit(1);
+      if (user?.timezone) return user.timezone;
+    }
     const [avail] = await db.select({ timezone: mentorAvailabilityTable.timezone })
       .from(mentorAvailabilityTable)
       .where(eq(mentorAvailabilityTable.mentorId, mentorProfileId))

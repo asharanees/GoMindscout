@@ -8,6 +8,7 @@
 import type { MentorCertification } from "./mentorCertification";
 import type { MentorExperience } from "./mentorExperience";
 import type { MentorHonorAward } from "./mentorHonorAward";
+import type { MentorProfileUpdateCurrency } from "./mentorProfileUpdateCurrency";
 import type { MentorPublication } from "./mentorPublication";
 
 export interface MentorProfileUpdate {
@@ -19,10 +20,11 @@ export interface MentorProfileUpdate {
   yearsExperience?: number;
   languages?: string[];
   hourlyRate?: number;
-  currency?: "USD";
+  currency?: MentorProfileUpdateCurrency;
   introVideoUrl?: string;
   linkedinUrl?: string;
   calendlyUrl?: string;
+  /** @minItems 1 */
   experiences?: MentorExperience[];
   honorsAwards?: MentorHonorAward[];
   publications?: MentorPublication[];

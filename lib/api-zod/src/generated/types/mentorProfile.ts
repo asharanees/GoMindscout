@@ -8,6 +8,7 @@
 import type { MentorCertification } from "./mentorCertification";
 import type { MentorExperience } from "./mentorExperience";
 import type { MentorHonorAward } from "./mentorHonorAward";
+import type { MentorProfileCurrency } from "./mentorProfileCurrency";
 import type { MentorProfileStatus } from "./mentorProfileStatus";
 import type { MentorPublication } from "./mentorPublication";
 
@@ -34,7 +35,7 @@ export interface MentorProfile {
   /** @nullable */
   hourlyRate?: number | null;
   /** @nullable */
-  currency?: "USD" | null;
+  currency?: MentorProfileCurrency;
   /** @nullable */
   introVideoUrl?: string | null;
   /** @nullable */

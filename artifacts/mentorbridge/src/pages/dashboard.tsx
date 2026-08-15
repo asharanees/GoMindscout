@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   useGetMenteeDashboardStats,
   useListMyBookings,
@@ -23,8 +24,11 @@ import {
   useAcceptCounterProposal,
   useDeclineCounterProposal,
   useDeleteMe,
+  useGetMe,
+  useUpdateMe,
   getListMyBookingsQueryKey,
   getGetMenteeDashboardStatsQueryKey,
+  getGetMeQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -527,6 +531,69 @@ function DeleteAccountDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+const IANA_TIMEZONES: string[] = (() => {
+  try {
+    const tzList = (Intl as any).supportedValuesOf("timeZone") as string[];
+    // Intl.supportedValuesOf omits "UTC" in some runtimes; always include it at top, deduplicated.
+    return ["UTC", ...tzList.filter((tz) => tz !== "UTC")];
+  } catch {
+    return ["UTC", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "Europe/London", "Europe/Paris", "Europe/Berlin", "Asia/Tokyo", "Asia/Shanghai", "Asia/Kolkata", "Australia/Sydney"];
+  }
+})();
+
+function TimezoneSelector() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: me } = useGetMe();
+  const { mutate: updateMe, isPending } = useUpdateMe();
+  const [timezone, setTimezone] = useState<string>("");
+
+  useEffect(() => {
+    if (me?.timezone && !timezone) setTimezone(me.timezone);
+  }, [me?.timezone]);
+
+  function handleSave() {
+    if (!timezone) return;
+    updateMe(
+      { data: { timezone } },
+      {
+        onSuccess: () => {
+          toast({ title: "Timezone saved", description: `Emails will now use ${timezone.replace(/_/g, " ")}.` });
+          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        },
+        onError: (err: any) => toast({ title: "Error saving timezone", description: err.message, variant: "destructive" }),
+      }
+    );
+  }
+
+  return (
+    <div className="mb-5 pb-5 border-b border-border space-y-2">
+      <Label htmlFor="tz-select" className="text-sm font-medium">Timezone</Label>
+      <p className="text-xs text-muted-foreground">Booking confirmation emails will show times in this timezone.</p>
+      <div className="flex gap-2 items-center">
+        <Select value={timezone} onValueChange={setTimezone}>
+          <SelectTrigger id="tz-select" className="flex-1" data-testid="timezone-select">
+            <SelectValue placeholder="Select your timezone…" />
+          </SelectTrigger>
+          <SelectContent className="max-h-64">
+            {IANA_TIMEZONES.map((tz) => (
+              <SelectItem key={tz} value={tz}>{tz.replace(/_/g, " ")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={isPending || !timezone || timezone === me?.timezone}
+          data-testid="save-timezone-btn"
+        >
+          {isPending ? "Saving…" : "Save"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const [, setLocation] = useLocation();
   const [reviewBooking, setReviewBooking] = useState<any>(null);
@@ -712,6 +779,7 @@ function DashboardContent() {
         <Card className="p-6 border-destructive/20">
           <h2 className="font-semibold text-foreground mb-1">Account Settings</h2>
           <p className="text-xs text-muted-foreground mb-4">Manage your account and data.</p>
+          <TimezoneSelector />
           <Button
             variant="outline"
             className="text-destructive border-destructive/30 hover:bg-destructive hover:text-white gap-2"

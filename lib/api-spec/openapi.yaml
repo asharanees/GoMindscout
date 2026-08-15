@@ -1550,6 +1550,7 @@ components:
         fullName: { type: ["string", "null"] }
         avatarUrl: { type: ["string", "null"] }
         role: { type: string, enum: [mentee, mentor, admin] }
+        timezone: { type: ["string", "null"] }
         createdAt: { type: string }
 
     UserProfileUpdate:
@@ -1557,6 +1558,7 @@ components:
       properties:
         fullName: { type: string }
         avatarUrl: { type: string }
+        timezone: { type: string }
 
     Category:
       type: object

@@ -24,6 +24,7 @@ export const GetMeResponse = zod.object({
   fullName: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   role: zod.enum(["mentee", "mentor", "admin"]),
+  timezone: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -33,6 +34,7 @@ export const GetMeResponse = zod.object({
 export const UpdateMeBody = zod.object({
   fullName: zod.string().optional(),
   avatarUrl: zod.string().optional(),
+  timezone: zod.string().optional(),
 });
 
 export const UpdateMeResponse = zod.object({
@@ -42,6 +44,7 @@ export const UpdateMeResponse = zod.object({
   fullName: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   role: zod.enum(["mentee", "mentor", "admin"]),
+  timezone: zod.string().nullish(),
   createdAt: zod.string(),
 });
 
@@ -98,7 +101,7 @@ export const ListMentorsResponse = zod.object({
       yearsExperience: zod.number().nullish(),
       languages: zod.array(zod.string()).optional(),
       hourlyRate: zod.number().nullish(),
-      currency: zod.literal("USD").nullish(),
+      currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
       introVideoUrl: zod.string().nullish(),
       linkedinUrl: zod.string().nullish(),
       calendlyUrl: zod.string().nullish(),
@@ -167,6 +170,7 @@ export const ListMentorsResponse = zod.object({
 /**
  * @summary Submit a new mentor profile (pending approval)
  */
+
 export const CreateMentorProfileBody = zod.object({
   headline: zod.string(),
   bio: zod.string().optional(),
@@ -176,7 +180,7 @@ export const CreateMentorProfileBody = zod.object({
   yearsExperience: zod.number().optional(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().optional(),
-  currency: zod.literal("USD").optional(),
+  currency: zod.enum(["USD"]).optional(),
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
@@ -248,7 +252,7 @@ export const GetFeaturedMentorsResponseItem = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -329,7 +333,7 @@ export const GetMyMentorProfileResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -393,6 +397,7 @@ export const GetMyMentorProfileResponse = zod.object({
 /**
  * @summary Update own mentor profile
  */
+
 export const UpdateMyMentorProfileBody = zod.object({
   headline: zod.string().optional(),
   bio: zod.string().optional(),
@@ -402,7 +407,7 @@ export const UpdateMyMentorProfileBody = zod.object({
   yearsExperience: zod.number().optional(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().optional(),
-  currency: zod.literal("USD").optional(),
+  currency: zod.enum(["USD"]).optional(),
   introVideoUrl: zod.string().optional(),
   linkedinUrl: zod.string().optional(),
   calendlyUrl: zod.string().optional(),
@@ -472,7 +477,7 @@ export const UpdateMyMentorProfileResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -555,6 +560,7 @@ export const GetMentorAvailabilityResponse = zod.array(
 /**
  * @summary Set own mentor availability schedule (replaces all existing)
  */
+
 export const SetMyAvailabilityBody = zod.object({
   timezone: zod.string(),
   availability: zod
@@ -621,7 +627,7 @@ export const GetMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1485,7 +1491,7 @@ export const AdminListMentorsResponseItem = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1573,7 +1579,7 @@ export const AdminApproveMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1659,7 +1665,7 @@ export const AdminFeatureMentorResponse = zod.object({
   yearsExperience: zod.number().nullish(),
   languages: zod.array(zod.string()).optional(),
   hourlyRate: zod.number().nullish(),
-  currency: zod.literal("USD").nullish(),
+  currency: zod.union([zod.literal("USD"), zod.literal(null)]).nullish(),
   introVideoUrl: zod.string().nullish(),
   linkedinUrl: zod.string().nullish(),
   calendlyUrl: zod.string().nullish(),
@@ -1915,6 +1921,7 @@ export const AdminSuspendUserResponse = zod.object({
   fullName: zod.string().nullish(),
   avatarUrl: zod.string().nullish(),
   role: zod.enum(["mentee", "mentor", "admin"]),
+  timezone: zod.string().nullish(),
   createdAt: zod.string(),
 });
 

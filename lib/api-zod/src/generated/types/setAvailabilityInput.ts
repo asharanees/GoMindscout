@@ -9,5 +9,6 @@ import type { SetAvailabilityInputAvailabilityItem } from "./setAvailabilityInpu
 
 export interface SetAvailabilityInput {
   timezone: string;
+  /** @minItems 1 */
   availability: SetAvailabilityInputAvailabilityItem[];
 }

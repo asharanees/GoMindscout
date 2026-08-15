@@ -16,5 +16,7 @@ export interface UserProfile {
   /** @nullable */
   avatarUrl?: string | null;
   role: UserProfileRole;
+  /** @nullable */
+  timezone?: string | null;
   createdAt: string;
 }
