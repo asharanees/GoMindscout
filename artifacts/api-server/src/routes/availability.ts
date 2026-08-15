@@ -12,6 +12,48 @@ import { requireAuth, getUserByClerkId } from "../lib/auth";
 
 const router = Router();
 
+function getTimeZoneOffsetMinutes(date: Date, timeZone: string): number {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(date);
+  const map: Record<string, string> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") map[part.type] = part.value;
+  }
+
+  const zonedMs = Date.UTC(
+    Number(map.year),
+    Number(map.month) - 1,
+    Number(map.day),
+    Number(map.hour),
+    Number(map.minute),
+    Number(map.second),
+  );
+
+  return (zonedMs - date.getTime()) / 60000;
+}
+
+function localWallTimeToUtc(dateParts: { year: number; month: number; day: number; hour: number; minute: number }, timeZone: string): Date {
+  const wallClockMs = Date.UTC(
+    dateParts.year,
+    dateParts.month - 1,
+    dateParts.day,
+    dateParts.hour,
+    dateParts.minute,
+  );
+  const offsetMinutes = getTimeZoneOffsetMinutes(new Date(wallClockMs), timeZone);
+  return new Date(wallClockMs - offsetMinutes * 60 * 1000);
+}
+
 // GET /api/mentors/:mentorId/availability
 router.get("/:mentorId/availability", async (req, res) => {
   try {
@@ -223,6 +265,7 @@ router.get("/:mentorId/slots", async (req, res) => {
       const [eh, em] = window.endTime.split(":").map(Number);
       const windowStart = sh * 60 + sm;
       const windowEnd = eh * 60 + em;
+      const tz = window.timezone || "UTC";
 
       for (
         let slotStart = windowStart;
@@ -230,11 +273,25 @@ router.get("/:mentorId/slots", async (req, res) => {
         slotStart += durationMinutes
       ) {
         const slotEnd = slotStart + durationMinutes;
-        const start = new Date(
-          Date.UTC(year, month - 1, day, Math.floor(slotStart / 60), slotStart % 60)
+        const start = localWallTimeToUtc(
+          {
+            year,
+            month,
+            day,
+            hour: Math.floor(slotStart / 60),
+            minute: slotStart % 60,
+          },
+          tz,
         ).toISOString();
-        const end = new Date(
-          Date.UTC(year, month - 1, day, Math.floor(slotEnd / 60), slotEnd % 60)
+        const end = localWallTimeToUtc(
+          {
+            year,
+            month,
+            day,
+            hour: Math.floor(slotEnd / 60),
+            minute: slotEnd % 60,
+          },
+          tz,
         ).toISOString();
 
         // Don't return past slots
