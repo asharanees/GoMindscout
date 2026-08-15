@@ -159,6 +159,7 @@ function ProposeRescheduleDialog({ booking, onClose }: { booking: any; onClose: 
   const [proposedAt, setProposedAt] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const [loading, setLoading] = useState(false);
 
   async function submit() {
@@ -193,7 +194,7 @@ function ProposeRescheduleDialog({ booking, onClose }: { booking: any; onClose: 
             <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground">
               Current time:{" "}
               <strong className="text-foreground">
-                {new Date(booking.scheduledAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {(() => { const f = formatInTimezone(booking.scheduledAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
               </strong>
             </div>
           )}
@@ -226,6 +227,7 @@ function CounterProposeDialog({ booking, onClose }: { booking: any; onClose: () 
   const [note, setNote] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { mutate: counterPropose, isPending } = useCounterProposeBooking();
 
   function submit() {
@@ -252,7 +254,7 @@ function CounterProposeDialog({ booking, onClose }: { booking: any; onClose: () 
             <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground">
               Mentee proposed:{" "}
               <strong className="text-foreground">
-                {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {(() => { const f = formatInTimezone(booking.proposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
               </strong>
             </div>
           )}
@@ -346,6 +348,7 @@ function ApprovalRow({ booking }: { booking: any }) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { mutate: approveBooking, isPending: approving } = useApproveBooking();
   const initials = (booking.menteeName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -379,7 +382,7 @@ function ApprovalRow({ booking }: { booking: any }) {
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
               <Calendar className="h-3 w-3" />
               Proposed:{" "}
-              {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              {(() => { const f = formatInTimezone(booking.proposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
             </p>
           ) : (
             <p className="text-xs text-muted-foreground mt-1">No time proposed — you can suggest one</p>
@@ -495,7 +498,9 @@ function formatInTimezone(dateStr: string, timezone?: string | null) {
   const opts: Intl.DateTimeFormatOptions = { timeZone: timezone ?? undefined };
   const date = new Intl.DateTimeFormat(undefined, { ...opts, year: "numeric", month: "numeric", day: "numeric" }).format(d);
   const time = new Intl.DateTimeFormat(undefined, { ...opts, hour: "2-digit", minute: "2-digit" }).format(d);
-  return { date, time };
+  const parts = new Intl.DateTimeFormat(undefined, { ...opts, timeZoneName: "short" }).formatToParts(d);
+  const tzLabel = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  return { date, time, tzLabel };
 }
 
 function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: { booking: any; onAddLink: (b: any) => void; onChat?: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
@@ -569,12 +574,12 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: 
             {booking.menteeName || "Mentee"}
           </button>
           <p className="text-xs text-muted-foreground">{booking.packageTitle || "Session"}</p>
-          {booking.scheduledAt && (
+          {booking.scheduledAt && (() => { const f = formatInTimezone(booking.scheduledAt, me?.timezone); return (
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
               <Calendar className="h-3 w-3" />
-              {formatInTimezone(booking.scheduledAt, me?.timezone).date} at {formatInTimezone(booking.scheduledAt, me?.timezone).time}
+              {f.date} at {f.time} {f.tzLabel}
             </p>
-          )}
+          ); })()}
           {booking.hasDispute && (
             <div className="mt-1 text-xs rounded px-2 py-1 bg-orange-50 border border-orange-200">
               <p className="font-medium text-orange-700">
@@ -649,7 +654,7 @@ function BookingRow({ booking, onAddLink, onChat, onMeeting, chatUnread = {} }: 
         <div className="ml-14 bg-amber-50 border border-amber-200 rounded-lg px-3 py-3">
           <p className="text-xs font-semibold text-amber-800 mb-1">Mentee requested to reschedule:</p>
           <p className="text-sm font-medium text-amber-900 mb-2">
-            {new Date(booking.rescheduleProposedAt).toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+            {(() => { const f = formatInTimezone(booking.rescheduleProposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
           </p>
           <div className="flex gap-2">
             <Button size="sm" className="h-7 text-xs gap-1 bg-green-600 hover:bg-green-700" onClick={handleAcceptReschedule} disabled={acceptingReschedule} data-testid="accept-reschedule-btn">
@@ -873,6 +878,7 @@ function CreateCourseDialog({ onClose }: { onClose: () => void }) {
 function ManageCourseSessionsDialog({ course, onClose }: { course: any; onClose: () => void }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { data: allSessions } = useListMyGroupSessions();
   const courseSessions = (allSessions ?? []).filter((s: any) => s.courseId === course.id);
 
@@ -956,15 +962,12 @@ function ManageCourseSessionsDialog({ course, onClose }: { course: any; onClose:
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{s.title}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
-                    {s.scheduledAt && (
+                    {s.scheduledAt && (() => { const f = formatInTimezone(s.scheduledAt, me?.timezone); return (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {new Date(s.scheduledAt).toLocaleString(undefined, {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
+                        {f.date} at {f.time} {f.tzLabel}
                       </span>
-                    )}
+                    ); })()}
                     {s.durationMinutes && (
                       <span className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
@@ -1098,6 +1101,7 @@ function MentorDashboardContent() {
   const [createMasterclassOpen, setCreateMasterclassOpen] = useState(false);
   const [createCourseOpen, setCreateCourseOpen] = useState(false);
   const [managingCourse, setManagingCourse] = useState<any>(null);
+  const { data: me } = useGetMe();
   const { data: stats, isLoading: statsLoading } = useGetMentorDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentor" });
   const { data: payoutInfo, isLoading: payoutsLoading } = useGetMentorPayouts();
@@ -1341,9 +1345,7 @@ function MentorDashboardContent() {
                         <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-1">
                           <span className="capitalize text-primary/80 font-medium px-2 py-0.5 bg-primary/10 rounded">{session.status}</span>
                           <span>{session.enrolledCount} / {session.maxSeats} enrolled</span>
-                          {session.scheduledAt && (
-                            <span>{new Date(session.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
-                          )}
+                          {session.scheduledAt && (() => { const f = formatInTimezone(session.scheduledAt, me?.timezone); return <span>{f.date} at {f.time} {f.tzLabel}</span>; })()}
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5 items-end shrink-0">

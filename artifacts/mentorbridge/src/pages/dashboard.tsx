@@ -171,6 +171,7 @@ function ProposeRescheduleDialog({ booking, onClose }: { booking: any; onClose: 
   const [proposedAt, setProposedAt] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const [loading, setLoading] = useState(false);
 
   async function submit() {
@@ -202,7 +203,7 @@ function ProposeRescheduleDialog({ booking, onClose }: { booking: any; onClose: 
             <div className="bg-muted rounded-lg px-3 py-2 text-xs text-muted-foreground">
               Current time:{" "}
               <strong className="text-foreground">
-                {new Date(booking.scheduledAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {(() => { const f = formatInTimezone(booking.scheduledAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
               </strong>
             </div>
           )}
@@ -233,6 +234,7 @@ function ProposeRescheduleDialog({ booking, onClose }: { booking: any; onClose: 
 function CounterProposalCard({ booking }: { booking: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const { mutate: acceptCounter, isPending: accepting } = useAcceptCounterProposal();
   const { mutate: declineCounter, isPending: declining } = useDeclineCounterProposal();
   const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -279,14 +281,14 @@ function CounterProposalCard({ booking }: { booking: any }) {
           {booking.proposedAt && (
             <p className="text-xs text-muted-foreground mt-0.5">
               Your proposed time:{" "}
-              {new Date(booking.proposedAt).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+              {(() => { const f = formatInTimezone(booking.proposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
             </p>
           )}
           {booking.mentorProposedAt && (
             <div className="mt-2 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
               <p className="text-xs font-semibold text-purple-800 mb-0.5">Mentor's counter-proposal:</p>
               <p className="text-sm font-medium text-purple-900">
-                {new Date(booking.mentorProposedAt).toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {(() => { const f = formatInTimezone(booking.mentorProposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
               </p>
             </div>
           )}
@@ -307,6 +309,7 @@ function CounterProposalCard({ booking }: { booking: any }) {
 function RescheduleProposalCard({ booking }: { booking: any }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: me } = useGetMe();
   const [accepting, setAccepting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const initials = (booking.mentorName || "M").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -357,7 +360,7 @@ function RescheduleProposalCard({ booking }: { booking: any }) {
             <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
               <p className="text-xs font-semibold text-amber-800 mb-0.5">Mentor wants to reschedule to:</p>
               <p className="text-sm font-medium text-amber-900">
-                {new Date(booking.rescheduleProposedAt).toLocaleString([], { weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                {(() => { const f = formatInTimezone(booking.rescheduleProposedAt, me?.timezone); return `${f.date} at ${f.time} ${f.tzLabel}`; })()}
               </p>
             </div>
           )}
@@ -380,7 +383,9 @@ function formatInTimezone(dateStr: string, timezone?: string | null) {
   const opts: Intl.DateTimeFormatOptions = { timeZone: timezone ?? undefined };
   const date = new Intl.DateTimeFormat(undefined, { ...opts, year: "numeric", month: "numeric", day: "numeric" }).format(d);
   const time = new Intl.DateTimeFormat(undefined, { ...opts, hour: "2-digit", minute: "2-digit" }).format(d);
-  return { date, time };
+  const parts = new Intl.DateTimeFormat(undefined, { ...opts, timeZoneName: "short" }).formatToParts(d);
+  const tzLabel = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  return { date, time, tzLabel };
 }
 
 function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: { booking: any; onReview: (b: any) => void; onChat: (bookingId: number) => void; onMeeting?: (b: any) => void; chatUnread?: Record<number, number> }) {
@@ -428,16 +433,16 @@ function BookingRow({ booking, onReview, onChat, onMeeting, chatUnread = {} }: {
           {booking.mentorName || "Mentor"}
         </button>
         <p className="text-xs text-muted-foreground">{booking.packageTitle || booking.packageType || "Session"}</p>
-        {booking.proposedAt && !booking.scheduledAt && (
+        {booking.proposedAt && !booking.scheduledAt && (() => { const f = formatInTimezone(booking.proposedAt, me?.timezone); return (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <Clock className="h-3 w-3" /> Proposed: {formatInTimezone(booking.proposedAt, me?.timezone).date} at {formatInTimezone(booking.proposedAt, me?.timezone).time}
+            <Clock className="h-3 w-3" /> Proposed: {f.date} at {f.time} {f.tzLabel}
           </p>
-        )}
-        {booking.scheduledAt && (
+        ); })()}
+        {booking.scheduledAt && (() => { const f = formatInTimezone(booking.scheduledAt, me?.timezone); return (
           <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-            <Calendar className="h-3 w-3" /> {formatInTimezone(booking.scheduledAt, me?.timezone).date} at {formatInTimezone(booking.scheduledAt, me?.timezone).time}
+            <Calendar className="h-3 w-3" /> {f.date} at {f.time} {f.tzLabel}
           </p>
-        )}
+        ); })()}
         {canJoin && (
           <button
             type="button"
@@ -614,6 +619,7 @@ function DashboardContent() {
   const { data: stats, isLoading: statsLoading } = useGetMenteeDashboardStats();
   const { data: bookings, isLoading: bookingsLoading } = useListMyBookings({ role: "mentee" });
   const { data: enrollmentsData, isLoading: enrollmentsLoading } = useListMyEnrollments();
+  const { data: me } = useGetMe();
 
   useEffect(() => {
     let cancelled = false;
@@ -713,7 +719,7 @@ function DashboardContent() {
                     <p className="text-xs text-muted-foreground">{e.courseId ? "Course Enrollment" : "Masterclass Entry"}</p>
                     {e.scheduledAt && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                        <Calendar className="h-3 w-3" /> {new Date(e.scheduledAt).toLocaleDateString()} at {new Date(e.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {(() => { const f = formatInTimezone(e.scheduledAt, me?.timezone); return <><Calendar className="h-3 w-3" /> {f.date} at {f.time} {f.tzLabel}</>; })()}
                       </p>
                     )}
                   </div>
